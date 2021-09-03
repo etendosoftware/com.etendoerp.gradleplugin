@@ -1,12 +1,18 @@
 package com.etendoerp;
 
-import com.etendoerp.plugin.EtendoModule;
-import org.gradle.api.Plugin;
-import org.gradle.api.Project;
+import com.etendoerp.legacy.EtendoLegacy
+import org.gradle.api.Plugin
+import org.gradle.api.Project
+import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
+import org.gradle.api.publish.plugins.PublishingPlugin
 
 class EtendoPlugin implements Plugin<Project> {
     @Override
     void apply(Project project) {
-        EtendoModule.load(project);
+        def extension = project.extensions.create('etendo', EtendoPluginExtension)
+        project.getPluginManager().apply(PublishingPlugin.class)
+        project.getPluginManager().apply(MavenPublishPlugin.class)
+
+        EtendoLegacy.load(project)
     }
 }

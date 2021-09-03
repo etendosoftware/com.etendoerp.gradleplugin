@@ -1,0 +1,119 @@
+package com.etendoerp.legacy.utils
+
+import groovy.json.JsonSlurper
+import org.gradle.api.Project
+import org.gradle.api.artifacts.repositories.PasswordCredentials
+import org.gradle.api.internal.tasks.userinput.NonInteractiveUserInputHandler
+import org.gradle.api.internal.tasks.userinput.UserInputHandler
+
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
+
+class NexusUtils {
+
+    /** Method to  info about a module in  the Nexus API
+     * @return Array<Strings> with module information
+     * */
+    static ArrayList<String> nexusModuleInfo(String user, String password, String group, String name){
+        ArrayList versions = [];
+        String url = 'https://repo.futit.cloud/service/rest/v1/search?&group='+group+'&name='+name
+        String userpass = user + ":" + password;
+        String basicAuth = "Basic " + new String(Base64.getEncoder().encode(userpass.getBytes()));
+        HttpClient client = HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).build();
+        URI nexus = URI.create(url);
+        HttpRequest request = HttpRequest.newBuilder(nexus).GET().header("Authorization", basicAuth).build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        def Json =new JsonSlurper().parseText(response.body())
+        Json.items.each{
+            versions.add(it.version)
+        }
+        String continuationToken = Json.continuationToken;
+        while (continuationToken != null) {
+            String nextPageUrl = 'https://repo.futit.cloud/service/rest/v1/search?&group='+group+'&name='+name+'&continuationToken='+continuationToken;
+            URI nextPageUri = URI.create(nextPageUrl)
+            HttpRequest req = HttpRequest.newBuilder(nextPageUri).GET().header("Authorization", basicAuth).build();
+            HttpResponse<String> resp = client.send(req, HttpResponse.BodyHandlers.ofString());
+            def nextPage =new JsonSlurper().parseText(resp.body())
+            nextPage.items.each{
+                versions.add(it.version)
+            }
+            continuationToken = new JsonSlurper().parseText(resp.body()).continuationToken;
+        }
+        return versions
+    }
+
+    /** Method to check in the own Server API if a module is already defined
+     * @return true when the module is already deployed in Nexus
+     * */
+    static String moduleExistInNexus(String module){
+        def req = new URL('https://api.futit.cloud/migrations/nexus?module_javapackage='+ module).openConnection()
+        return req.getResponseCode()==302
+    }
+
+    /**
+     * Tries to get user credentials from the project extra properties.
+     * If the credentials are not found, searches the properties defined in the gradle.properties file or System properties.
+     * A user can set his credentials or System properties in the gradle.properties file adding the lines:
+     * mavenUser=mavenuser
+     * mavenPassword=mavenpassword
+     *
+     * Or define System properties
+     *
+     * systemProp.nexusUser=sysUser
+     * systemProp.nexusPassword=sysPass
+     *
+     * Once the credentials are found, it sets its on the Project extra properties
+     *
+     */
+    static askNexusCredentials(Project project) {
+        def nexusUser = "";
+        def nexusPassword = "";
+        if(project.ext.get("nexusUser") != null && project.ext.get("nexusPassword") != null) {
+            nexusUser = project.ext.get("nexusUser")
+            nexusPassword = project.ext.get("nexusPassword")
+        } else if(System.getProperty("nexusUser") != null && System.getProperty("nexusPassword") != null) {
+            nexusUser = System.getProperty("nexusUser")
+            nexusPassword = System.getProperty("nexusPassword")
+        } else if(project.hasProperty("mavenUser") && project.hasProperty("mavenPassword")) {
+            nexusUser = project.property("mavenUser")
+            nexusPassword = project.property("mavenPassword")
+        } else {
+            def input = project.getServices().get(UserInputHandler.class)
+            nexusUser = project.getServices().get(UserInputHandler.class).askQuestion("Nexus user", "")
+            nexusPassword = project.getServices().get(UserInputHandler.class).askQuestion("Nexus password", "")
+            if (!(input instanceof NonInteractiveUserInputHandler)) {
+                // Do not send prompt when using an non interactive console.
+                // Avoids a failure when refreshing gradle projects that use this function, in IntelliJ or other IDEs
+                input.sendPrompt("\033[F\r" + "Nexus password (default: ): ********* \n")
+            }
+        }
+
+        if (nexusUser && nexusPassword) {
+            project.ext.set("nexusUser", nexusUser)
+            project.ext.set("nexusPassword", nexusPassword)
+        }
+
+        project.repositories.configureEach {
+            def repoCredentials = it["credentials"] as PasswordCredentials
+            // Use credentials asked via the console when repo does not have any credentials configured
+            if (repoCredentials.getUsername() == null && repoCredentials.getPassword() == null) {
+                repoCredentials.setUsername(nexusUser)
+                repoCredentials.setPassword(nexusPassword)
+            }
+        }
+        project.repositories {
+            maven {
+                url "https://repo.futit.cloud/repository/maven-releases"
+                credentials {
+                    username nexusUser
+                    password nexusPassword
+                }
+            }
+            maven {
+                url "https://repo.futit.cloud/repository/maven-public-releases"
+            }
+        }
+    }
+
+}
