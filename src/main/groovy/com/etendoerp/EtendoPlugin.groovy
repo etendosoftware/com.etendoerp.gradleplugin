@@ -1,5 +1,6 @@
-package com.etendoerp;
+package com.etendoerp
 
+import com.etendoerp.jars.JarLoader;
 import com.etendoerp.legacy.EtendoLegacy
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -14,5 +15,7 @@ class EtendoPlugin implements Plugin<Project> {
         project.getPluginManager().apply(MavenPublishPlugin.class)
 
         EtendoLegacy.load(project)
+        JarLoader.load(project)
+
     }
 }
