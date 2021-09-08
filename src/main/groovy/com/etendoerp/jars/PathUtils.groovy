@@ -1,5 +1,7 @@
 package com.etendoerp.jars
 
+import org.gradle.api.Project
+
 class PathUtils {
 
     final static String PACKAGE_SEPARATOR = "."
@@ -36,6 +38,24 @@ class PathUtils {
         paths.set(paths.size() - 1, className)
 
         return paths.join(PACKAGE_SEPARATOR)
+    }
+
+    static  List<String> fromPackageToPathClass(List<String> classes){
+       ArrayList<String> result = new ArrayList<>()
+
+        for (String currentClass in classes){
+            result.add(currentClass.replace('.','/').concat('.class'))
+            result.add(currentClass.replace('.','/').concat('$*.class'))
+        }
+        return result
+    }
+
+
+    static  List<String> getClassExcludingGenerated(Project project, String classLocation){
+        return  project.fileTree(classLocation).matching ({
+            include('**/*.class')
+            exclude (fromPackageToPathClass(Utils.generated))
+        }).collect({ it.getAbsolutePath()})
     }
 
 }
