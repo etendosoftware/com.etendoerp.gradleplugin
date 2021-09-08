@@ -50,4 +50,12 @@ class PathUtils {
         return result
     }
 
+
+    static  List<String> getClassExcludingGenerated(Project project, String classLocation){
+        return  project.fileTree(classLocation).matching ({
+            include('**/*.class')
+            exclude (fromPackageToPathClass(Utils.generated))
+        }).collect({ it.getAbsolutePath()})
+    }
+
 }
