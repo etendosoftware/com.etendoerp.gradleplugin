@@ -585,7 +585,7 @@ class LegacyScriptLoader {
          * This task require command line parameter -Ppkg=<package name> -Prepo=<Repository Name>
          * */
         project.task("registerModule"){
-            //dependsOn(project.tasks.findByName("createModuleBuild"))
+            dependsOn(project.tasks.findByName("createModuleBuild"))
             doLast {
                 NexusUtils.askNexusCredentials(project)
                 def pkgVar, repoVar
