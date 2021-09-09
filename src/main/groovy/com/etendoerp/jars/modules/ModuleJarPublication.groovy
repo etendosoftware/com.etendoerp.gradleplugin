@@ -1,6 +1,7 @@
 package com.etendoerp.jars.modules
 
 import com.etendoerp.gradleutils.GradleUtils
+import com.etendoerp.legacy.utils.NexusUtils
 import org.gradle.api.Project
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.publish.maven.tasks.AbstractPublishToMaven
@@ -45,6 +46,15 @@ class ModuleJarPublication {
                 publishTask.publication.pom.withXml {
                     it.asNode().append(dependencies)
                     it.asNode().append(repositories)
+                }
+
+                if (jarMetadata.group != null) {
+                    project.publishing.repositories.maven.url = jarMetadata.repository
+                    project.publishing.repositories.maven.credentials {
+                        NexusUtils.askNexusCredentials(project)
+                        username project.ext.get("nexusUser")
+                        password project.ext.get("nexusPassword")
+                    }
                 }
             }
         }
