@@ -1,11 +1,12 @@
 package com.etendoerp.jars
 
+import com.etendoerp.jars.modules.ModuleJarLoader
 import org.gradle.api.Project
 
 class JarLoader {
 
     static load(Project project) {
-
+        ModuleJarLoader.load(project)
     }
 
 }
