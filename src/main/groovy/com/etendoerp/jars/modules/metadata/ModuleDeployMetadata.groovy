@@ -1,30 +1,21 @@
-package com.etendoerp.jars.modules
+package com.etendoerp.jars.modules.metadata
 
 import com.etendoerp.jars.PathUtils
+import com.etendoerp.jars.modules.ModuleJarGenerator
+import com.etendoerp.jars.modules.ModuleJarPublication
 import org.gradle.api.Project
 
 /**
- * Class used to contain information about the module being published.
- * Information of this class will be used for maven to generate the corresponding pom.xml
+ * This class is used to obtain all the necessary information to publish.
+ * The information will be took from a 'deploy.gradle' file.
  */
-class ModuleMetadata {
+class ModuleDeployMetadata extends ModuleMetadata{
 
-    final static String REPOSITORY_ID = "partner-repo"
+    // Stores dependencies with format "group:artifact:version@type"
+    List<String> dependencies
 
-    Project project
-    String moduleName
-    String group
-    String artifactId
-    String version
-    String repository
-    String metadataLocation
-    List<String> dependencies = new ArrayList<>()
-
-    ModuleMetadata(Project project, String moduleName) {
-        this.project = project
-        this.moduleName = moduleName
-        loadMetadataLocation()
-        loadMetadata()
+    ModuleDeployMetadata(Project project, String moduleName) {
+        super(project, moduleName)
     }
 
     void loadMetadataLocation() {
@@ -39,7 +30,10 @@ class ModuleMetadata {
         }
     }
 
+    @Override
     void loadMetadata() {
+        this.dependencies = new ArrayList<>()
+        loadMetadataLocation()
         BufferedReader br_build = new BufferedReader(new FileReader(metadataLocation))
         String line
         while ((line = br_build.readLine()) != null) {
@@ -52,7 +46,7 @@ class ModuleMetadata {
             if (line.contains("version") && line.contains("=")){
                 version = line.split("=")[1].trim().replace("'", "")
             }
-            if (line.contains("compile")&& line.contains(" ")){
+            if (line.contains("compile") && line.contains(" ")){
                 dependencies.add(line.trim().split(" ")[1].replace("'", ""))
             }
             if (line.contains("url")){
@@ -63,20 +57,9 @@ class ModuleMetadata {
         artifactId = moduleName.toString().replace(group + ".", "")
     }
 
-    void showModuleMetadata() {
-        println("MODULE")
-        println("----------")
-        println("GROUP: "        + group)
-        println("ARTIFACT_ID: "  + artifactId)
-        println("VERSION: "      + version)
-        println("DEPENDENCIES: " + dependencies)
-        println("REPOSITORY: "   + repository)
-        println("----------")
-    }
-
+    @Override
     Node createDependenciesNode() {
         def dependenciesNode = new Node(null, "dependencies")
-
         this.dependencies.each {
             def dependencyNode = dependenciesNode.appendNode("dependency")
             def elements = it.toString().split(":")
@@ -90,19 +73,12 @@ class ModuleMetadata {
             if (versionElements.size() >= 2) {
                 dependencyNode.appendNode("type", versionElements[1])
             }
-
         }
         return dependenciesNode
     }
 
-    Node createRepositoriesNode() {
-        def repositoriesNode = new Node(null, "repositories")
-        def repositoryNode = repositoriesNode.appendNode("repository")
-
-        repositoryNode.appendNode("id", REPOSITORY_ID)
-        repositoryNode.appendNode("url", this.repository)
-
-        return repositoriesNode
+    @Override
+    String getDependenciesValues() {
+        return this.dependencies.toString()
     }
-
 }

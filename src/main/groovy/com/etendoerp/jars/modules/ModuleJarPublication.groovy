@@ -1,7 +1,8 @@
 package com.etendoerp.jars.modules
 
 import com.etendoerp.gradleutils.GradleUtils
-import com.etendoerp.legacy.utils.NexusUtils
+
+import com.etendoerp.jars.modules.metadata.ModuleDeployMetadata
 import org.gradle.api.Project
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.publish.maven.tasks.AbstractPublishToMaven
@@ -28,41 +29,22 @@ class ModuleJarPublication {
             doLast {
                 AbstractPublishToMaven publishTask = project.tasks.findByName("publish${PUBLICATION_NAME}PublicationTo${PUBLICATION_DESTINE}") as AbstractPublishToMaven
 
-                def jarMetadata = new ModuleMetadata(project, ModuleJarUtils.loadModuleName(project))
+                def jarMetadata = new ModuleDeployMetadata(project, ModuleJarUtils.loadModuleName(project))
                 jarMetadata.showModuleMetadata()
-
-                publishTask.publication.groupId    = jarMetadata.group
-                publishTask.publication.artifactId = jarMetadata.artifactId
-                publishTask.publication.version    = jarMetadata.version
 
                 // Cast the jar task
                 Jar moduleJar = project.tasks.named(jarTask).get() as Jar
-
                 def jarLocation = moduleJar.archiveFile.get()
-                publishTask.publication.artifact(jarLocation)
 
-                def dependencies = jarMetadata.createDependenciesNode()
-                def repositories = jarMetadata.createRepositoriesNode()
-                publishTask.publication.pom.withXml {
-                    it.asNode().append(dependencies)
-                    it.asNode().append(repositories)
-                }
-
-                if (jarMetadata.group != null) {
-                    project.publishing.repositories.maven.url = jarMetadata.repository
-                    project.publishing.repositories.maven.credentials {
-                        NexusUtils.askNexusCredentials(project)
-                        username project.ext.get("nexusUser")
-                        password project.ext.get("nexusPassword")
-                    }
-                }
+                // Load the maven task with the necessary information to publish
+                jarMetadata.loadMavenTask(publishTask, jarLocation)
             }
         }
 
         project.tasks.register("publishJar") {
             def tasks = [
                     "publishJarConfig",
-                    "publish${PUBLICATION_NAME}PublicationToMavenLocal"
+                    "publish${PUBLICATION_NAME}PublicationTo${PUBLICATION_DESTINE}"
             ]
             GradleUtils.setTasksOrder(project, tasks)
             dependsOn(tasks)
