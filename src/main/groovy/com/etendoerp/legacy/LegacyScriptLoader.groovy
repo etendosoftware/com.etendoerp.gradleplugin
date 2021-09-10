@@ -491,7 +491,7 @@ class LegacyScriptLoader {
             def repo
             List<String> deps = new ArrayList<>()
             if(project.hasProperty("pkg")) {
-                pkgVar = pkg
+                pkgVar = project.findProperty("pkg")
                 if ( project.file("modules/$pkgVar/deploy.gradle").exists()){
                     BufferedReader br_build = new BufferedReader(new FileReader("modules/$pkgVar/deploy.gradle"));
                     String line;
@@ -585,7 +585,7 @@ class LegacyScriptLoader {
          * This task require command line parameter -Ppkg=<package name> -Prepo=<Repository Name>
          * */
         project.task("registerModule"){
-            //dependsOn(project.tasks.findByName("createModuleBuild"))
+            dependsOn("createModuleBuild")
             doLast {
                 NexusUtils.askNexusCredentials(project)
                 def pkgVar, repoVar
@@ -701,7 +701,7 @@ class LegacyScriptLoader {
 
                 def pkgVar, repoVar
                 if (project.hasProperty("pkg"))
-                    pkgVar = pkg
+                    pkgVar = project.findProperty("pkg")
                 if (project.hasProperty("repo"))
                     repoVar = repo
 
@@ -722,7 +722,7 @@ class LegacyScriptLoader {
                         "description = '" + description + "'\n \n"
 
                 deployFile.text = headerText +
-                        DependenciesUtils.createDependenciesText(true, pkgVar) + "\n" +
+                        DependenciesUtils.createDependenciesText(project, true, pkgVar) + "\n" +
                         "publishing{\n" +
                         "    repositories {\n" +
                         "        maven {\n" +
@@ -730,7 +730,7 @@ class LegacyScriptLoader {
                         "        }\n" +
                         "    }\n" +
                         "}";
-                buildFile.text = headerText + DependenciesUtils.createDependenciesText(false, pkgVar);
+                buildFile.text = headerText + DependenciesUtils.createDependenciesText(project, false, pkgVar);
             }
         }
 
