@@ -19,7 +19,7 @@ class JarCoreGenerator {
                 }
 
                 jarTask.from('build/resources') {
-                    into('META-INF')
+                    into('META-INF/etendo')
                 }
 
             }
@@ -63,7 +63,7 @@ class JarCoreGenerator {
             exclude "**/*${FileExtensions.JAVA}"
             exclude "**/*${FileExtensions.HBM_XML}"
             exclude "**/*${FileExtensions.XSQL}"
-            into "${project.buildDir}/resources/modules_core"
+            into "${project.buildDir}/resources/modules"
         }
 
         project.tasks.register("copySrcJmh", Copy) {
@@ -108,12 +108,22 @@ class JarCoreGenerator {
         project.tasks.register("copyBuild", Copy) {
             from ("${project.projectDir}")
             include "build.xml"
-
-
             into "${project.buildDir}/resources"
         }
 
+        project.tasks.register("copyReferenceData", Copy) {
+            from ("${project.projectDir}/referencedata")
+            into "${project.buildDir}/resources/referencedata"
+        }
+
+        project.tasks.register("copyConfig", Copy) {
+            from ("${project.projectDir}/config")
+            into "${project.buildDir}/resources/config"
+        }
+
         def resourcesDirs = [
+                "copyReferenceData",
+                "copyConfig",
                 "copyBuild",
                 "copyBeans",
                 "copyLibs",
