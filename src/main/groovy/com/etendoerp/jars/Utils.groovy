@@ -14,7 +14,7 @@ class Utils {
         generated = new ArrayList<String>()
         def file = new File("${project.buildDir.absolutePath}${fileDir}")
         if (!file.exists()){
-            throw new IllegalArgumentException( "generated file not exist, run compilecomplete or generate.entities to create the generated file")
+            throw new IllegalArgumentException( "Generated file does not exist, run compile.complete or generate.entities to create it")
         }
         file.eachLine { line ->
             generated.add(line)
