@@ -3,6 +3,7 @@ package com.etendoerp.jars
 class FileExtensions {
 
     final static String JAVA    = ".java"
+    final static String JAR     = ".jar"
     final static String CLASS   = ".class"
     final static String HBM_XML = ".hbm.xml"
     final static String XML     = ".xml"

@@ -25,29 +25,111 @@ class JarCoreGenerator {
             }
         }
 
-        project.tasks.register("copyWebResources", Copy) {
-            from ("${project.projectDir}/web",)
-            into "${project.buildDir}/resources/web"
-        }
-
         project.tasks.register("copyBeans", Copy) {
             from "${project.projectDir}/modules_core/org.openbravo.base.weld/config/beans.xml"
             into "${project.buildDir}/resources"
         }
+
+        project.tasks.register("copyLibs", Copy) {
+            from "${project.projectDir}/lib"
+            into "${project.buildDir}/resources/lib"
+        }
+
         project.tasks.register("copySrcDB", Copy) {
             from "${project.projectDir}/src-db"
-                exclude "**/*${FileExtensions.JAVA}"
+            exclude "**/*${FileExtensions.JAVA}"
+            exclude "**/*${FileExtensions.HBM_XML}"
+            exclude "**/*${FileExtensions.XSQL}"
             into "${project.buildDir}/resources/src-db"
         }
 
         project.tasks.register("copySrc", Copy) {
             from "${project.projectDir}/src"
             exclude "**/*${FileExtensions.JAVA}"
+            exclude "**/*${FileExtensions.HBM_XML}"
+            exclude "**/*${FileExtensions.XSQL}"
             into "${project.buildDir}/resources/src"
         }
+        project.tasks.register("copyModules", Copy) {
+            from "${project.projectDir}/modules"
+            exclude "**/*${FileExtensions.JAVA}"
+            exclude "**/*${FileExtensions.HBM_XML}"
+            exclude "**/*${FileExtensions.XSQL}"
+            into "${project.buildDir}/resources/modules"
+        }
+
+        project.tasks.register("copyModulesCore", Copy) {
+            from "${project.projectDir}/modules_core"
+            exclude "**/*${FileExtensions.JAVA}"
+            exclude "**/*${FileExtensions.HBM_XML}"
+            exclude "**/*${FileExtensions.XSQL}"
+            into "${project.buildDir}/resources/modules_core"
+        }
+
+        project.tasks.register("copySrcJmh", Copy) {
+            from "${project.projectDir}/src-jmh"
+            exclude "**/*${FileExtensions.JAVA}"
+            exclude "**/*${FileExtensions.HBM_XML}"
+            exclude "**/*${FileExtensions.XSQL}"
+            into "${project.buildDir}/resources/src-jmh"
+        }
+
+        project.tasks.register("copySrcUtil", Copy) {
+            from ([
+                    "${project.projectDir}/src-util/buildvalidation/build/classes",
+                    "${project.projectDir}/src-util/modulescript/build/classes"
+            ])
+            include "**/*${FileExtensions.CLASS}"
+            into "${project.buildDir}/resources/src-util"
+        }
+
+        project.tasks.register("copySrcTrl", Copy) {
+            from "${project.projectDir}/src-trl/build"
+            include "**/*${FileExtensions.JAR}"
+            into "${project.buildDir}/resources/src-trl"
+        }
+
+        project.tasks.register("copySrcCore", Copy) {
+            from "${project.projectDir}/src-core/build"
+            include "**/*${FileExtensions.JAR}"
+            into "${project.buildDir}/resources/src-core"
+        }
+
+        project.tasks.register("copySrcWad", Copy) {
+            from "${project.projectDir}/src-wad/build"
+            include "**/*${FileExtensions.JAR}"
+            into "${project.buildDir}/resources/src-wad"
+        }
+
+        project.tasks.register("copyWebResources", Copy) {
+            from ("${project.projectDir}/web",)
+            into "${project.buildDir}/resources/web"
+        }
+        project.tasks.register("copyBuild", Copy) {
+            from ("${project.projectDir}")
+            include "build.xml"
+
+
+            into "${project.buildDir}/resources"
+        }
+
+        def resourcesDirs = [
+                "copyBuild",
+                "copyBeans",
+                "copyLibs",
+                "copySrcDB",
+                "copySrc",
+                "copyModules",
+                "copyModulesCore",
+                "copySrcCore",
+                "copySrcJmh",
+                "copySrcTrl",
+                "copySrcUtil",
+                "copySrcWad",
+                "copyWebResources"
+        ]
 
         project.jar.dependsOn("jarConfig")
-        project.jarConfig.dependsOn("copyWebResources", "copyBeans", "copySrcDB", "copySrc")
-
+        project.jarConfig.dependsOn(resourcesDirs)
     }
 }
