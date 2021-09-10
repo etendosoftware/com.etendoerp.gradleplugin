@@ -12,7 +12,7 @@ class JarCoreGenerator {
                 project.logger.info("Starting JAR configuration.")
                 def jarTask = (project.jar as Jar)
                 def generated = Utils.loadGeneratedEntitiesFile(project)
-                jarTask.archiveBaseName.set('etendo-core3')
+                jarTask.archiveBaseName.set('etendo-core')
                 //Excluding src-gen
                 jarTask.from('build/classes') {
                     exclude(PathUtils.fromPackageToPathClass(generated))
