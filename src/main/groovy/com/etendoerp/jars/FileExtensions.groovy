@@ -7,6 +7,7 @@ class FileExtensions {
     final static String HBM   = "hbm"
     final static String XML   = "xml"
 
-    final static String HTML = "html"
+    final static String HTML  = "html"
+    final static String ZIP   = "zip"
 
 }

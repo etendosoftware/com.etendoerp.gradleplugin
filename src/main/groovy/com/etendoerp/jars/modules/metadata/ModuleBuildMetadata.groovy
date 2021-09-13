@@ -1,5 +1,6 @@
 package com.etendoerp.jars.modules.metadata
 
+import com.etendoerp.jars.FileExtensions
 import com.etendoerp.jars.modules.ModuleJarGenerator
 import org.gradle.api.Project
 import org.gradle.api.artifacts.DependencySet
@@ -50,8 +51,8 @@ class ModuleBuildMetadata extends ModuleMetadata {
             // Check if the extension is a zip type
             it.artifacts.each { art ->
                 def ext = art.extension
-                if (ext && ext == "zip") {
-                    dependencyNode.appendNode("type", "zip")
+                if (ext && ext == FileExtensions.ZIP) {
+                    dependencyNode.appendNode("type", ext as String)
                     return
                 }
             }
