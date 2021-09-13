@@ -1,0 +1,90 @@
+package com.etendoerp.jars.modules
+
+import com.etendoerp.jars.PathUtils
+import com.etendoerp.jars.Utils
+import org.gradle.api.Project
+import org.gradle.api.Task
+import org.gradle.api.tasks.bundling.Jar
+
+class ModuleJarGenerator {
+
+    // Modules base DIR
+    final static String BASE_MODULE_DIR = "modules"
+
+    final static String BASE     = "build"
+    final static String CLASSES  = "classes"
+    final static String META_INF = "META-INF"
+    final static String ETENDO   = "etendo"
+    final static String JAR      = "jar"
+    final static String SRC      = "src"
+
+    // Files to exclude from a module
+    final static EXCLUDED_FILES = [
+            ".gradle/**",
+            "gradle/**",
+            "deploy.gradle",
+            "target/**",
+            "*.xml"
+    ]
+
+    static void load(Project project) {
+        project.tasks.register("generateModuleJarConfig") {
+
+            doLast {
+                // Get the module name
+                String moduleName = ModuleJarUtils.loadModuleName(project)
+
+                String moduleLocation = PathUtils.createPath(
+                        project.rootDir.absolutePath,
+                        BASE_MODULE_DIR,
+                        moduleName
+                )
+
+                if (!project.file(moduleLocation).exists()) {
+                    throw new IllegalArgumentException("The module $moduleLocation does not exist.")
+                }
+
+                String packagePath = PathUtils.fromModuleToPath(moduleName)
+                String javaClassesLocation = PathUtils.createPath(project.buildDir.absolutePath, CLASSES)
+
+                // Configure the task
+                Task moduleJar = project.tasks.named("generateModuleJar").get() as Jar
+
+                moduleJar.archiveFileName = "${moduleName}.$JAR"
+
+                // Obtains all the .class files
+                moduleJar.from(javaClassesLocation) {
+                    include("$packagePath/**/*.class")
+                    exclude(PathUtils.fromPackageToPathClass(Utils.loadGeneratedEntitiesFile(project)))
+                }
+
+                // Obtains all the files from the 'src' folder, ignoring the '.java'.
+                // This is to prevent applying different logic on every file found.
+                String moduleSrcLocation = PathUtils.createPath(moduleLocation, SRC)
+                moduleJar.from(moduleSrcLocation) {
+                    exclude("**/*.java")
+                }
+
+                // Store all the files excluding the 'src' folder
+                // in the 'META-INF/etendo' dir.
+                String destinationDir = PathUtils.createPath(META_INF, ETENDO, moduleName)
+
+                moduleJar.from(moduleLocation) {
+                    include("*/**")
+                    exclude(SRC)
+                    exclude(EXCLUDED_FILES)
+                    into(destinationDir)
+                }
+            }
+
+        }
+
+        project.tasks.register("generateModuleJar", Jar) {
+            dependsOn("generateModuleJarConfig")
+            doLast {
+                project.logger.info("The JAR file '${archiveFileName.get()}' has been created in the '${destinationDirectory.get()}' directory.")
+            }
+        }
+    }
+
+}
