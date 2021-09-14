@@ -1,5 +1,6 @@
 package com.etendoerp.publication
 
+import com.etendoerp.legacy.utils.NexusUtils
 import org.gradle.api.Project
 import org.gradle.api.internal.artifacts.repositories.AbstractAuthenticationSupportedRepository
 
@@ -50,23 +51,19 @@ class PublicationUtils {
      * Configures all the repositories of a project with the inserted credentials,
      * only if the repository has no credentials already set.
      * @param baseProject
-     * @param projectToConfigure
+     * @param projectToConfigure The project to configure
      */
     static void configureProjectRepositories(Project baseProject, Project projectToConfigure) {
 
-        projectToConfigure.repositories.each {
-            def repo = it as AbstractAuthenticationSupportedRepository
-            def credentials = repo.getCredentials()
+        // Add all the module project repositories to the base repository
+        baseProject.repositories.addAll(projectToConfigure.repositories)
 
-            if (credentials.username == null || credentials.username.isBlank()
-                    || credentials.password == null || credentials.password.isBlank()) {
+        // Configure all the repositories credentials
+        NexusUtils.askNexusCredentials(baseProject)
 
-                repo.credentials({
-                    it.username = baseProject.ext.get("nexusUser")
-                    it.password =  baseProject.ext.get("nexusPassword")
-                })
-            }
-        }
+        // Add all the base repositories from the base project to the module project
+        // The repositories are used to resolve the graph of dependencies
+        projectToConfigure.repositories.addAll(baseProject.repositories)
 
     }
 
