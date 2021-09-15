@@ -2,10 +2,11 @@ package com.etendoerp.publication.buildfile
 
 import com.etendoerp.jars.FileExtensions
 import com.etendoerp.jars.PathUtils
+import com.etendoerp.legacy.utils.DependenciesUtils
 import com.etendoerp.legacy.utils.ModulesUtils
 import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
-
+import java.time.Instant
 
 /**
  * Class used to contain all the information of the AD_MODULE.xml file from a Etendo module.
@@ -23,7 +24,12 @@ class BuildMetadata {
     final static String DESCRIPTION   = "description"
     final static String REPOSITORY    = "repository"
     final static String CONFIGURATION = "configuration"
-    
+    final static String DEPENDENCIES  = "dependencies"
+
+    // Properties used to fill the build.gradle.template
+    final static String DATE = "date"
+    final static String TASK = "task"
+
     Project project
     String javaPackage
     String version
@@ -62,7 +68,7 @@ class BuildMetadata {
                 SRC_DB,
                 DATABASE,
                 SOURCEDATA
-        ).concat(AD_MODULE).concat(".${FileExtensions.XML}")
+        ).concat(AD_MODULE).concat(FileExtensions.XML)
 
         if (!project.file(srcFile).exists()) {
             throw new IllegalArgumentException("The source file '${srcFile}' does not exists.")
@@ -89,11 +95,17 @@ class BuildMetadata {
     Map<String, ?> generatePropertiesMap() {
         Map<String, ?> map = new HashMap()
 
-        map.put(GROUP       , group)
-        map.put(VERSION     , version)
-        map.put(DESCRIPTION , description)
-        map.put(REPOSITORY  , repository)
+        map.put(TASK, ModuleBuildTemplateLoader.CREATE_MODULE_BUILD)
+        map.put(DATE, Instant.now().toString())
+
+        map.put(GROUP         , group)
+        map.put(VERSION       , version)
+        map.put(DESCRIPTION   , description)
+        map.put(REPOSITORY    , repository)
         map.put(CONFIGURATION , PublicationUtils.CONFIGURATION_NAME)
+
+        def dependencies = DependenciesUtils.generatePomDependencies(project, moduleName, PublicationUtils.CONFIGURATION_NAME)
+        map.put(DEPENDENCIES  , dependencies)
 
         return  map
     }

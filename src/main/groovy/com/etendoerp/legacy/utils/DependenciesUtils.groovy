@@ -1,6 +1,7 @@
 package com.etendoerp.legacy.utils
 
 import org.gradle.api.Project
+import org.gradle.internal.impldep.org.apache.commons.lang.StringUtils
 
 class DependenciesUtils {
 
@@ -48,8 +49,8 @@ class DependenciesUtils {
      * @param pkgVar String containing the package name
      * @return String containing the dependencies
      */
-    static String generatePomDependencies(Project project, String pkgVar) {
-        String prefix       = "    compile "
+    static String generatePomDependencies(Project project, String pkgVar, def config = "compile") {
+        String prefix       = "$config"
         String delimiter    = ":"
         String dependencies = ""
 
@@ -77,6 +78,7 @@ class DependenciesUtils {
             // continue if type node not exists
             if (!type) {
                 project.logger.info('Node * TYPE * not found in * ' + depName + ' * dependency')
+                dependencies += "    ${prefix} '$depName' \n"
                 return
             }
 
@@ -94,7 +96,7 @@ class DependenciesUtils {
                     typePrefix + type +
                     "'" + "\n"
         }
-        return dependencies
+        return dependencies.substring(0, dependencies.length() - 1)
     }
 
 }

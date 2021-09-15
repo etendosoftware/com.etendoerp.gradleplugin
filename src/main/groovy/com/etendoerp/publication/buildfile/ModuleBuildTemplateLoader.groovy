@@ -7,13 +7,15 @@ class ModuleBuildTemplateLoader {
 
     final static String BUILD_FILE = "build.gradle"
 
+    final static String CREATE_MODULE_BUILD = "createModuleBuild"
+
     static void load(Project project) {
 
         /**
          * Task to create build.gradle from a module
          * This task require command line parameter -Ppkg=<package name> -Prepo=<Repository Name>
          * */
-        project.task("createModuleBuild") {
+        project.task(CREATE_MODULE_BUILD) {
             doLast {
 
                 String moduleName     = PublicationUtils.loadModuleName(project)
