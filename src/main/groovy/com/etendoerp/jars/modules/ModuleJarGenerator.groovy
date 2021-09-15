@@ -2,6 +2,7 @@ package com.etendoerp.jars.modules
 
 import com.etendoerp.jars.PathUtils
 import com.etendoerp.jars.Utils
+import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.tasks.bundling.Jar
@@ -32,7 +33,7 @@ class ModuleJarGenerator {
 
             doLast {
                 // Get the module name
-                String moduleName = ModuleJarUtils.loadModuleName(project)
+                String moduleName = PublicationUtils.loadModuleName(project)
 
                 String moduleLocation = PathUtils.createPath(
                         project.rootDir.absolutePath,
