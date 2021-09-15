@@ -72,8 +72,6 @@ class BuildMetadata {
     void loadBuildMetadata() {
         def ad_module = new XmlParser().parse(srcFile)
 
-        def srcFile = "modules/" + moduleName + "/src-db/database/sourcedata/AD_MODULE.xml"
-
         def moduleNode = ad_module[AD_MODULE]
 
         javaPackage = moduleNode[JAVAPACKAGE.toUpperCase()].text()
@@ -99,30 +97,5 @@ class BuildMetadata {
 
         return  map
     }
-
-//    plugins {
-//        id 'java'
-//    }
-//
-//    group = "${group}"
-//    version = "${version}"
-//    description = "${description}"
-//    ext.repository = "${repository}"
-//
-//    configurations {
-//        ${configurationName}
-//    }
-//
-//    publishing {
-//        repositories {
-//            maven {
-//                url "${repository}"
-//            }
-//        }
-//    }
-//
-//    dependencies{
-//        //Add dependencies here
-//    }
 
 }
