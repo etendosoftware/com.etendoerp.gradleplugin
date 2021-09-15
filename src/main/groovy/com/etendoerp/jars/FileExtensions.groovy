@@ -11,5 +11,6 @@ class FileExtensions {
     final static String SRPT    = ".srpt"
     final static String FTL     = ".ftl"
     final static String XSQL    = ".xsql"
+    final static String ZIP     = ".zip"
 
 }

@@ -30,4 +30,18 @@ class ModuleJarUtils {
         return filteredList
     }
 
+    /**
+     * Loads the module name passed by the command line as a parameter.
+     * @param project
+     * @return
+     */
+    static String loadModuleName(Project project) {
+        String moduleName = project.findProperty(ModuleJarLoader.MODULE_NAME_PROP)
+
+        if (moduleName == null || moduleName.isBlank()) {
+            throw new IllegalArgumentException("The command line parameter -P${ModuleJarLoader.MODULE_NAME_PROP}=<module name> is missing.")
+        }
+        return moduleName
+    }
+
 }
