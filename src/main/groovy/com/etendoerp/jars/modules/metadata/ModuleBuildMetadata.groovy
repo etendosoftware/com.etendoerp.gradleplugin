@@ -24,7 +24,7 @@ class ModuleBuildMetadata extends ModuleMetadata {
 
     void loadMetadata() {
 
-        moduleProject = project.findProject(":${ModuleJarGenerator.BASE_MODULE_DIR}:$moduleName")
+        moduleProject = project.findProject(":${PublicationUtils.BASE_MODULE_DIR}:$moduleName")
 
         if (moduleProject == null) {
             throw new IllegalArgumentException("The gradle project :$moduleName does not exists.")

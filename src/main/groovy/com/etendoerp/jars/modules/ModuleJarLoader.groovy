@@ -6,6 +6,7 @@ class ModuleJarLoader {
 
     static load(Project project) {
         ModuleJarGenerator.load(project)
+        ModuleJarPublication.load(project)
     }
 
 }
