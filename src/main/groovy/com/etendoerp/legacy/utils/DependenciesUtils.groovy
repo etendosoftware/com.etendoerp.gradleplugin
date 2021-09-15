@@ -36,7 +36,7 @@ class DependenciesUtils {
  */
     static String createDependenciesText(Project project, searchPom, pkgVar) {
         def pomDep = searchPom ? generatePomDependencies(project, pkgVar) : ""
-        def text = "dependencies{\n" +
+        def text = "\ndependencies {\n" +
                 "    //Add dependencies here\n" +
                 pomDep +
                 "}\n"
