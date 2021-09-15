@@ -1,8 +1,8 @@
 package com.etendoerp.jars.modules
 
 import com.etendoerp.gradleutils.GradleUtils
-
-import com.etendoerp.jars.modules.metadata.ModuleDeployMetadata
+import com.etendoerp.jars.modules.metadata.ModuleBuildMetadata
+import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.publish.maven.tasks.AbstractPublishToMaven
@@ -12,7 +12,7 @@ class ModuleJarPublication {
 
     final static String PUBLICATION_DATA    = "deploy.gradle"
     final static String PUBLICATION_NAME    = "JarModule"
-    final static String PUBLICATION_DESTINE = "MavenLocal"
+    final static String PUBLICATION_DESTINE = "MavenRepository"
 
     static void load(Project project) {
 
@@ -29,7 +29,7 @@ class ModuleJarPublication {
             doLast {
                 AbstractPublishToMaven publishTask = project.tasks.findByName("publish${PUBLICATION_NAME}PublicationTo${PUBLICATION_DESTINE}") as AbstractPublishToMaven
 
-                def jarMetadata = new ModuleDeployMetadata(project, ModuleJarUtils.loadModuleName(project))
+                def jarMetadata = new ModuleBuildMetadata(project, PublicationUtils.loadModuleName(project))
                 jarMetadata.showModuleMetadata()
 
                 // Cast the jar task
