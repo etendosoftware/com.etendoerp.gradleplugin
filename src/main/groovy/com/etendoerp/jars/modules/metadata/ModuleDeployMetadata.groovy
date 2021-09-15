@@ -81,4 +81,9 @@ class ModuleDeployMetadata extends ModuleMetadata{
     String getDependenciesValues() {
         return this.dependencies.toString()
     }
+
+    @Override
+    void validateDependencies() {
+
+    }
 }

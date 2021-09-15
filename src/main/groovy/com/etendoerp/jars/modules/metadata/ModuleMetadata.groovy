@@ -12,7 +12,7 @@ abstract class ModuleMetadata {
 
     final static String REPOSITORY_ID      = "partner-repo"
     final static String PUBLICATION_DATA   = "deploy.gradle"
-    final static String CONFIGURATION_NAME = "etendoDependency"
+    final static String CONFIGURATION_NAME = "moduleDeps"
 
     Project project
     String moduleName
@@ -31,6 +31,7 @@ abstract class ModuleMetadata {
     abstract void loadMetadata()
     abstract Node createDependenciesNode()
     abstract String getDependenciesValues()
+    abstract void validateDependencies()
 
     void showModuleMetadata() {
         println("MODULE")
@@ -79,6 +80,7 @@ abstract class ModuleMetadata {
                 username project.ext.get("nexusUser")
                 password project.ext.get("nexusPassword")
             }
+            validateDependencies()
         }
     }
 

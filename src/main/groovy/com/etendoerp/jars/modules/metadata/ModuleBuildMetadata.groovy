@@ -2,8 +2,11 @@ package com.etendoerp.jars.modules.metadata
 
 import com.etendoerp.jars.FileExtensions
 import com.etendoerp.jars.modules.ModuleJarGenerator
+import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
 import org.gradle.api.artifacts.DependencySet
+import org.gradle.api.artifacts.result.UnresolvedDependencyResult
+import org.gradle.api.artifacts.Configuration
 
 /**
  * This class is used to obtain all the necessary information to publish.
@@ -12,6 +15,8 @@ import org.gradle.api.artifacts.DependencySet
 class ModuleBuildMetadata extends ModuleMetadata {
 
     DependencySet dependencies
+    Configuration configuration
+    Project moduleProject
 
     ModuleBuildMetadata(Project project, String moduleName) {
         super(project, moduleName)
@@ -19,7 +24,7 @@ class ModuleBuildMetadata extends ModuleMetadata {
 
     void loadMetadata() {
 
-        def moduleProject = project.findProject(":${ModuleJarGenerator.BASE_MODULE_DIR}:$moduleName")
+        moduleProject = project.findProject(":${ModuleJarGenerator.BASE_MODULE_DIR}:$moduleName")
 
         if (moduleProject == null) {
             throw new IllegalArgumentException("The gradle project :$moduleName does not exists.")
@@ -28,8 +33,8 @@ class ModuleBuildMetadata extends ModuleMetadata {
         this.group = moduleProject.group
         this.version = moduleProject.version
         this.repository = moduleProject.repository
-        project.logger.info("repo::: ${repository}")
-        def configuration = moduleProject.configurations.getByName(CONFIGURATION_NAME)
+
+        this.configuration = moduleProject.configurations.getByName(CONFIGURATION_NAME)
 
         if (configuration != null) {
             this.dependencies = configuration.dependencies
@@ -64,5 +69,30 @@ class ModuleBuildMetadata extends ModuleMetadata {
     String getDependenciesValues() {
         // TODO: format
         return this.dependencies.toString()
+    }
+
+    /**
+     * Verifies that all the dependencies set by a user exists and are resolvable.
+     */
+    @Override
+    void validateDependencies() {
+
+        PublicationUtils.configureProjectRepositories(project, moduleProject)
+
+        if (project.hasProperty(PublicationUtils.OMIT_DEPENDENCY_VERIFICATION)) {
+            project.logger.info("WARNING: Omitting module dependencies verification.")
+            project.logger.info("The generated 'pom.xml' file could have incorrect dependencies.")
+            return
+        }
+
+        if (configuration != null) {
+            def dependencies = configuration.getIncoming().getResolutionResult().getAllDependencies()
+            dependencies.each {
+                if (it instanceof UnresolvedDependencyResult) {
+                    def unresolved = it as UnresolvedDependencyResult
+                    throw unresolved.getFailure()
+                }
+            }
+        }
     }
 }
