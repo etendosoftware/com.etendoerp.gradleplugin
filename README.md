@@ -1,1 +1,25 @@
 ### README
+
+To work with the plugin locally, create a directory named 'buildSrc' in the root of a Etendo project. Clone the repository inside the 'buildSrc' directory.
+
+Create a 'build.gradle' file in the 'buildSrc' directory with the following content.
+```
+plugins {
+    id 'java'
+}
+
+repositories {
+    jcenter()
+    mavenCentral()
+}
+
+dependencies {
+    runtime subprojects.findAll { it.getTasksByName("jar", false) }
+}
+```
+
+Create a 'settings.gradle' file in the 'buildSrc' directory with the following content.
+
+```
+include "etendo_gradle_plugin"
+```
