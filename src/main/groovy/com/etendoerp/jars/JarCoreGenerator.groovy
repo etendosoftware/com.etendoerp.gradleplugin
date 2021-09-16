@@ -2,6 +2,7 @@ package com.etendoerp.jars
 
 import org.gradle.api.JavaVersion
 import org.gradle.api.Project
+import org.gradle.api.file.FileTreeElement
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.bundling.Jar
 
@@ -31,9 +32,11 @@ class JarCoreGenerator {
                 project.logger.info("Starting Sources JAR configuration.")
                 def sourcesJarTask = (project.sourcesJar as Jar)
                 def generated = Utils.loadGeneratedEntitiesFile(project)
-                sourcesJarTask.archiveBaseName.set('etendo-core')
-                // Exclude .class files
-                sourcesJarTask.exclude '**/*.class'
+
+                // Exclude .class files (but include those in modulescript and buildvalidation folders, as they are "precompiled")
+                sourcesJarTask.exclude { FileTreeElement el ->
+                    return el.file.getName().endsWith(".class") && !el.file.getAbsolutePath().contains("modulescript") && !el.file.getAbsolutePath().contains("buildvalidation")
+                }
 
                 // Exclude generated entities (src-gen)
                 sourcesJarTask.from('build/classes') {
@@ -41,7 +44,7 @@ class JarCoreGenerator {
                 }
 
                 sourcesJarTask.from('build/resources') {
-                    into('/META-INF/etendo')
+                    into('/META-INF')
                 }
 
                 sourcesJarTask.into 'META-INF/etendo/src'
