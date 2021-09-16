@@ -1,6 +1,5 @@
 package com.etendoerp.jars.modules.metadata
 
-import com.etendoerp.jars.FileExtensions
 import com.etendoerp.jars.modules.ModuleJarGenerator
 import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
@@ -14,8 +13,13 @@ import org.gradle.api.artifacts.Configuration
  */
 class ModuleBuildMetadata extends ModuleMetadata {
 
+    // Set of dependencies used to fill the pom.xml
     DependencySet dependencies
-    Configuration configuration
+
+    // Contains all the configurations of the project
+    // All the dependencies are obtained from the configurations to create te pom.xml
+    List<Configuration> configurations
+
     Project moduleProject
 
     ModuleBuildMetadata(Project project, String moduleName) {
@@ -23,6 +27,7 @@ class ModuleBuildMetadata extends ModuleMetadata {
     }
 
     void loadMetadata() {
+        this.configurations = new ArrayList<>()
 
         moduleProject = project.findProject(":${ModuleJarGenerator.BASE_MODULE_DIR}:$moduleName")
 
@@ -34,13 +39,45 @@ class ModuleBuildMetadata extends ModuleMetadata {
         this.version = moduleProject.version
         this.repository = moduleProject.repository
 
-        this.configuration = moduleProject.configurations.getByName(CONFIGURATION_NAME)
+        // Get all the configurations defined in the subproject
+        loadListOfConfigurations(moduleProject)
 
-        if (configuration != null) {
-            this.dependencies = configuration.dependencies
-        }
+        // Load all the dependencies defined in the build.gradle of a subproject
+        loadDependenciesFromConfigurations(this.configurations)
 
         artifactId = moduleName.toString().replace(group + ".", "")
+    }
+
+    /**
+     * Loops over all the configurations of the project
+     * Adds all the configurations on the configurations list.
+     *
+     * The configurations could be from the 'build.gradle' configuration block
+     * or from a plugin like Java (compile, implementation, etc).
+     *
+     * @param moduleProject
+     */
+    void loadListOfConfigurations(Project moduleProject) {
+        moduleProject.configurations.each {
+            configurations.add(it)
+        }
+    }
+
+    void loadDependenciesFromConfigurations(List<Configuration> configurations) {
+        configurations.each {
+            // Continue on null configuration
+            if (it == null) {
+                return
+            }
+            // Initialize dependencies list
+            if (this.dependencies == null) {
+                project.logger.info("Initialize dependencies: ${it.name}")
+                this.dependencies = it.dependencies
+                return
+            }
+
+            this.dependencies.addAll(it.dependencies.toList())
+        }
     }
 
     @Override
@@ -56,7 +93,7 @@ class ModuleBuildMetadata extends ModuleMetadata {
             // Check if the extension is a zip type
             it.artifacts.each { art ->
                 def ext = art.extension
-                if (ext && ext == FileExtensions.ZIP) {
+                if (ext && ext == ZIP_TYPE) {
                     dependencyNode.appendNode("type", ext as String)
                     return
                 }
@@ -85,14 +122,27 @@ class ModuleBuildMetadata extends ModuleMetadata {
             return
         }
 
-        if (configuration != null) {
-            def dependencies = configuration.getIncoming().getResolutionResult().getAllDependencies()
-            dependencies.each {
-                if (it instanceof UnresolvedDependencyResult) {
-                    def unresolved = it as UnresolvedDependencyResult
-                    throw unresolved.getFailure()
+        validateConfigurations(this.configurations)
+
+    }
+
+    /**
+     * Validate the dependencies of a resolvable configuration.
+     * @param configurations
+     */
+    void validateConfigurations(List<Configuration> configurations) {
+        configurations.each {
+            if (it != null && it.canBeResolved) {
+                def dependencies = it.getIncoming().getResolutionResult().getAllDependencies()
+                dependencies.each {
+                    if (it instanceof UnresolvedDependencyResult) {
+                        def unresolved = it as UnresolvedDependencyResult
+                        throw unresolved.getFailure()
+                    }
                 }
             }
         }
     }
+
+
 }

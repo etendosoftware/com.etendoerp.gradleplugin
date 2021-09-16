@@ -13,6 +13,7 @@ abstract class ModuleMetadata {
     final static String REPOSITORY_ID      = "partner-repo"
     final static String PUBLICATION_DATA   = "deploy.gradle"
     final static String CONFIGURATION_NAME = "moduleDeps"
+    final static String ZIP_TYPE           = "zip"
 
     Project project
     String moduleName
