@@ -40,62 +40,32 @@ class ModuleBuildMetadata extends ModuleMetadata {
         this.repository = moduleProject.repository
 
         // Get all the configurations defined in the subproject
-        loadListOfConfigurations(moduleProject)
+        this.configurations = DependencyUtils.loadListOfConfigurations(moduleProject)
 
         // Load all the dependencies defined in the build.gradle of a subproject
-        loadDependenciesFromConfigurations(this.configurations)
+        this.dependencies = DependencyUtils.loadDependenciesFromConfigurations(this.configurations)
 
         artifactId = moduleName.toString().replace(group + ".", "")
-    }
-
-    /**
-     * Loops over all the configurations of the project
-     * Adds all the configurations on the configurations list.
-     *
-     * The configurations could be from the 'build.gradle' configuration block
-     * or from a plugin like Java (compile, implementation, etc).
-     *
-     * @param moduleProject
-     */
-    void loadListOfConfigurations(Project moduleProject) {
-        moduleProject.configurations.each {
-            configurations.add(it)
-        }
-    }
-
-    void loadDependenciesFromConfigurations(List<Configuration> configurations) {
-        configurations.each {
-            // Continue on null configuration
-            if (it == null) {
-                return
-            }
-            // Initialize dependencies list
-            if (this.dependencies == null) {
-                project.logger.info("Initialize dependencies: ${it.name}")
-                this.dependencies = it.dependencies
-                return
-            }
-
-            this.dependencies.addAll(it.dependencies.toList())
-        }
     }
 
     @Override
     Node createDependenciesNode() {
         def dependenciesNode = new Node(null, "dependencies")
-        this.dependencies.each {
-            def dependencyNode = dependenciesNode.appendNode("dependency")
+        if (this.dependencies != null) {
+            this.dependencies.each {
+                def dependencyNode = dependenciesNode.appendNode("dependency")
 
-            dependencyNode.appendNode("groupId", it.group)
-            dependencyNode.appendNode("artifactId", it.name)
-            dependencyNode.appendNode("version", it.version)
+                dependencyNode.appendNode("groupId", it.group)
+                dependencyNode.appendNode("artifactId", it.name)
+                dependencyNode.appendNode("version", it.version)
 
-            // Check if the extension is a zip type
-            it.artifacts.each { art ->
-                def ext = art.extension
-                if (ext && ext == ZIP_TYPE) {
-                    dependencyNode.appendNode("type", ext as String)
-                    return
+                // Check if the extension is a zip type
+                it.artifacts.each { art ->
+                    def ext = art.extension
+                    if (ext && ext == ZIP_TYPE) {
+                        dependencyNode.appendNode("type", ext as String)
+                        return
+                    }
                 }
             }
         }
