@@ -27,7 +27,7 @@ class PublicationUtils {
 
     final static String BASE_MODULE_DIR = "modules"
 
-    final static String CONFIGURATION_NAME = "moduleDeps"
+    final static String CONFIGURATION_NAME = "implementation"
 
     final static String BASE     = "build"
     final static String CLASSES  = "classes"

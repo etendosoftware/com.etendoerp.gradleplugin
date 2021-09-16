@@ -12,10 +12,6 @@ version = "${version}"
 description = "${description}"
 ext.repository = "${repository}"
 
-configurations {
-   ${configuration}
-}
-
 publishing {
     repositories {
         maven {
@@ -25,25 +21,22 @@ publishing {
 }
 
 repositories {
-   jcenter()
-   mavenCentral()
-   maven {
-        url "https://repo.futit.cloud/repository/maven-releases"
-   }
-   maven {
-       url "https://repo.futit.cloud/repository/maven-public-jars"
-    }
-   maven {
+    maven {
         url "${repository}"
     }
+    maven {
+        url "https://repo.futit.cloud/repository/maven-releases"
+    }
+    maven {
+        url "https://repo.futit.cloud/repository/maven-public-jars"
+    }
+    mavenCentral()
+    jcenter()
 }
 
 /**
-* Declare module dependencies using '${configuration}'
-* Ex: ${configuration} "com.greenterrace:hotelmanagement:1.0.0"
-*
-* Declare Java dependencies using 'compile'
-* Ex: compile "com.sun.mail:javax.mail:1.6.2"
+* Declare Java dependencies using 'implementation'
+* Ex: implementation "com.sun.mail:javax.mail:1.6.2"
 */
 dependencies {
 ${dependencies}

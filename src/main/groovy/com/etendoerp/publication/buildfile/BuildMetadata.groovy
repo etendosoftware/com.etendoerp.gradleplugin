@@ -102,7 +102,6 @@ class BuildMetadata {
         map.put(VERSION       , version)
         map.put(DESCRIPTION   , description)
         map.put(REPOSITORY    , repository)
-        map.put(CONFIGURATION , PublicationUtils.CONFIGURATION_NAME)
 
         def dependencies = DependenciesUtils.generatePomDependencies(project, moduleName, PublicationUtils.CONFIGURATION_NAME)
         map.put(DEPENDENCIES  , dependencies)
