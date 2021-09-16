@@ -13,14 +13,14 @@ class JarCoreGenerator {
                 project.logger.info("Starting JAR configuration.")
                 def jarTask = (project.jar as Jar)
                 def generated = Utils.loadGeneratedEntitiesFile(project)
-                jarTask.archiveBaseName.set('etendo-core')
+
                 //Excluding src-gen
                 jarTask.from('build/classes') {
                     exclude(PathUtils.fromPackageToPathClass(generated))
                 }
 
                 jarTask.from('build/resources') {
-                    into('META-INF/etendo')
+                    into('META-INF/')
                 }
 
             }
@@ -63,7 +63,7 @@ class JarCoreGenerator {
             exclude "**/*${FileExtensions.JAVA}"
             exclude "**/*${FileExtensions.HBM_XML}"
             exclude "**/*${FileExtensions.XSQL}"
-            into "${project.buildDir}/resources/src-db"
+            into "${project.buildDir}/resources/etendo/src-db"
         }
 
         project.tasks.register("copySrc", Copy) {
@@ -71,14 +71,14 @@ class JarCoreGenerator {
             exclude "**/*${FileExtensions.JAVA}"
             exclude "**/*${FileExtensions.HBM_XML}"
             exclude "**/*${FileExtensions.XSQL}"
-            into "${project.buildDir}/resources/src"
+            into "${project.buildDir}/resources/etendo/src"
         }
         project.tasks.register("copyModules", Copy) {
             from "${project.projectDir}/modules"
             exclude "**/*${FileExtensions.JAVA}"
             exclude "**/*${FileExtensions.HBM_XML}"
             exclude "**/*${FileExtensions.XSQL}"
-            into "${project.buildDir}/resources/modules"
+            into "${project.buildDir}/resources/etendo/modules"
         }
 
         project.tasks.register("copyModulesCore", Copy) {
@@ -86,7 +86,7 @@ class JarCoreGenerator {
             exclude "**/*${FileExtensions.JAVA}"
             exclude "**/*${FileExtensions.HBM_XML}"
             exclude "**/*${FileExtensions.XSQL}"
-            into "${project.buildDir}/resources/modules"
+            into "${project.buildDir}/resources/etendo/modules"
         }
 
         project.tasks.register("copySrcJmh", Copy) {
@@ -126,7 +126,7 @@ class JarCoreGenerator {
 
         project.tasks.register("copyWebResources", Copy) {
             from ("${project.projectDir}/web",)
-            into "${project.buildDir}/resources/web"
+            into "${project.buildDir}/resources/etendo/web"
         }
         project.tasks.register("copyBuild", Copy) {
             from ("${project.projectDir}")
@@ -136,12 +136,12 @@ class JarCoreGenerator {
 
         project.tasks.register("copyReferenceData", Copy) {
             from ("${project.projectDir}/referencedata")
-            into "${project.buildDir}/resources/referencedata"
+            into "${project.buildDir}/resources/etendo/referencedata"
         }
 
         project.tasks.register("copyConfig", Copy) {
             from ("${project.projectDir}/config")
-            into "${project.buildDir}/resources/config"
+            into "${project.buildDir}/resources/etendo/config"
         }
 
         def resourcesDirs = [
