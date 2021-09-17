@@ -1,0 +1,70 @@
+plugins {
+    id 'java'
+    id 'groovy'
+    id 'java-gradle-plugin'
+    id 'maven-publish'
+}
+
+def MASTER = "master"
+def DEV    = "dev"
+def PROD   = "prod"
+
+def URL_PROD = "https://repo.futit.cloud/repository/static-public-releases"
+def URL_DEV  = "https://repo.futit.cloud/repository/static-public-snapshots"
+
+// Default mode
+def mode = DEV
+def pluginVersion = "1.0.0"
+
+def gitBranch() {
+    def branch = ""
+    def proc = "git rev-parse --abbrev-ref HEAD".execute()
+    proc.in.eachLine { line -> branch = line }
+    proc.err.eachLine { line -> println line }
+    proc.waitFor()
+    branch
+}
+
+if (MASTER == MASTER) {
+    mode = PROD
+}
+if (mode == DEV) {
+    pluginVersion += "-SNAPSHOT"
+}
+
+def urlToPublish = (mode == PROD) ? URL_PROD : URL_DEV
+
+group 'com.etendoerp'
+version(pluginVersion)
+
+repositories {
+    jcenter()
+    mavenCentral()
+}
+
+publishing {
+    repositories {
+        maven {
+            credentials {
+                username "--"
+                password "--"
+            }
+            url(urlToPublish)
+        }
+    }
+}
+
+dependencies {
+    compile     gradleApi()
+    testCompile gradleTestKit()
+    testCompile 'junit:junit:4+'
+}
+
+gradlePlugin {
+    plugins {
+        etendoPlugin {
+            id = "com.etendoerp.gradleplugin"
+            implementationClass = "com.etendoerp.EtendoPlugin"
+        }
+    }
+}
