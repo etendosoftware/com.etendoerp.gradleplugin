@@ -1,6 +1,6 @@
 package com.etendoerp.jars
 
-import org.gradle.api.JavaVersion
+
 import org.gradle.api.Project
 import org.gradle.api.file.FileTreeElement
 import org.gradle.api.tasks.Copy
@@ -51,6 +51,13 @@ class JarCoreGenerator {
             }
         }
 
+        project.tasks.register("cleanResources") {
+            def resourcesFolder = new File("${project.buildDir}/resources")
+            if (resourcesFolder.exists() && resourcesFolder.isDirectory()) {
+                resourcesFolder.deleteDir()
+            }
+        }
+
         project.tasks.register("copyBeans", Copy) {
             from "${project.projectDir}/modules_core/org.openbravo.base.weld/config/beans.xml"
             into "${project.buildDir}/resources"
@@ -59,6 +66,11 @@ class JarCoreGenerator {
         project.tasks.register("copyLibs", Copy) {
             from "${project.projectDir}/lib"
             into "${project.buildDir}/resources/lib"
+        }
+
+        project.tasks.register("copyLibsSources", Copy) {
+            from "${project.projectDir}/lib"
+            into "${project.buildDir}/resources/etendo/lib"
         }
 
         project.tasks.register("copySrcDB", Copy) {
@@ -100,6 +112,11 @@ class JarCoreGenerator {
             into "${project.buildDir}/resources/src-jmh"
         }
 
+        project.tasks.register("copySrcJmhSources", Copy) {
+            from "${project.projectDir}/src-jmh"
+            into "${project.buildDir}/resources/etendo/src-jmh"
+        }
+
         project.tasks.register("copySrcUtil", Copy) {
             from ([
                     "${project.projectDir}/src-util/buildvalidation/build/classes",
@@ -109,10 +126,20 @@ class JarCoreGenerator {
             into "${project.buildDir}/resources/src-util"
         }
 
+        project.tasks.register("copySrcUtilSources", Copy) {
+            from ("${project.projectDir}/src-util")
+            into "${project.buildDir}/resources/etendo/src-util"
+        }
+
         project.tasks.register("copySrcTrl", Copy) {
             from "${project.projectDir}/src-trl/build"
             include "**/*${FileExtensions.JAR}"
             into "${project.buildDir}/resources/src-trl"
+        }
+
+        project.tasks.register("copySrcTrlSources", Copy) {
+            from "${project.projectDir}/src-trl"
+            into "${project.buildDir}/resources/etendo/src-trl"
         }
 
         project.tasks.register("copySrcCore", Copy) {
@@ -121,10 +148,20 @@ class JarCoreGenerator {
             into "${project.buildDir}/resources/src-core"
         }
 
+        project.tasks.register("copySrcCoreSources", Copy) {
+            from "${project.projectDir}/src-core"
+            into "${project.buildDir}/resources/etendo/src-core"
+        }
+
         project.tasks.register("copySrcWad", Copy) {
             from "${project.projectDir}/src-wad/build"
             include "**/*${FileExtensions.JAR}"
             into "${project.buildDir}/resources/src-wad"
+        }
+
+        project.tasks.register("copySrcWadSources", Copy) {
+            from "${project.projectDir}/src-wad"
+            into "${project.buildDir}/resources/etendo/src-wad"
         }
 
         project.tasks.register("copyWebResources", Copy) {
@@ -165,9 +202,30 @@ class JarCoreGenerator {
                 "copyWebResources"
         ]
 
+        def sourcesJarDependencies = [
+                "cleanResources",
+                "copyReferenceData",
+                "copyConfig",
+                "copyBuild",
+                "copyLibsSources",
+                "copySrcDB",
+                "copySrc",
+                "copyModules",
+                "copyModulesCore",
+                "copySrcCoreSources",
+                "copySrcJmhSources",
+                "copySrcTrlSources",
+                "copySrcUtilSources",
+                "copySrcWadSources",
+                "copyWebResources"
+        ]
+
         project.jar.dependsOn("jarConfig")
+        project.jarConfig.dependsOn("cleanResources")
         project.jarConfig.dependsOn(resourcesDirs)
+        project.jarConfig.mustRunAfter("cleanResources")
         project.sourcesJar.dependsOn("sourcesJarConfig")
-        project.sourcesJarConfig.dependsOn(resourcesDirs)
+        project.sourcesJarConfig.dependsOn(sourcesJarDependencies)
+        project.sourcesJarConfig.mustRunAfter("cleanResources")
     }
 }
