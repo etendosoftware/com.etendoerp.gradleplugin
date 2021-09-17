@@ -3,6 +3,7 @@ package com.etendoerp.jars.modules.metadata
 import com.etendoerp.jars.PathUtils
 import com.etendoerp.jars.modules.ModuleJarGenerator
 import com.etendoerp.jars.modules.ModuleJarPublication
+import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
 
 /**
@@ -21,7 +22,7 @@ class ModuleDeployMetadata extends ModuleMetadata{
     void loadMetadataLocation() {
         metadataLocation = PathUtils.createPath(
                 project.rootDir.absolutePath,
-                ModuleJarGenerator.BASE_MODULE_DIR,
+                PublicationUtils.BASE_MODULE_DIR,
                 moduleName
         ).concat(ModuleJarPublication.PUBLICATION_DATA)
 
@@ -80,5 +81,10 @@ class ModuleDeployMetadata extends ModuleMetadata{
     @Override
     String getDependenciesValues() {
         return this.dependencies.toString()
+    }
+
+    @Override
+    void validateDependencies() {
+
     }
 }
