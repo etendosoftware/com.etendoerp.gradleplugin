@@ -9,24 +9,7 @@ import org.gradle.api.tasks.bundling.Jar
 
 class ModuleJarGenerator {
 
-    // Modules base DIR
-    final static String BASE_MODULE_DIR = "modules"
-
-    final static String BASE     = "build"
-    final static String CLASSES  = "classes"
-    final static String META_INF = "META-INF"
-    final static String ETENDO   = "etendo"
-    final static String JAR      = "jar"
-    final static String SRC      = "src"
-
-    // Files to exclude from a module
-    final static EXCLUDED_FILES = [
-            ".gradle/**",
-            "gradle/**",
-            "deploy.gradle",
-            "target/**",
-            "*.xml"
-    ]
+    final static String JAR = "jar"
 
     static void load(Project project) {
         project.tasks.register("generateModuleJarConfig") {
@@ -37,7 +20,7 @@ class ModuleJarGenerator {
 
                 String moduleLocation = PathUtils.createPath(
                         project.rootDir.absolutePath,
-                        BASE_MODULE_DIR,
+                        PublicationUtils.BASE_MODULE_DIR,
                         moduleName
                 )
 
@@ -46,7 +29,7 @@ class ModuleJarGenerator {
                 }
 
                 String packagePath = PathUtils.fromModuleToPath(moduleName)
-                String javaClassesLocation = PathUtils.createPath(project.buildDir.absolutePath, CLASSES)
+                String javaClassesLocation = PathUtils.createPath(project.buildDir.absolutePath, PublicationUtils.CLASSES)
 
                 // Configure the task
                 Task moduleJar = project.tasks.named("generateModuleJar").get() as Jar
@@ -61,19 +44,19 @@ class ModuleJarGenerator {
 
                 // Obtains all the files from the 'src' folder, ignoring the '.java'.
                 // This is to prevent applying different logic on every file found.
-                String moduleSrcLocation = PathUtils.createPath(moduleLocation, SRC)
+                String moduleSrcLocation = PathUtils.createPath(moduleLocation, PublicationUtils.SRC)
                 moduleJar.from(moduleSrcLocation) {
                     exclude("**/*.java")
                 }
 
                 // Store all the files excluding the 'src' folder
                 // in the 'META-INF/etendo' dir.
-                String destinationDir = PathUtils.createPath(META_INF, ETENDO, moduleName)
+                String destinationDir = PathUtils.createPath(PublicationUtils.META_INF, PublicationUtils.ETENDO, moduleName)
 
                 moduleJar.from(moduleLocation) {
                     include("*/**")
-                    exclude(SRC)
-                    exclude(EXCLUDED_FILES)
+                    exclude(PublicationUtils.SRC)
+                    exclude(PublicationUtils.EXCLUDED_FILES)
                     into(destinationDir)
                 }
             }
