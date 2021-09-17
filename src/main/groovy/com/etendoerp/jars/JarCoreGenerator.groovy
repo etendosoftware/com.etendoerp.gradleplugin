@@ -91,19 +91,19 @@ class JarCoreGenerator {
         }
 
         project.tasks.register("copySrcTrl", Copy) {
-            from "${project.projectDir}/src-trl/build"
+            from "${project.projectDir}/src-trl/lib"
             include "**/*${FileExtensions.JAR}"
             into "${project.buildDir}/resources/src-trl"
         }
 
         project.tasks.register("copySrcCore", Copy) {
-            from "${project.projectDir}/src-core/build"
+            from "${project.projectDir}/src-core/lib"
             include "**/*${FileExtensions.JAR}"
             into "${project.buildDir}/resources/src-core"
         }
 
         project.tasks.register("copySrcWad", Copy) {
-            from "${project.projectDir}/src-wad/build"
+            from "${project.projectDir}/src-wad/lib"
             include "**/*${FileExtensions.JAR}"
             into "${project.buildDir}/resources/src-wad"
         }
