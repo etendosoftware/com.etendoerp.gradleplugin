@@ -1,6 +1,7 @@
 package com.etendoerp.legacy.modules
 
 import com.etendoerp.gradleutils.GradleUtils
+import com.etendoerp.jars.modules.metadata.ModuleBuildMetadata
 import com.etendoerp.jars.modules.metadata.ModuleDeployMetadata
 import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
@@ -11,7 +12,7 @@ import org.gradle.api.tasks.bundling.Zip
 class ModuleZipPublication {
 
     final static String PUBLICATION_NAME    = "ZipModule"
-    final static String PUBLICATION_DESTINE = "MavenLocal"
+    final static String PUBLICATION_DESTINE = "MavenRepository"
 
     static void load(Project project) {
 
@@ -33,7 +34,7 @@ class ModuleZipPublication {
             doLast {
                 AbstractPublishToMaven publishTask = project.tasks.findByName("publish${PUBLICATION_NAME}PublicationTo${PUBLICATION_DESTINE}") as AbstractPublishToMaven
 
-                def zipMetadata = new ModuleDeployMetadata(project, PublicationUtils.loadModuleName(project))
+                def zipMetadata = new ModuleBuildMetadata(project, PublicationUtils.loadModuleName(project))
                 zipMetadata.showModuleMetadata()
 
                 // Cast the jar task
