@@ -29,6 +29,9 @@ class PublicationUtils {
 
     final static String CONFIGURATION_NAME = "implementation"
 
+    final static String ETENDO_DEPENDENCY_CONTAINER = "etendoDependencyContainer"
+    final static String MODULE_DEPENDENCY_CONTAINER = "moduleDependencyContainer"
+
     final static String BASE     = "build"
     final static String CLASSES  = "classes"
     final static String META_INF = "META-INF"

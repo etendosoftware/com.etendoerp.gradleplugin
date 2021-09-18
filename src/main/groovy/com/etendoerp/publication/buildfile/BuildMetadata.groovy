@@ -105,6 +105,7 @@ class BuildMetadata {
 
         def dependencies = DependenciesUtils.generatePomDependencies(project, moduleName, PublicationUtils.CONFIGURATION_NAME)
         map.put(DEPENDENCIES  , dependencies)
+        map.put(CONFIGURATION, PublicationUtils.MODULE_DEPENDENCY_CONTAINER)
 
         return  map
     }

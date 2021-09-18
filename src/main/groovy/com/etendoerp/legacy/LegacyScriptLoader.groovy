@@ -153,28 +153,34 @@ class LegacyScriptLoader {
 /**
  * This method gets all resolved dependencies by gradle and pass all resolved jars to ANT tasks
  */
-        project.task("deps") {
-            project.afterEvaluate {
-                def antClassLoader = org.apache.tools.ant.Project.class.classLoader
-                def newPath = []
-                //
-                project.configurations.compile.collect {
-                    antClassLoader.addURL it.toURL()
-                }
-                project.configurations.compile.collect {
-                    newPath.add ant.path(location: it)
-                }
-                //
-                ant.references.keySet().forEach {
-                    if(it.contains("path")) {
-                        newPath.forEach { pth ->
-                            logger.log(LogLevel.INFO, "ant reference " + it + " add to classpath " + pth)
-                            ant.references[it].add(pth)
-                        }
-                    }
-                }
-            }
-        }
+//        project.task("deps") {
+//            project.afterEvaluate {
+//                println("AFTER DEPS")
+//
+////                project.configurations.getByName("implementation").dependencies.each {
+////                    println("impl: ${it}")
+////                }
+//
+//                def antClassLoader = org.apache.tools.ant.Project.class.classLoader
+//                def newPath = []
+//                //
+//                project.configurations.compile.collect {
+//                    antClassLoader.addURL it.toURL()
+//                }
+//                project.configurations.compile.collect {
+//                    newPath.add ant.path(location: it)
+//                }
+//                //
+//                ant.references.keySet().forEach {
+//                    if(it.contains("path")) {
+//                        newPath.forEach { pth ->
+//                            logger.log(LogLevel.INFO, "ant reference " + it + " add to classpath " + pth)
+//                            ant.references[it].add(pth)
+//                        }
+//                    }
+//                }
+//            }
+//        }
 
         /**
          * BUILD TASKS

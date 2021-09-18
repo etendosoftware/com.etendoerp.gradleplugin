@@ -12,6 +12,10 @@ version = "${version}"
 description = "${description}"
 ext.repository = "${repository}"
 
+configurations {
+    ${configuration}
+}
+
 publishing {
     repositories {
         maven {
