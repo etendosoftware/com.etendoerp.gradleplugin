@@ -15,7 +15,7 @@ class PublicationLoader {
          * if the command line parameter -Pzip is passed, the version will be a ZIP.
          */
         project.tasks.register("publishVersion") {
-            def defaultPublishTask = "publishJar"
+            def defaultPublishTask = "publishMavenJar"
 
             if (project.hasProperty(PublicationUtils.PUBLISH_ZIP)) {
                 defaultPublishTask = "publishZip"

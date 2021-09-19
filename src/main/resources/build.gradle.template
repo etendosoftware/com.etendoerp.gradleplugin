@@ -5,11 +5,13 @@
 
 plugins {
     id 'java'
+    id 'maven-publish'
 }
 
-group = "${group}"
-version = "${version}"
-description = "${description}"
+group          = "${group}"
+version        = "${version}"
+description    = "${description}"
+ext.artifact   = "${artifact}"
 ext.repository = "${repository}"
 
 configurations {
@@ -17,6 +19,14 @@ configurations {
 }
 
 publishing {
+    publications {
+        "${modulename}"(MavenPublication) {
+            from components.java
+            groupId    = group
+            artifactId = artifact
+            version    = version
+        }
+    }
     repositories {
         maven {
             url "${repository}"
@@ -25,6 +35,8 @@ publishing {
 }
 
 repositories {
+    mavenCentral()
+    jcenter()
     maven {
         url "${repository}"
     }
@@ -34,8 +46,6 @@ repositories {
     maven {
         url "https://repo.futit.cloud/repository/maven-public-jars"
     }
-    mavenCentral()
-    jcenter()
 }
 
 /**

@@ -20,11 +20,13 @@ class BuildMetadata {
 
     final static String JAVAPACKAGE   = "javapackage"
     final static String GROUP         = "group"
+    final static String ARTIFACT      = "artifact"
     final static String VERSION       = "version"
     final static String DESCRIPTION   = "description"
     final static String REPOSITORY    = "repository"
     final static String CONFIGURATION = "configuration"
     final static String DEPENDENCIES  = "dependencies"
+    final static String MODULENAME    = "modulename"
 
     // Properties used to fill the build.gradle.template
     final static String DATE = "date"
@@ -35,6 +37,7 @@ class BuildMetadata {
     String version
     String description
     String group
+    String artifact
     String repository
     String srcFile
 
@@ -84,8 +87,8 @@ class BuildMetadata {
         version     = moduleNode[VERSION.toUpperCase()].text()
         description = moduleNode[DESCRIPTION.toUpperCase()].text()
 
-        group =  ModulesUtils.splitGroup(javaPackage)
-
+        group    = ModulesUtils.splitGroup(javaPackage)
+        artifact = ModulesUtils.splitArtifact(javaPackage)
     }
 
     /**
@@ -99,9 +102,11 @@ class BuildMetadata {
         map.put(DATE, Instant.now().toString())
 
         map.put(GROUP         , group)
+        map.put(ARTIFACT      , artifact)
         map.put(VERSION       , version)
         map.put(DESCRIPTION   , description)
         map.put(REPOSITORY    , repository)
+        map.put(MODULENAME    , moduleName)
 
         def dependencies = DependenciesUtils.generatePomDependencies(project, moduleName, PublicationUtils.CONFIGURATION_NAME)
         map.put(DEPENDENCIES  , dependencies)

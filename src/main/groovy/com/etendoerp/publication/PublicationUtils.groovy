@@ -42,6 +42,8 @@ class PublicationUtils {
 
     // Files to exclude from a module
     final static EXCLUDED_FILES = [
+            "build/",
+            "build/**",
             ".gradle/**",
             "gradle/**",
             "deploy.gradle",
@@ -70,6 +72,10 @@ class PublicationUtils {
             throw new IllegalArgumentException("The command line parameter -P${REPOSITORY_NAME_PROP}=<repository name> is missing.")
         }
         return repositoryName
+    }
+
+    static String capitalizeModule(String moduleName){
+        return moduleName.substring(0,1).toUpperCase() + moduleName.substring(1)
     }
 
     /**
