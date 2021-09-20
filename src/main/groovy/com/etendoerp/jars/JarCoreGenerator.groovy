@@ -7,6 +7,12 @@ import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.bundling.Jar
 
 class JarCoreGenerator {
+
+    public static final String RESOURCES_DIR = 'build/resources'
+    public static final String RESOURCES_JAR_DESTINATION = 'META-INF/'
+    public static final String BUILD_CLASES = 'build/classes'
+    public static final String ETENDO_CORE = 'etendo-core'
+
     static load(Project project) {
 
         project.tasks.register("jarConfig") {
@@ -15,13 +21,14 @@ class JarCoreGenerator {
                 def jarTask = (project.jar as Jar)
                 def generated = Utils.loadGeneratedEntitiesFile(project)
 
+                jarTask.archiveBaseName.set(ETENDO_CORE)
                 //Excluding src-gen
-                jarTask.from('build/classes') {
+                jarTask.from(BUILD_CLASES) {
                     exclude(PathUtils.fromPackageToPathClass(generated))
                 }
 
-                jarTask.from('build/resources') {
-                    into('META-INF/')
+                jarTask.from(RESOURCES_DIR) {
+                    into(RESOURCES_JAR_DESTINATION)
                 }
 
             }
@@ -132,7 +139,7 @@ class JarCoreGenerator {
         }
 
         project.tasks.register("copySrcTrl", Copy) {
-            from "${project.projectDir}/src-trl/build"
+            from "${project.projectDir}/src-trl/lib"
             include "**/*${FileExtensions.JAR}"
             into "${project.buildDir}/resources/src-trl"
         }
@@ -143,7 +150,7 @@ class JarCoreGenerator {
         }
 
         project.tasks.register("copySrcCore", Copy) {
-            from "${project.projectDir}/src-core/build"
+            from "${project.projectDir}/src-core/lib"
             include "**/*${FileExtensions.JAR}"
             into "${project.buildDir}/resources/src-core"
         }
@@ -154,7 +161,7 @@ class JarCoreGenerator {
         }
 
         project.tasks.register("copySrcWad", Copy) {
-            from "${project.projectDir}/src-wad/build"
+            from "${project.projectDir}/src-wad/lib"
             include "**/*${FileExtensions.JAR}"
             into "${project.buildDir}/resources/src-wad"
         }
