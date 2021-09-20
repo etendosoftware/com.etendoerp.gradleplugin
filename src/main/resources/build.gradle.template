@@ -1,0 +1,43 @@
+/**
+*   This file was generated automatically by the '${task}' task.
+*   Created at: ${date}.
+*/
+
+plugins {
+    id 'java'
+}
+
+group = "${group}"
+version = "${version}"
+description = "${description}"
+ext.repository = "${repository}"
+
+publishing {
+    repositories {
+        maven {
+            url "${repository}"
+        }
+    }
+}
+
+repositories {
+    maven {
+        url "${repository}"
+    }
+    maven {
+        url "https://repo.futit.cloud/repository/maven-releases"
+    }
+    maven {
+        url "https://repo.futit.cloud/repository/maven-public-jars"
+    }
+    mavenCentral()
+    jcenter()
+}
+
+/**
+* Declare Java dependencies using 'implementation'
+* Ex: implementation "com.sun.mail:javax.mail:1.6.2"
+*/
+dependencies {
+${dependencies}
+}
