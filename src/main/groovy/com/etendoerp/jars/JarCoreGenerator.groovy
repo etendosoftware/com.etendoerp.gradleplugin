@@ -38,11 +38,6 @@ class JarCoreGenerator {
                     return el.file.getName().endsWith(".class") && !el.file.getAbsolutePath().contains("modulescript") && !el.file.getAbsolutePath().contains("buildvalidation")
                 }
 
-                // Exclude generated entities (src-gen)
-                sourcesJarTask.from('build/classes') {
-                    exclude(PathUtils.fromPackageToPathClass(generated))
-                }
-
                 sourcesJarTask.from('build/resources') {
                     into('/META-INF')
                 }
@@ -81,6 +76,12 @@ class JarCoreGenerator {
             into "${project.buildDir}/resources/etendo/src-db"
         }
 
+        project.tasks.register("copySrcDBSources", Copy) {
+            from "${project.projectDir}/src-db"
+            include "**/*${FileExtensions.JAVA}"
+            into "${project.buildDir}/resources/etendo/src-db"
+        }
+
         project.tasks.register("copySrc", Copy) {
             from "${project.projectDir}/src"
             exclude "**/*${FileExtensions.JAVA}"
@@ -88,6 +89,7 @@ class JarCoreGenerator {
             exclude "**/*${FileExtensions.XSQL}"
             into "${project.buildDir}/resources/etendo/src"
         }
+
         project.tasks.register("copyModules", Copy) {
             from "${project.projectDir}/modules"
             exclude "**/*${FileExtensions.JAVA}"
@@ -104,6 +106,19 @@ class JarCoreGenerator {
             into "${project.buildDir}/resources/etendo/modules"
         }
 
+        project.tasks.register("copyModulesSources", Copy) {
+            from "${project.projectDir}/modules"
+            include "**/*${FileExtensions.JAVA}"
+            includeEmptyDirs = false
+            into "${project.buildDir}/resources/etendo/modules"
+        }
+
+        project.tasks.register("copyModulesCoreSources", Copy) {
+            from "${project.projectDir}/modules_core"
+            include "**/*${FileExtensions.JAVA}"
+            into "${project.buildDir}/resources/etendo/modules"
+        }
+
         project.tasks.register("copySrcJmh", Copy) {
             from "${project.projectDir}/src-jmh"
             exclude "**/*${FileExtensions.JAVA}"
@@ -114,6 +129,7 @@ class JarCoreGenerator {
 
         project.tasks.register("copySrcJmhSources", Copy) {
             from "${project.projectDir}/src-jmh"
+            include "**/*${FileExtensions.JAVA}"
             into "${project.buildDir}/resources/etendo/src-jmh"
         }
 
@@ -128,6 +144,7 @@ class JarCoreGenerator {
 
         project.tasks.register("copySrcUtilSources", Copy) {
             from ("${project.projectDir}/src-util")
+            include "**/*${FileExtensions.JAVA}"
             into "${project.buildDir}/resources/etendo/src-util"
         }
 
@@ -139,6 +156,7 @@ class JarCoreGenerator {
 
         project.tasks.register("copySrcTrlSources", Copy) {
             from "${project.projectDir}/src-trl"
+            include "**/*${FileExtensions.JAVA}"
             into "${project.buildDir}/resources/etendo/src-trl"
         }
 
@@ -150,6 +168,7 @@ class JarCoreGenerator {
 
         project.tasks.register("copySrcCoreSources", Copy) {
             from "${project.projectDir}/src-core"
+            include "**/*${FileExtensions.JAVA}"
             into "${project.buildDir}/resources/etendo/src-core"
         }
 
@@ -161,6 +180,7 @@ class JarCoreGenerator {
 
         project.tasks.register("copySrcWadSources", Copy) {
             from "${project.projectDir}/src-wad"
+            include "**/*${FileExtensions.JAVA}"
             into "${project.buildDir}/resources/etendo/src-wad"
         }
 
@@ -204,20 +224,15 @@ class JarCoreGenerator {
 
         def sourcesJarDependencies = [
                 "cleanResources",
-                "copyReferenceData",
-                "copyConfig",
-                "copyBuild",
                 "copyLibsSources",
-                "copySrcDB",
-                "copySrc",
-                "copyModules",
-                "copyModulesCore",
+                "copySrcDBSources",
+                "copyModulesSources",
+                "copyModulesCoreSources",
                 "copySrcCoreSources",
                 "copySrcJmhSources",
                 "copySrcTrlSources",
                 "copySrcUtilSources",
-                "copySrcWadSources",
-                "copyWebResources"
+                "copySrcWadSources"
         ]
 
         project.jar.dependsOn("jarConfig")
