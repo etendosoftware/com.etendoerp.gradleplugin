@@ -31,6 +31,8 @@ class MavenPublicationConfig {
                 // Get the module name
                 moduleName = PublicationUtils.loadModuleName(project)
 
+                project.logger.info("Starting module JAR configuration.")
+
                 String moduleLocation = PathUtils.createPath(
                         project.rootDir.absolutePath,
                         PublicationUtils.BASE_MODULE_DIR,
@@ -73,6 +75,32 @@ class MavenPublicationConfig {
             }
         }
 
+        moduleProject.tasks.register("mavenSourcesJarConfig") {
+            doLast {
+                moduleName = PublicationUtils.loadModuleName(project)
+
+                project.logger.info("Starting module Sources JAR configuration.")
+
+                String moduleLocation = PathUtils.createPath(
+                        project.rootDir.absolutePath,
+                        PublicationUtils.BASE_MODULE_DIR,
+                        moduleName
+                )
+
+                if (!project.file(moduleLocation).exists()) {
+                    throw new IllegalArgumentException("The module $moduleLocation does not exist.")
+                }
+
+                // Configure the task
+                Task moduleJar = moduleProject.tasks.named("sourcesJar").get() as Jar
+
+                String moduleSrcLocation = PathUtils.createPath(moduleLocation, PublicationUtils.SRC)
+                moduleJar.from(moduleSrcLocation) {
+                    include("**/*.java")
+                }
+            }
+        }
+
         def moduleCapitalize = PublicationUtils.capitalizeModule(moduleName)
         def mavenTask = "publish${moduleCapitalize}PublicationTo${MavenPublicationLoader.PUBLICATION_DESTINE}"
 
@@ -88,6 +116,13 @@ class MavenPublicationConfig {
         }
 
         project.gradle.projectsEvaluated {
+            moduleProject.java {
+                withSourcesJar()
+            }
+
+            // Sources JAR configuration
+            moduleProject.tasks.findByName("sourcesJar").dependsOn("mavenSourcesJarConfig")
+
             // JAR configuration
             moduleProject.tasks.findByName("jar").dependsOn("mavenJarConfig")
 
