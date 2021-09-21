@@ -12,6 +12,10 @@ class ResolverDependencyLoader {
             etendoDependencyContainer
         }
 
+        /**
+         * This method gets all resolved dependencies by gradle and pass all resolved jars to ANT tasks
+         */
+
         project.gradle.projectsEvaluated {
             project.logger.info("Running GRADLE projectsEvaluated.")
 
