@@ -47,8 +47,6 @@ class MavenPublicationConfig {
                 // Configure the task
                 Task moduleJar = moduleProject.tasks.named("jar").get() as Jar
 
-                //moduleJar.archiveFileName = "${moduleName}.$JAR"
-
                 // Obtains all the .class files
                 moduleJar.from(javaClassesLocation) {
                     include("$packagePath/**/*.class")
