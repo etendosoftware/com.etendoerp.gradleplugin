@@ -13,6 +13,14 @@ class JarCoreGenerator {
 
     static load(Project project) {
 
+        project.dependencies {
+            project.dependencies {
+                implementation project.fileTree(dir: "${project.rootDir}/lib", include: ['**/*.jar'])
+                implementation project.fileTree(dir: "${project.rootDir}/modules", include: ['**/*.jar'])
+                implementation project.fileTree(dir: "${project.rootDir}/modules_core", include: ['**/*.jar'])
+            }
+        }
+
         project.tasks.register("jarConfig") {
             doLast {
                 project.logger.info("Starting JAR configuration.")
@@ -35,11 +43,6 @@ class JarCoreGenerator {
         project.tasks.register("copyBeans", Copy) {
             from "${project.projectDir}/modules_core/org.openbravo.base.weld/config/beans.xml"
             into "${project.buildDir}/resources"
-        }
-
-        project.tasks.register("copyLibs", Copy) {
-            from "${project.projectDir}/lib"
-            into "${project.buildDir}/resources/lib"
         }
 
         project.tasks.register("copySrcDB", Copy) {
@@ -89,25 +92,6 @@ class JarCoreGenerator {
             include "**/*${FileExtensions.CLASS}"
             into "${project.buildDir}/resources/src-util"
         }
-
-        project.tasks.register("copySrcTrl", Copy) {
-            from "${project.projectDir}/src-trl/lib"
-            include "**/*${FileExtensions.JAR}"
-            into "${project.buildDir}/resources/src-trl"
-        }
-
-        project.tasks.register("copySrcCore", Copy) {
-            from "${project.projectDir}/src-core/lib"
-            include "**/*${FileExtensions.JAR}"
-            into "${project.buildDir}/resources/src-core"
-        }
-
-        project.tasks.register("copySrcWad", Copy) {
-            from "${project.projectDir}/src-wad/lib"
-            include "**/*${FileExtensions.JAR}"
-            into "${project.buildDir}/resources/src-wad"
-        }
-
         project.tasks.register("copyWebResources", Copy) {
             from ("${project.projectDir}/web",)
             into "${project.buildDir}/resources/etendo/web"
@@ -117,7 +101,6 @@ class JarCoreGenerator {
             include "build.xml"
             into "${project.buildDir}/resources"
         }
-
         project.tasks.register("copyReferenceData", Copy) {
             from ("${project.projectDir}/referencedata")
             into "${project.buildDir}/resources/etendo/referencedata"
@@ -125,6 +108,12 @@ class JarCoreGenerator {
 
         project.tasks.register("copyConfig", Copy) {
             from ("${project.projectDir}/config")
+            exclude 'Format.xml'
+            exclude 'Openbravo.properties'
+            exclude 'checksums'
+            exclude 'log4j2-web.xml'
+            exclude 'log4j2.xml'
+            exclude 'redisson-config.yaml'
             into "${project.buildDir}/resources/etendo/config"
         }
 
@@ -133,20 +122,20 @@ class JarCoreGenerator {
                 "copyConfig",
                 "copyBuild",
                 "copyBeans",
-                "copyLibs",
                 "copySrcDB",
                 "copySrc",
                 "copyModules",
                 "copyModulesCore",
-                "copySrcCore",
                 "copySrcJmh",
-                "copySrcTrl",
                 "copySrcUtil",
-                "copySrcWad",
                 "copyWebResources"
         ]
 
         project.jar.dependsOn("jarConfig")
         project.jarConfig.dependsOn(resourcesDirs)
+        project.jar.from{
+            project.configurations.compileClasspath.collect { it.isDirectory() ? it : project.zipTree(it) }
+        }
     }
 }
+
