@@ -1,0 +1,7 @@
+println("Settings TESTS")
+new File("modules").listFiles().each {
+    if (it.directory && new File(it, 'build.gradle').exists()) {
+        println("${it.name}")
+        include(":modules:${it.name}")
+    }
+}
