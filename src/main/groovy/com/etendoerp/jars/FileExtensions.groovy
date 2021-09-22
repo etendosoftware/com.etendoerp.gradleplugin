@@ -17,5 +17,6 @@ class FileExtensions {
     final static String JPGE    = ".jpge"
     final static String CSS     = ".css"
     final static String GIF     = ".gif"
+    final static String ZIP     = ".zip"
 
 }

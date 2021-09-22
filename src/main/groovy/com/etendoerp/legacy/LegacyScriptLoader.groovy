@@ -1,8 +1,10 @@
 package com.etendoerp.legacy
 
+import com.etendoerp.jars.modules.metadata.ModuleMetadata
 import com.etendoerp.legacy.utils.DependenciesUtils
 import com.etendoerp.legacy.utils.ModulesUtils
 import com.etendoerp.legacy.utils.NexusUtils
+import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.logging.LogLevel
@@ -147,32 +149,6 @@ class LegacyScriptLoader {
             }
         }
 
-
-/**
- * This method gets all resolved dependencies by gradle and pass all resolved jars to ANT tasks
- */
-        project.task("deps") {
-            project.afterEvaluate {
-                def antClassLoader = org.apache.tools.ant.Project.class.classLoader
-                def newPath = []
-                //
-                project.configurations.compile.collect {
-                    antClassLoader.addURL it.toURL()
-                }
-                project.configurations.compile.collect {
-                    newPath.add ant.path(location: it)
-                }
-                //
-                ant.references.keySet().forEach {
-                    if(it.contains("path")) {
-                        newPath.forEach { pth ->
-                            logger.log(LogLevel.INFO, "ant reference " + it + " add to classpath " + pth)
-                            ant.references[it].add(pth)
-                        }
-                    }
-                }
-            }
-        }
 
         /**
          * BUILD TASKS
@@ -473,130 +449,20 @@ class LegacyScriptLoader {
             }
         }
 
-
-        /**
-         * This task require command line parameter -Ppkg=<package name>
-         *     ex: ./gradlew publishVersion -Ppkg=com.greenterrace.hotelmanagement
-         * Based on package name, gets build.gradle information and customize publication with that info
-         * First makes zip file, then publish to nexus repository
-         */
-        project.task("assembleVersion", type: Zip) {
-            System.setProperty("org.gradle.internal.publish.checksums.insecure", "true")
-            def config = {
-            }
-            def pkgVar
-            def artifactId
-            def group
-            def version
-            def repo
-            List<String> deps = new ArrayList<>()
-            if(project.hasProperty("pkg")) {
-                pkgVar = pkg
-                if ( project.file("modules/$pkgVar/deploy.gradle").exists()){
-                    BufferedReader br_build = new BufferedReader(new FileReader("modules/$pkgVar/deploy.gradle"));
-                    String line;
-                    while ((line = br_build.readLine()) != null) {
-                        if (line.startsWith("//")){
-                            continue;
-                        }
-                        if (line.contains("group") && line.contains("=")){
-                            group = line.split("=")[1].trim().replace("'", "")
-                        }
-                        if (line.contains("version") && line.contains("=")){
-                            version = line.split("=")[1].trim().replace("'", "")
-                        }
-                        if (line.contains("compile")&& line.contains(" ")){
-                            deps.add(line.trim().split(" ")[1].replace("'", ""))
-                        }
-                        if (line.contains("url")){
-                            repo = line.trim().split(" ")[1].replace("\"", "")
-                        }
-                    }
-                    br_build.close();
-                    artifactId = pkgVar.toString().replace(group + ".", "")
-
-                    println("MODULE")
-                    println("----------")
-                    println("GROUP: " + group)
-                    println("ARTIFACT_ID: " + artifactId)
-                    println("VERSION: " + version)
-                    println("DEPENDENCIES: " + deps)
-                    println("REPOSITORY: " + repo)
-                }
-            }
-
-            archiveName pkgVar + '.zip'
-            destinationDir project.file("${project.buildDir}/libs/")
-            exclude ".gradle/**"
-            exclude "gradle/**"
-            exclude "deploy.gradle"
-            exclude "target/**"
-            exclude "*.xml"
-            from "modules/" + pkgVar
-            into pkgVar
-            //
-
-            // TODO: Check if this works
-            // otherwise try with
-            // (project.tasks.findByName("") as AbstractPublishToMaven).publication.artifact
-            project.publishMavenModulePublicationToMavenRepository.publication.artifact source: project.file("${project.buildDir}/libs/" + pkgVar + ".zip") extension 'zip'
-            project.publishMavenModulePublicationToMavenRepository.publication.artifactId artifactId
-            project.publishMavenModulePublicationToMavenRepository.publication.groupId group
-            project.publishMavenModulePublicationToMavenRepository.publication.version version
-            project.publishMavenModulePublicationToMavenRepository.publication.pom.withXml {
-
-                def dependencies = asNode().appendNode('dependencies')
-                deps.each({
-                    def dependency = dependencies.appendNode('dependency')
-                    def _artifact = it.toString().split(":")
-                    def _version = _artifact[2].split("@")
-                    //
-                    dependency.appendNode('groupId', _artifact[0])
-                    dependency.appendNode('artifactId', _artifact[1])
-                    dependency.appendNode('version', _version[0])
-                    dependency.appendNode('type', _version[1])
-                })
-                //
-                def repositories = asNode().appendNode('repositories')
-                def repository = repositories.appendNode('repository')
-                repository.appendNode('id', "partner-repo")
-                repository.appendNode('url', repo)
-                //
-            }
-            if (group != null) {
-                project.publishing.repositories.maven.url = repo
-                project.publishing.repositories.maven.credentials {
-                    NexusUtils.askNexusCredentials(project)
-                    username project.ext.get("nexusUser")
-                    password project.ext.get("nexusPassword")
-                }
-            }
-        }
-
-        /**
-         * This task is needed to simplify task dependencies
-         */
-        project.task("publishVersion") {
-            dependsOn(project.tasks.findByName("assembleVersion"), project.tasks.findByName("publishMavenModulePublicationToMavenRepository"))
-        }
-
         /**
          * This task create build.gradle and privileges to publish a new module in a specific repository
          * This task require command line parameter -Ppkg=<package name> -Prepo=<Repository Name>
          * */
         project.task("registerModule"){
-            //dependsOn(project.tasks.findByName("createModuleBuild"))
+            dependsOn("createModuleBuild")
             doLast {
                 NexusUtils.askNexusCredentials(project)
-                def pkgVar, repoVar
-                if (project.hasProperty("pkg"))
-                    pkgVar = pkg
-                if (project.hasProperty("repo"))
-                    repoVar = repo
+                def pkgVar = PublicationUtils.loadModuleName(project)
+                def repoVar = PublicationUtils.loadRepositoryName(project)
 
                 //Variables to create Privilege
-                nexusUser = project.ext.get("nexusUser")
-                nexusPassword = project.ext.get("nexusPassword")
+                def nexusUser = project.ext.get("nexusUser")
+                def nexusPassword = project.ext.get("nexusPassword")
                 //Replace "." by "/" to endpoint format
                 def javaPackage = "/" + pkgVar.replace(".", "/")
 
@@ -636,6 +502,7 @@ class LegacyScriptLoader {
                 } catch (IOException e) {
                     project.logger.info("Error obtaining permissions to publish")
                     if (uc != null) {
+                        project.logger.info("Response ERROR: ${uc.getErrorStream().text}")
                         responseCode = uc.getResponseCode();
                         // HTTP status code 400 group already exists
                         if (responseCode == 400) {
@@ -677,7 +544,7 @@ class LegacyScriptLoader {
         project.task("normalizeModule") {
             doLast {
                 if (project.hasProperty("pkg")) {
-                    String pkgVar = pkg
+                    String pkgVar = project.pkg
                     if (!defaultModules.contains(pkgVar)) {
                         NexusUtils.askNexusCredentials(project)
                         ModulesUtils.normalizeModule(project, new File("./modules/" + pkgVar), project.ext.get("nexusUser"), project.ext.get("nexusPassword"))
@@ -688,69 +555,6 @@ class LegacyScriptLoader {
                 print "* if you want to download the dependencies you must run the following command *\n"
                 print "* RUN COMMAND>> ./gradlew expandModules                                       *\n"
                 print "*******************************************************************************\n"
-            }
-        }
-
-
-        /**
-         * Task to create build.gradle from a module
-         * This task require command line parameter -Ppkg=<package name> -Prepo=<Repository Name>
-         * */
-        project.task("createModuleBuild") {
-            doLast {
-
-                def pkgVar, repoVar
-                if (project.hasProperty("pkg"))
-                    pkgVar = pkg
-                if (project.hasProperty("repo"))
-                    repoVar = repo
-
-                //Create build.gradle
-                def srcFile = "modules/" + pkgVar + "/src-db/database/sourcedata/AD_MODULE.xml"
-                def deployFilePath = "modules/" + pkgVar + "/deploy.gradle"
-                def buildFilePath = "modules/" + pkgVar + "/build.gradle"
-                def ad_module = new XmlParser().parse(srcFile)
-                def javaPackage = ad_module["AD_MODULE"]["JAVAPACKAGE"].text()
-                def version = ad_module["AD_MODULE"]["VERSION"].text()
-                def description = ad_module["AD_MODULE"]["DESCRIPTION"].text()
-                def deployFile = new File(deployFilePath)
-                def buildFile = new File(buildFilePath)
-                def group =  ModulesUtils.splitGroup(javaPackage)
-
-                def headerText = "group = '" + group + "'\n" +
-                        "version = '" + version + "'\n" +
-                        "description = '" + description + "'\n \n"
-
-                deployFile.text = headerText +
-                        DependenciesUtils.createDependenciesText(true, pkgVar) + "\n" +
-                        "publishing{\n" +
-                        "    repositories {\n" +
-                        "        maven {\n" +
-                        "            url \"https://repo.futit.cloud/repository/" + repoVar + "\"\n"+
-                        "        }\n" +
-                        "    }\n" +
-                        "}";
-                buildFile.text = headerText + DependenciesUtils.createDependenciesText(false, pkgVar);
-            }
-        }
-
-        /***
-         * Task to apply  build.gradle from each module
-         */
-        project.task("applyModuleBuild") {
-            def modules = project.file("./modules")
-            def coreModules = project.file("./modules_core")
-            def files = []
-            if (coreModules.exists()) {
-                files.addAll(coreModules.listFiles().sort())
-            }
-            if (modules.exists()) {
-                files.addAll(modules.listFiles().sort())
-            }
-            files.each { File file ->
-                if (file.isDirectory() && new File(file.getPath()+"/build.gradle").exists() ) {
-                    project.apply from: file.getPath()+"/build.gradle"
-                }
             }
         }
 

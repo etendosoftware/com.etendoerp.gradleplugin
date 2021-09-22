@@ -46,8 +46,8 @@ publishing {
     repositories {
         maven {
             credentials {
-                username "admin--"
-                password "3t3nd0%admin--"
+                username "--"
+                password "--"
             }
             url(urlToPublish)
         }

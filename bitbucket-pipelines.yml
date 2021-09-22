@@ -1,0 +1,12 @@
+image: maven:3.5.0
+
+pipelines:
+  default:
+    - step:
+        script:
+            - apt-get update; apt-get install -y jq unzip
+            - export BITBUCKET_ACCESS_TOKEN=$(curl -s -X POST -u "$OAUTH_CLIENT_KEY:$OAUTH_CLIENT_SECRET" https://bitbucket.org/site/oauth2/access_token -d grant_type=client_credentials | jq ".access_token")
+            - export BITBUCKET_PULL_REQUEST_ID=$(curl -s -X GET "https://api.bitbucket.org/2.0/repositories/$BITBUCKET_REPO_OWNER/$BITBUCKET_REPO_SLUG/pullrequests?pagelen=1&state=OPEN&access_token=$BITBUCKET_ACCESS_TOKEN" | jq ".values[] | .id")
+            - curl --insecure -OL https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-2.7.zip
+            - unzip sonar-scanner-2.7.zip
+            - ./sonar-scanner-2.7/bin/sonar-scanner -X -Dsonar.verbose=true -Dsonar.projectKey=$BITBUCKET_REPO_FULL_NAME -Dsonar.sources=src -Dsonar.java.binaries=. -Dsonar.bitbucket.repoSlug=$BITBUCKET_REPO_SLUG -Dsonar.bitbucket.accountName=$BITBUCKET_REPO_OWNER -Dsonar.bitbucket.branchName=$BITBUCKET_BRANCH -Dsonar.bitbucket.oauthClientKey=$OAUTH_CLIENT_KEY -Dsonar.bitbucket.oauthClientSecret=$OAUTH_CLIENT_SECRET -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_LOGIN -Dsonar.password=$SONAR_PASSWORD -Dsonar.analysis.mode=preview -Dsonar.bitbucket.pullRequestId=$BITBUCKET_PULL_REQUEST_ID -Dsonar.bitbucket.maxSeverityApprovalLevel=INFO -Dsonar.bitbucket.buildStatusEnabled=true -Dsonar.bitbucket.approvalFeatureEnabled=false

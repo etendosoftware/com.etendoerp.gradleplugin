@@ -1,6 +1,6 @@
 package com.etendoerp
 
-import com.etendoerp.jars.JarLoader;
+import com.etendoerp.jars.JarLoader
 import com.etendoerp.legacy.EtendoLegacy
 import com.etendoerp.publication.PublicationLoader
 import org.gradle.api.Plugin
