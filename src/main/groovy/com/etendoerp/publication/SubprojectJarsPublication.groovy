@@ -10,73 +10,43 @@ class SubprojectJarsPublication {
     final static String DEV_URL = "https://repo.futit.cloud/repository/maven-snapshots/"
     final static String PROD_URL = "https://repo.futit.cloud/repository/maven-releases/"
     final static String GROUP = 'com.etendoerp.platform'
-    final static String VERSION = '1.0.0'
 
     static load(Project project) {
-
         project.publishing {
             publications {
                 trlLib(MavenPublication) {
                     artifactId = 'trl-lib'
                     groupId = GROUP
-                    version = VERSION
                 }
                 wadLib(MavenPublication) {
                     artifactId = 'wad-lib'
                     groupId = GROUP
-                    version = VERSION
                 }
                 coreLib(MavenPublication) {
                     artifactId = 'core-lib'
                     groupId = GROUP
-                    version = VERSION
                 }
             }
         }
 
-        project.tasks.register('configTrlLib') {
-            doLast {
-                def publishTask = project.tasks.findByName("publishTrlLibPublicationToMavenRepository") as AbstractPublishToMaven
-                publishTask.publication.artifact(project.file("$project.rootDir/src-trl/lib/openbravo-trl.jar"))
-                configRepo(project)
-
-            }
-        }
-
-        project.tasks.register('configWadLib') {
-            doLast {
-                def publishTask = project.tasks.findByName("publishWadLibPublicationToMavenRepository") as AbstractPublishToMaven
-                publishTask.publication.artifact(project.file("$project.rootDir/src-wad/lib/openbravo-wad.jar"))
-                configRepo(project)
-            }
-
-        }
-        project.tasks.register('configCoreLib') {
-            doLast {
-                def publishTask = project.tasks.findByName("publishCoreLibPublicationToMavenRepository") as AbstractPublishToMaven
-                publishTask.publication.artifact(project.file("$project.rootDir/src-core/lib/openbravo-core.jar"))
-                configRepo(project)
-            }
-
-        }
 
         project.tasks.register('publishTrlLibJar') {
-            dependsOn(['trl.lib', 'configTrlLib', 'publishTrlLibPublicationToMavenRepository'])
+            configTrlLib(project, getParamVersion(project))
+            it.dependsOn(['trl.lib', 'publishTrlLibPublicationToMavenRepository'])
         }
-        project.configTrlLib.mustRunAfter("trl.lib")
-        project.publishTrlLibPublicationToMavenRepository.mustRunAfter("configTrlLib")
+        project.publishTrlLibPublicationToMavenRepository.mustRunAfter("trl.lib")
 
         project.tasks.register('publishWadLibJar') {
-            it.dependsOn(['wad.lib', 'configWadLib', 'publishWadLibPublicationToMavenRepository'])
+            configWadLib(project, getParamVersion(project))
+            it.dependsOn(['wad.lib', 'publishWadLibPublicationToMavenRepository'])
         }
-        project.configWadLib.mustRunAfter("wad.lib")
-        project.publishWadLibPublicationToMavenRepository.mustRunAfter("configWadLib")
+        project.publishWadLibPublicationToMavenRepository.mustRunAfter("wad.lib")
 
         project.tasks.register('publishCoreLibJar') {
-            dependsOn(['core.lib', 'configCoreLib', 'publishCoreLibPublicationToMavenRepository'])
+            configCoreLib(project, getParamVersion(project))
+            it.dependsOn(['core.lib', 'publishCoreLibPublicationToMavenRepository'])
         }
-        project.configCoreLib.mustRunAfter("core.lib")
-        project.publishCoreLibPublicationToMavenRepository.mustRunAfter("configCoreLib")
+        project.publishCoreLibPublicationToMavenRepository.mustRunAfter("core.lib")
     }
 
     static void configRepo(Project project) {
@@ -90,5 +60,32 @@ class SubprojectJarsPublication {
             username project.ext.get("nexusUser")
             password project.ext.get("nexusPassword")
         }
+    }
+
+    static void configWadLib(project, version) {
+        def publishTask = project.tasks.findByName("publishWadLibPublicationToMavenRepository") as AbstractPublishToMaven
+        publishTask.publication.artifact(project.file("$project.rootDir/src-wad/lib/openbravo-wad.jar"))
+        publishTask.publication.version= version
+        configRepo(project)
+    }
+    static void configCoreLib(project, version) {
+        def publishTask = project.tasks.findByName("publishCoreLibPublicationToMavenRepository") as AbstractPublishToMaven
+        publishTask.publication.artifact(project.file("$project.rootDir/src-core/lib/openbravo-core.jar"))
+        publishTask.publication.version= version
+        configRepo(project)
+    }
+    static void configTrlLib(project, version) {
+        def publishTask = project.tasks.findByName("publishTrlLibPublicationToMavenRepository") as AbstractPublishToMaven
+        publishTask.publication.artifact(project.file("$project.rootDir/src-trl/lib/openbravo-trl.jar"))
+        publishTask.publication.version= version
+        configRepo(project)
+    }
+
+    static String getParamVersion(project){
+        String paramVersion = project.findProperty("version")
+        if (!paramVersion || paramVersion=="unspecified") {
+            throw new IllegalArgumentException("The command line parameter -PVersion=<version> is missing.")
+        }
+        return paramVersion
     }
 }
