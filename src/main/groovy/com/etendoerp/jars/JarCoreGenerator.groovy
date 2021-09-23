@@ -76,13 +76,6 @@ class JarCoreGenerator {
             into "${project.buildDir}/resources"
         }
 
-<<<<<<< HEAD
-=======
-        project.tasks.register("copyLibs", Copy) {
-            from "${project.projectDir}/lib"
-            into "${project.buildDir}/resources/lib"
-        }
-
         project.tasks.register("copyLibsSources", Copy) {
             from "${project.projectDir}/lib"
             into "${project.buildDir}/resources/etendo/lib"
