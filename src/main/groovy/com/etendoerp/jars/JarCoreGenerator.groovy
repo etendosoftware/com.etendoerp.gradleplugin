@@ -18,6 +18,9 @@ class JarCoreGenerator {
                 implementation project.fileTree(dir: "${project.rootDir}/lib", include: ['**/*.jar'])
                 implementation project.fileTree(dir: "${project.rootDir}/modules", include: ['**/*.jar'])
                 implementation project.fileTree(dir: "${project.rootDir}/modules_core", include: ['**/*.jar'])
+                implementation project.fileTree(dir: "${project.rootDir}/src-core/lib", include: ['**/*.jar'])
+                implementation project.fileTree(dir: "${project.rootDir}/src-wad/lib", include: ['**/*.jar'])
+                implementation project.fileTree(dir: "${project.rootDir}/src-trl/lib", include: ['**/*.jar'])
             }
         }
 
