@@ -1,0 +1,14 @@
+mavenUser=
+mavenPassword=
+
+nexusUser = ""
+nexusPassword = ""
+
+test.bbdd.url=
+test.bbdd.sid=
+test.bbdd.systemUser=
+test.bbdd.systemPassword=
+test.bbdd.user=
+test.bbdd.password=
+org.gradle.daemon=false
+org.gradle.jvmargs=-Xmx2g -XX:MaxPermSize=1024m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8

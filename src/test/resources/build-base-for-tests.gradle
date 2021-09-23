@@ -1,0 +1,22 @@
+plugins {
+    id 'java'
+    id 'war'
+    id 'maven-publish'
+    id "com.etendoerp.gradleplugin"
+}
+
+// The following hack is needed because the Gradle Test Kit uses the Gradle Tooling API to execute the build
+// and that library sets the java working directory to the directory of where the tests are run, not the directory of the gradle project.
+// This causes some java classes called by ant to create files in the wrong directory.
+// Apparently this is fixed in Gradle 7. This should be checked when we update our wrappers.
+// See: https://youtrack.jetbrains.com/issue/IDEA-265203
+System.setProperty("user.dir", projectDir.absolutePath)
+
+etendo {
+    coreVersion = "[20.2.1,20.2.2)"
+}
+
+dependencies {
+    // Add your dependencies here
+
+}
