@@ -12,11 +12,11 @@ class FileExtensions {
     final static String SRPT    = ".srpt"
     final static String FTL     = ".ftl"
     final static String XSQL    = ".xsql"
+    final static String ZIP     = ".zip"
     final static String XSLT    = ".xslt"
     final static String PNG     = ".png"
     final static String JPGE    = ".jpge"
     final static String CSS     = ".css"
     final static String GIF     = ".gif"
-    final static String ZIP     = ".zip"
 
 }
