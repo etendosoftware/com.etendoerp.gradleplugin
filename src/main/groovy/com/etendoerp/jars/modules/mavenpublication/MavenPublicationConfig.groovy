@@ -6,7 +6,9 @@ import com.etendoerp.legacy.utils.NexusUtils
 import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
 import org.gradle.api.Task
+import org.gradle.api.publish.maven.tasks.AbstractPublishToMaven
 import org.gradle.api.tasks.bundling.Jar
+import org.gradle.api.tasks.bundling.Zip
 
 class MavenPublicationConfig {
 
@@ -105,7 +107,17 @@ class MavenPublicationConfig {
         def mavenTask = "publish${moduleCapitalize}PublicationTo${MavenPublicationLoader.PUBLICATION_DESTINE}"
 
         moduleProject.tasks.register("mavenPublishConfig") {
+            def zipTask  = "generateModuleZip"
+            dependsOn({
+                project.tasks.findByName(zipTask)
+            })
             doLast {
+                def zip = project.tasks.findByName(zipTask) as Zip
+                def zipFile = zip.archiveFile.get()
+
+                AbstractPublishToMaven publishTask = moduleProject.tasks.findByName(mavenTask) as AbstractPublishToMaven
+                publishTask.publication.artifact(zipFile)
+
                 // Configure the credentials
                 moduleProject.publishing.repositories.maven.credentials {
                     NexusUtils.askNexusCredentials(project)

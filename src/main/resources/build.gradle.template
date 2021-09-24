@@ -1,6 +1,9 @@
 /**
 *   This file was generated automatically by the '${task}' task.
 *   Created at: ${date}.
+*
+*   WARNING: Do not put your credentials directly in this file.
+*
 */
 
 plugins {
