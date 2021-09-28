@@ -65,7 +65,7 @@ class MavenPublicationConfig {
                 }
 
                 // Store all the files excluding the 'src' folder
-                // in the 'META-INF/etendo' dir.
+                // in the 'META-INF/etendo/modules' dir.
                 String destinationDir = PathUtils.createPath(PublicationUtils.META_INF, PublicationUtils.ETENDO, PublicationUtils.BASE_MODULE_DIR, moduleName)
 
                 moduleJar.from(moduleLocation) {

@@ -1,8 +1,6 @@
 package com.etendoerp.jars.modules.metadata
 
 import com.etendoerp.jars.PathUtils
-import com.etendoerp.jars.modules.ModuleJarGenerator
-import com.etendoerp.jars.modules.ModuleJarPublication
 import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
 
@@ -24,7 +22,7 @@ class ModuleDeployMetadata extends ModuleMetadata{
                 project.rootDir.absolutePath,
                 PublicationUtils.BASE_MODULE_DIR,
                 moduleName
-        ).concat(ModuleJarPublication.PUBLICATION_DATA)
+        ).concat(PUBLICATION_DATA)
 
         if (!project.file(metadataLocation).exists()) {
             throw new IllegalArgumentException("The file '$metadataLocation' does not exists.")

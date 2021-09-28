@@ -1,6 +1,6 @@
 package com.etendoerp.jars.modules.metadata
 
-import com.etendoerp.jars.modules.ModuleJarGenerator
+
 import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
 import org.gradle.api.artifacts.DependencySet
