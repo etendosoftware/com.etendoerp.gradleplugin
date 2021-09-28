@@ -6,7 +6,9 @@ import com.etendoerp.legacy.utils.NexusUtils
 import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
 import org.gradle.api.Task
+import org.gradle.api.publish.maven.tasks.AbstractPublishToMaven
 import org.gradle.api.tasks.bundling.Jar
+import org.gradle.api.tasks.bundling.Zip
 
 class MavenPublicationConfig {
 
@@ -27,6 +29,7 @@ class MavenPublicationConfig {
         }
 
         moduleProject.tasks.register("mavenJarConfig") {
+            dependsOn({project.tasks.findByName("compileJava")})
             doLast {
                 // Get the module name
                 moduleName = PublicationUtils.loadModuleName(project)
@@ -63,7 +66,7 @@ class MavenPublicationConfig {
                 }
 
                 // Store all the files excluding the 'src' folder
-                // in the 'META-INF/etendo' dir.
+                // in the 'META-INF/etendo/modules' dir.
                 String destinationDir = PathUtils.createPath(PublicationUtils.META_INF, PublicationUtils.ETENDO, PublicationUtils.BASE_MODULE_DIR, moduleName)
 
                 moduleJar.from(moduleLocation) {
@@ -105,7 +108,17 @@ class MavenPublicationConfig {
         def mavenTask = "publish${moduleCapitalize}PublicationTo${MavenPublicationLoader.PUBLICATION_DESTINE}"
 
         moduleProject.tasks.register("mavenPublishConfig") {
+            def zipTask  = "generateModuleZip"
+            dependsOn({
+                project.tasks.findByName(zipTask)
+            })
             doLast {
+                def zip = project.tasks.findByName(zipTask) as Zip
+                def zipFile = zip.archiveFile.get()
+
+                AbstractPublishToMaven publishTask = moduleProject.tasks.findByName(mavenTask) as AbstractPublishToMaven
+                publishTask.publication.artifact(zipFile)
+
                 // Configure the credentials
                 moduleProject.publishing.repositories.maven.credentials {
                     NexusUtils.askNexusCredentials(project)

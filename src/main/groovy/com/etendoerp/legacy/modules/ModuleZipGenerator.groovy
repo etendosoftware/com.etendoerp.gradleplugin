@@ -30,7 +30,7 @@ class ModuleZipGenerator {
                 // Configure the task
                 Task moduleZip = project.tasks.named("generateModuleZip").get() as Zip
 
-                moduleZip.archiveFileName = "${moduleName}.${FileExtensions.ZIP}"
+                moduleZip.archiveFileName = "${moduleName}${FileExtensions.ZIP}"
 
                 def destinationDir = PathUtils.createPath(project.buildDir.absolutePath, PublicationUtils.LIB)
                 moduleZip.destinationDirectory = project.file(destinationDir)
