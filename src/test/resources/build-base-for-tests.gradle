@@ -3,6 +3,7 @@ plugins {
     id 'war'
     id 'maven-publish'
     id "com.etendoerp.gradleplugin"
+    id 'com.etendoerp.mockup.etendo-mockup' version '1.0.3-SNAPSHOT'
 }
 
 // The following hack is needed because the Gradle Test Kit uses the Gradle Tooling API to execute the build
