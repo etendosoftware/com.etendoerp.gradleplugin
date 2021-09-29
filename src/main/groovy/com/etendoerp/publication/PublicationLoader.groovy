@@ -6,7 +6,7 @@ import org.gradle.api.Project
 class PublicationLoader {
 
     static void load(Project project) {
-
+        SubprojectJarsPublication.load(project)
         ModuleBuildTemplateLoader.load(project)
 
         /**
@@ -20,10 +20,8 @@ class PublicationLoader {
             if (project.hasProperty(PublicationUtils.PUBLISH_ZIP)) {
                 defaultPublishTask = "publishZip"
             }
-
             dependsOn({project.tasks.named(defaultPublishTask)})
         }
-
     }
 
 }
