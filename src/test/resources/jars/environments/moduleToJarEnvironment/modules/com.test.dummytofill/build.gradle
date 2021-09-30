@@ -10,8 +10,8 @@ plugins {
 
 group          = "com.test"
 version        = "1.0.0"
-description    = "com.test.dummyAutogenTest"
-ext.artifact   = "dummyAutogenTest"
+description    = "com.test.dummytofill"
+ext.artifact   = "dummytofill"
 ext.repository = "https://repo.futit.cloud/repository/etendo-test"
 
 configurations {
@@ -20,7 +20,7 @@ configurations {
 
 publishing {
     publications {
-        "com.test.dummyAutogenTest"(MavenPublication) {
+        "com.test.dummytofill"(MavenPublication) {
             from components.java
             groupId    = group
             artifactId = artifact

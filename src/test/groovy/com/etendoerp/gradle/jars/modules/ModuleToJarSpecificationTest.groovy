@@ -29,26 +29,48 @@ abstract class ModuleToJarSpecificationTest extends EtendoSpecification {
         ant.copy(file: buildJarFile, todir: getProjectDir(), overwrite: true)
     }
 
-    String[] getFilesFromModule(def map=[:]) {
+    String moduleToPath(String module) {
+        return module.replace(".","/")
+    }
+
+    /**
+     * Get the files from the generated file.
+     * Each file is converted to a path format.
+     * Ex: com.test.CustomClass -> com/test/CustomClass.class
+     * @param generated
+     * @return
+     */
+    String[] getFilesFromGenerated(File generated) {
+        def files = []
+        generated.eachLine {
+            files.add("${moduleToPath(it)}.class")
+        }
+        return files
+    }
+
+    String[] getFilesFromLocation(def map=[:]) {
 
         // Arguments
-        def module              = map.module              ?: ""
+        def location            = map.location            ?: ""
         def fileExtension       = map.fileExtension       ?: ""
         def locationDir         = map.locationDir         ?: ""
         def replacePathLocation = map.replacePathLocation ?: true
         def ignoreDir           = map.ignoreDir           ?: true
         def pathToIgnore        = map.pathToIgnore        ?: ""
+        def ignoreBuildDir      = map.ignoreBuildDir      ?: true
 
         def files = []
-        def baseLocation = "${getProjectDir().absolutePath}/modules/$module/"
+        def baseLocation = location
 
         if (locationDir) {
             baseLocation += "$locationDir/"
         }
 
-        def moduleFilesLocation = new File(baseLocation)
+        String pathToReplace = map.pathToReplace ?: baseLocation
 
-        moduleFilesLocation.eachFileRecurse {
+        def filesLocation = new File(baseLocation as String)
+
+        filesLocation.eachFileRecurse {
             if (ignoreDir && it.isDirectory()) {
                 return
             }
@@ -58,14 +80,14 @@ abstract class ModuleToJarSpecificationTest extends EtendoSpecification {
             }
 
             // Ignore build directory
-            if (it.absolutePath.contains("${baseLocation}build/")) {
+            if (ignoreBuildDir && it.absolutePath.contains("${baseLocation}build/")) {
                 return
             }
 
             if (it.name.endsWith(fileExtension as String)) {
                 def fileLocation = it.absolutePath
                 if (replacePathLocation) {
-                    fileLocation = fileLocation.replace(baseLocation,"")
+                    fileLocation = fileLocation.replace(pathToReplace,"")
                 }
                 files.add(fileLocation)
             }
@@ -73,6 +95,11 @@ abstract class ModuleToJarSpecificationTest extends EtendoSpecification {
         return files
     }
 
+    String[] getFilesFromModule(def map=[:]) {
+        def module = map.module
+        map.location = "${getProjectDir().absolutePath}/modules/$module/"
+        getFilesFromLocation(map)
+    }
 
     String[] getFilesFromJar(def map = [:]) {
 
