@@ -25,15 +25,10 @@ pluginManagement {
     }
 }
 
+println("Settings TESTS root dir: ${this.rootDir}")
+
 new File("${this.rootDir}/modules").listFiles().each {
     println("module : $it")
-    if (it.directory && new File(it, 'build.gradle').exists()) {
-        println("${it.name}")
-        include(":modules:${it.name}")
-    }
-}
-println("Settings TESTS")
-new File("modules").listFiles().each {
     if (it.directory && new File(it, 'build.gradle').exists()) {
         println("${it.name}")
         include(":modules:${it.name}")
