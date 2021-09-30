@@ -27,8 +27,16 @@ class JarCoreGenerator {
                     exclude(PathUtils.fromPackageToPathClass(generated))
                 }
 
+                // Workaround for issue: https://issues.apache.org/jira/browse/LOG4J2-673
+                jarTask.exclude "**/Log4j2Plugins.dat"
+
                 jarTask.from(RESOURCES_DIR) {
                     into(RESOURCES_JAR_DESTINATION)
+                }
+
+                jarTask.manifest {
+                    // make lo4j2 work in the generated jar, since the log4j jar is a multirelease one
+                    attributes 'Multi-Release': 'true'
                 }
 
             }
