@@ -36,6 +36,7 @@ class JarCoreGeneratorTest extends EtendoSpecification{
         when: "create a coreJar"
         def generateEntities = runTask(":generate.entities")
         def jar = runTask(":jar")
+
         // JAR classes
         Set<String> jarClasses = new ArrayList<String>();
         new ZipFile( "${testProjectDir.absolutePath}/build/libs/etendo-core.jar").entries().each {
@@ -47,10 +48,19 @@ class JarCoreGeneratorTest extends EtendoSpecification{
 
         // build/classes - generated
         Set<String> buildClasses = new File("${testProjectDir.absolutePath}/build/classes").list()
-        Set<String> generatedClasses =  new File("${testProjectDir.absolutePath}/build/tmp/generated").text.split('\n').collect {
-            it.concat('.class')
+
+        Set<String> generatedClasses =  new File("${testProjectDir.absolutePath}/build/tmp/generated").text.split('\n')
+        //buildClasses.removeAll(generatedClasses)
+
+        //Excluding all generated inner classes
+        for(String generated: generatedClasses){
+            buildClasses.removeAll {
+                if(it.contains(generated)){
+                    it
+                }
+            }
         }
-        buildClasses.removeAll(generatedClasses)
+
 
 
         then: "The tasks run successfully, and the classes in Jar are the same that [build/clases]-generated"
@@ -58,7 +68,6 @@ class JarCoreGeneratorTest extends EtendoSpecification{
         assert generateEntities.task(":generate.entities").outcome == TaskOutcome.SUCCESS
         assert new File("${testProjectDir.absolutePath}/build/libs/etendo-core.jar").exists()
         assert buildClasses == jarClasses
-
 
     }
 }
