@@ -10,7 +10,10 @@ class ExtractResourcesOfJars {
         project.tasks.register("extractResourcesOfJar", Copy) {
             from {
                 project.configurations.compile.findResults {
-                    project.zipTree(it).matching { include 'META-INF/etendo/' }
+                    project.zipTree(it).matching {
+                        include 'META-INF/etendo/'
+                        include 'META-INF/build.xml'
+                    }
 
                 }
             }
@@ -18,7 +21,11 @@ class ExtractResourcesOfJars {
 
             //Deleting path prefix for each extracted file
             eachFile { f ->
-                f.path = f.path.replaceFirst( 'META-INF/etendo/', '')
+                if (f.path == 'META-INF/build.xml') {
+                    f.path = 'META-INF/etendo/build.xml'
+                } else {
+                    f.path = f.path.replaceFirst('META-INF/', '')
+                }
             }
             includeEmptyDirs false
         }
