@@ -22,7 +22,6 @@ class JarCoreGeneratorTest extends EtendoSpecification{
         return testProjectDir
     }
     def setup(){
-        println "SETUP"
         FileUtils.copyDirectory(new File("src/test/resources/jars/environments/core"),testProjectDir)
     }
 
@@ -33,9 +32,10 @@ class JarCoreGeneratorTest extends EtendoSpecification{
 
         installed = true
     }
-    def "class in jar"() {
+    def "Creating Jar of core and check if the generated classes are excluded"() {
         when: "create a coreJar"
         def generateEntities = runTask(":generate.entities")
+        println new File("${testProjectDir.absolutePath}/build/tmp/generated").text
         def jar = runTask(":jar")
         // JAR classes
         Set<String> jarClasses = new ArrayList<String>();
@@ -54,7 +54,7 @@ class JarCoreGeneratorTest extends EtendoSpecification{
         buildClasses.removeAll(generatedClasses)
 
 
-        then: "The tasks run successfully, and the classes in Jar are the same that build/clases-generated"
+        then: "The tasks run successfully, and the classes in Jar are the same that [build/clases]-generated"
         assert jar.task(":jar").outcome == TaskOutcome.SUCCESS
         assert generateEntities.task(":generate.entities").outcome == TaskOutcome.SUCCESS
         assert new File("${testProjectDir.absolutePath}/build/libs/etendo-core.jar").exists()

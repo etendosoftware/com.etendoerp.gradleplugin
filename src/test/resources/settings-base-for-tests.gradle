@@ -32,9 +32,6 @@ new File("${this.rootDir}/modules").listFiles().each {
         include(":modules:${it.name}")
     }
 }
-
-
-
 println("Settings TESTS")
 new File("modules").listFiles().each {
     if (it.directory && new File(it, 'build.gradle').exists()) {
