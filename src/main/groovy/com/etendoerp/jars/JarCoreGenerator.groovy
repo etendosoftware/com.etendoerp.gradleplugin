@@ -34,9 +34,7 @@ class JarCoreGenerator {
 
                 jarTask.archiveBaseName.set(ETENDO_CORE)
                 //Excluding src-gen
-                jarTask.from(BUILD_CLASES) {
-                    exclude(PathUtils.fromPackageToPathClass(generated))
-                }
+                jarTask.exclude(PathUtils.fromPackageToPathClass(generated))
 
                 jarTask.from(RESOURCES_DIR) {
                     into(RESOURCES_JAR_DESTINATION)
