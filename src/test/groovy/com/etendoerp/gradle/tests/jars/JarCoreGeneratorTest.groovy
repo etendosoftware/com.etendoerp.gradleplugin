@@ -35,7 +35,6 @@ class JarCoreGeneratorTest extends EtendoSpecification{
     def "Creating Jar of core and check if the generated classes are excluded"() {
         when: "create a coreJar"
         def generateEntities = runTask(":generate.entities")
-        println new File("${testProjectDir.absolutePath}/build/tmp/generated").text
         def jar = runTask(":jar")
         // JAR classes
         Set<String> jarClasses = new ArrayList<String>();
