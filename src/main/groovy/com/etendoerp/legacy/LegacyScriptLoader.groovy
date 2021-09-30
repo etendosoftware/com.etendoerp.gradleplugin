@@ -134,112 +134,8 @@ class LegacyScriptLoader {
         }
 
         /**
-         * This method gets all compile dependencies and sets them in ant as a file list with id: "gradle.libs"
-         * Ant task build.local.context uses this to copy them to WebContent
-         */
-        project.task("dependenciesToAntForCopy") {
-            project.afterEvaluate {
-                def dependencies = []
-                project.configurations.compile.collect {
-                    dependencies.add ant.path(location: it)
-                    project.logger.log(LogLevel.INFO , "Gradle library " + it.getName() + " added to gradle.libs ant filelist")
-                }
-
-                ant.filelist(id: 'gradle.libs', files: dependencies.join(','))
-            }
-        }
-
-
-/**
- * This method gets all resolved dependencies by gradle and pass all resolved jars to ANT tasks
- */
-        project.task("deps") {
-            project.afterEvaluate {
-                def antClassLoader = org.apache.tools.ant.Project.class.classLoader
-                def newPath = []
-                //
-                project.configurations.compile.collect {
-                    antClassLoader.addURL it.toURL()
-                }
-                project.configurations.compile.collect {
-                    newPath.add ant.path(location: it)
-                }
-                //
-                ant.references.keySet().forEach {
-                    if(it.contains("path")) {
-                        newPath.forEach { pth ->
-                            logger.log(LogLevel.INFO, "ant reference " + it + " add to classpath " + pth)
-                            ant.references[it].add(pth)
-                        }
-                    }
-                }
-            }
-        }
-
-        /**
          * BUILD TASKS
          */
-
-        /***
-         * Task to check  that all configuration files exists
-         * */
-        project.task("compileFilesCheck"){
-            doLast {
-                def error = false
-                if (!project.file("${project.projectDir}/gradle.properties").exists()) {
-                    logger.error('No such  file ${project.projectDir}/gradle.properties')
-                    error = true
-                }
-                if (!project.file("${project.projectDir}/config/Openbravo.properties").exists()) {
-                    logger.error('No such  file ${project.projectDir}/config/Openbravo.properties')
-                    error = true
-                }
-                if (!project.file("${project.projectDir}/config/Format.xml").exists()) {
-                    logger.error('No such  file ${project.projectDir}/config/Format.xml')
-                    error = true
-                }
-                if (!project.file("${project.projectDir}/config/log4j2.xml").exists()) {
-                    logger.error('No such  file ${project.projectDir}/config/log4j2.xml')
-                    error = true
-                }
-                if (!project.file("${project.projectDir}/config/log4j2-web.xml").exists()) {
-                    logger.error('No such  file ${project.projectDir}/config/log4j2-web.xml')
-                    error = true
-                }
-
-                if (error) {
-                    throw new GradleException("Configuration files are missing to run this task, to fix it try run ./gradlew setup, before that you can modify gradle.properties file to set new configuration values")
-                }
-            }
-        }
-
-        /** map from ant tasks to gradle*/
-        project.ant.importBuild('build.xml') { String oldTargetName ->
-            switch (oldTargetName) {
-                case 'clean':
-                    return 'antClean'
-                case 'setup':
-                    return 'antSetup'
-                case 'init':
-                    return 'antInit'
-                case 'install.source':
-                    return 'antInstall'
-                case 'war':
-                    return 'antWar'
-                default:
-                    if(oldTargetName.contains("test")) {
-                        return "ant." + oldTargetName
-                    }
-                    return oldTargetName
-            }
-        }
-
-        ['smartbuild', 'compile.complete', 'compile.complete.deploy', 'update.database', 'export.database'].each {
-            def task = project.tasks.findByName(it)
-            if(task != null) {
-                task.dependsOn(project.tasks.findByName("compileFilesCheck"))
-            }
-        }
 
         /** war coinfiguration */
         project.war {
@@ -432,24 +328,6 @@ class LegacyScriptLoader {
             dependsOn project.tasks.findByName("expandCore")
             dependsOn project.tasks.findByName("expandModules")
             project.tasks.findByName('expandModules').mustRunAfter 'expandCore'
-        }
-
-        /** Call ant setup to prepare environment */
-        project.task("setup") {
-            ant.properties['nonInteractive'] = true
-            ant.properties['acceptLicense'] = true
-            project.tasks.findByName('antSetup').mustRunAfter'prepareConfig'
-            finalizedBy(project.tasks.findByName("prepareConfig"), project.tasks.findByName("antSetup"))
-        }
-
-        /** The install.source ant task now depends on ant setup */
-        project.task("install") {
-            boolean doSetup = project.hasProperty("doSetup") ? doSetup.toBoolean() : true
-            // Do not depend on setup if specified with -PdoSetup=false
-            if (doSetup) {
-                dependsOn project.tasks.findByName("setup")
-            }
-            dependsOn project.tasks.findByName("antInstall")
         }
 
 
