@@ -48,6 +48,45 @@ abstract class ModuleToJarSpecificationTest extends EtendoSpecification {
         return files
     }
 
+    String dummyJavaClassNested(String packageName, String className, String methodName, List<String> nestedClasses=null) {
+        return """
+        package ${packageName};
+        
+        public class $className {
+            public String ${methodName}() {
+                return "test method";
+            }
+            
+            ${nestedClasses ? createMultipleJavaClasses(nestedClasses):""}
+        }
+        """
+    }
+
+    String createMultipleJavaClasses(List<String> javaClasses) {
+        def classes = ""
+        javaClasses.each {
+            classes += createJavaClass(it) + "\n"
+        }
+        return classes
+    }
+
+    String createJavaClass(String className) {
+        return """
+            public class $className {
+            } 
+        """
+    }
+
+    void containsClassFiles(File jarFile, List classes) {
+        def javaClassesInJar = getFilesFromJar([jarFile: jarFile, fileExtension: ".class", pathToIgnore: "META-INF/etendo"])
+
+        Set jarClassesSet = javaClassesInJar.flatten() as Set
+        Set moduleClassesSet = classes.flatten() as Set
+
+        assert jarClassesSet == moduleClassesSet
+
+    }
+
     String[] getFilesFromLocation(def map=[:]) {
 
         // Arguments
