@@ -52,12 +52,6 @@ class MavenPublicationConfig {
                 // Configure the task
                 Task moduleJar = moduleProject.tasks.named("jar").get() as Jar
 
-                // Obtains all the .class files
-                moduleJar.from(javaClassesLocation) {
-                    include("$packagePath/**/*.class")
-                    exclude(PathUtils.fromPackageToPathClass(Utils.loadGeneratedEntitiesFile(project)))
-                }
-
                 // Obtains all the files from the 'src' folder, ignoring the '.java'.
                 // This is to prevent applying different logic on every file found.
                 String moduleSrcLocation = PathUtils.createPath(moduleLocation, PublicationUtils.SRC)
@@ -74,32 +68,6 @@ class MavenPublicationConfig {
                     exclude(PublicationUtils.SRC)
                     exclude(PublicationUtils.EXCLUDED_FILES)
                     into(destinationDir)
-                }
-            }
-        }
-
-        moduleProject.tasks.register("mavenSourcesJarConfig") {
-            doLast {
-                moduleName = PublicationUtils.loadModuleName(project)
-
-                project.logger.info("Starting module Sources JAR configuration.")
-
-                String moduleLocation = PathUtils.createPath(
-                        project.rootDir.absolutePath,
-                        PublicationUtils.BASE_MODULE_DIR,
-                        moduleName
-                )
-
-                if (!project.file(moduleLocation).exists()) {
-                    throw new IllegalArgumentException("The module $moduleLocation does not exist.")
-                }
-
-                // Configure the task
-                Task moduleJar = moduleProject.tasks.named("sourcesJar").get() as Jar
-
-                String moduleSrcLocation = PathUtils.createPath(moduleLocation, PublicationUtils.SRC)
-                moduleJar.from(moduleSrcLocation) {
-                    include("**/*.java")
                 }
             }
         }
@@ -132,9 +100,6 @@ class MavenPublicationConfig {
             moduleProject.java {
                 withSourcesJar()
             }
-
-            // Sources JAR configuration
-            moduleProject.tasks.findByName("sourcesJar").dependsOn("mavenSourcesJarConfig")
 
             // JAR configuration
             moduleProject.tasks.findByName("jar").dependsOn("mavenJarConfig")
