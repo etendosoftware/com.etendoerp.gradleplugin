@@ -4,4 +4,8 @@ public class HelloWorldDummy0 {
     String hello() {
         return "hello";
     }
+
+    class Dummy0Inner {}
 }
+
+class Dummy0Outer {}

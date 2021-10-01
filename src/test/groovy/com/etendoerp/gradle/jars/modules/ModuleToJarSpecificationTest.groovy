@@ -171,4 +171,46 @@ abstract class ModuleToJarSpecificationTest extends EtendoSpecification {
         return files
     }
 
+
+    void createJavaFiles(Map map=[:]) {
+        String location            = map.location
+        String module              = map.module
+        List<String> javaClasses   = map.javaClasses as List<String>
+        List<String> nestedClasses = map.nestedClasses as List<String>
+
+        File createdLocation = new File(location)
+        if (!createdLocation.exists()) {
+            createdLocation.mkdirs()
+        }
+
+        javaClasses.each {javaClassName ->
+            def javaClass = new File("${createdLocation.absolutePath}/${javaClassName}.java")
+            javaClass.createNewFile()
+            javaClass << dummyJavaClassNested(module, javaClassName,"customClassMethod", nestedClasses)
+        }
+    }
+
+    def getListOfClasses(String module, List<String> customClasses, List<String> nestedClasses) {
+        def list = []
+        def modulePath = moduleToPath(module)
+        for (String customClass : customClasses) {
+            list.add("${modulePath}/${customClass}.class")
+            for (String nested : nestedClasses) {
+                def nestedClass = "${customClass}\$${nested}"
+                list.add("${modulePath}/${nestedClass}.class")
+            }
+        }
+        return list
+    }
+
+    void validateClassFiles(String module, List<String> customClasses, List<String> nestedClasses) {
+        for (String customClass : customClasses) {
+            assert new File("${getProjectDir().absolutePath}/build/classes/${moduleToPath(module)}/${customClass}.class").exists()
+            for (String nested : nestedClasses) {
+                def nestedClass = "${customClass}\$${nested}"
+                assert new File("${getProjectDir().absolutePath}/build/classes/${moduleToPath(module)}/${nestedClass}.class").exists()
+            }
+        }
+    }
+
 }
