@@ -28,13 +28,15 @@ class ModulesConfigurationLoader {
     static void load(Project project) {
         def moduleProject = project.findProject(":${PublicationUtils.BASE_MODULE_DIR}")
 
-        moduleProject.subprojects.each {subproject ->
-            subproject.afterEvaluate {
-                subproject.sourceSets.main.java.srcDirs += JAVA_SOURCES
-                subproject.sourceSets.main.compileClasspath += project.sourceSets.main.output
-                subproject.sourceSets.main.runtimeClasspath += project.sourceSets.main.output
-                subproject.sourceSets.main.compileClasspath += project.sourceSets.main.compileClasspath
-                subproject.sourceSets.main.runtimeClasspath += project.sourceSets.main.runtimeClasspath
+        if (moduleProject != null) {
+            moduleProject.subprojects.each {subproject ->
+                subproject.afterEvaluate {
+                    subproject.sourceSets.main.java.srcDirs += JAVA_SOURCES
+                    subproject.sourceSets.main.compileClasspath += project.sourceSets.main.output
+                    subproject.sourceSets.main.runtimeClasspath += project.sourceSets.main.output
+                    subproject.sourceSets.main.compileClasspath += project.sourceSets.main.compileClasspath
+                    subproject.sourceSets.main.runtimeClasspath += project.sourceSets.main.runtimeClasspath
+                }
             }
         }
     }
