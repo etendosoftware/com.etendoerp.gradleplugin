@@ -6,7 +6,9 @@ import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.TaskOutcome
 import spock.lang.Shared
 import spock.lang.TempDir
+import spock.lang.Title
 
+@Title("Test to verify the correct creation of the sources JAR of a module")
 class CreationOfSourcesJarTest extends ModuleToJarSpecificationTest {
     @TempDir @Shared File testProjectDir
 
@@ -15,6 +17,11 @@ class CreationOfSourcesJarTest extends ModuleToJarSpecificationTest {
         testProjectDir
     }
 
+    /**
+     * This test uses parametrization to generate different java classes using different java packages.
+     * Once the 'sourcesJar' task is ran, the test verify that the final JAR contains the defined java classes.
+     * @return
+     */
     def "Creation of the sources JAR of a module" () {
         given: "A Etendo project with the module '#moduleToJar' to be converted to sources JAR "
         def module = moduleToJar
