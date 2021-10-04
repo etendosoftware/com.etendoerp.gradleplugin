@@ -87,6 +87,15 @@ abstract class ModuleToJarSpecificationTest extends EtendoSpecification {
 
     }
 
+    void containsJavaFiles(File sourceJarFile, List javaFiles) {
+        def javaFilesInJar = getFilesFromJar([jarFile: sourceJarFile, fileExtension: ".java", pathToIgnore: "META-INF/etendo"])
+
+        Set jarJavaFilesSet = javaFilesInJar.flatten() as Set
+        Set moduleJavaFilesSet = javaFiles.flatten() as Set
+
+        assert jarJavaFilesSet == moduleJavaFilesSet
+    }
+
     String[] getFilesFromLocation(def map=[:]) {
 
         // Arguments
@@ -171,6 +180,23 @@ abstract class ModuleToJarSpecificationTest extends EtendoSpecification {
         return files
     }
 
+    void createJavaFilesWithPackage(Map map=[:]) {
+        String baseLocation   = map.baseLocation
+        String module         = map.module
+        List<String> packages = map.packages as List<String>
+
+        packages.each {
+            def finalPackage = module
+            if (it) {
+                finalPackage += ".${it}"
+            }
+
+            def finalLocation = "${baseLocation}/${moduleToPath(finalPackage)}"
+
+            createJavaFiles([location: finalLocation, module: finalPackage, javaClasses: map.javaClasses, nestedClasses: []])
+        }
+
+    }
 
     void createJavaFiles(Map map=[:]) {
         String location            = map.location
@@ -199,6 +225,34 @@ abstract class ModuleToJarSpecificationTest extends EtendoSpecification {
                 def nestedClass = "${customClass}\$${nested}"
                 list.add("${modulePath}/${nestedClass}.class")
             }
+        }
+        return list
+    }
+
+    def getListOfJavaFilesWithPackage(Map map=[:]) {
+        def module            = map.module
+        List<String> packages = map.packages as List<String>
+
+        def list = []
+        packages.each {
+            def finalPackage = module
+            if (it) {
+                finalPackage += ".${it}"
+            }
+            list.addAll(getListOfJavaFiles([module: finalPackage, javaFiles: map.javaFiles]))
+        }
+        return list
+    }
+
+    def getListOfJavaFiles(Map map=[:]) {
+        def module = map.module
+        List<String> javaFiles = map.javaFiles as List<String>
+
+        def list = []
+        def modulePath = moduleToPath(module as String)
+
+        for (String javaFile : javaFiles) {
+            list.add("${modulePath}/${javaFile}.java")
         }
         return list
     }
