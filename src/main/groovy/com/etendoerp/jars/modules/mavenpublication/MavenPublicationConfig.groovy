@@ -102,10 +102,20 @@ class MavenPublicationConfig {
             }
 
             // JAR configuration
-            moduleProject.tasks.findByName("jar").dependsOn("mavenJarConfig")
+            def jarModuleTask = moduleProject.tasks.findByName("jar")
+            if (!jarModuleTask) {
+                project.logger.info("WARNING: The subproject ${moduleProject} is missing the 'jar' task.")
+                project.logger.info("*** Make sure that the 'build.gradle' file is using the 'java' plugin.")
+            }
+            jarModuleTask?.dependsOn("mavenJarConfig")
 
             // Maven Publish configuration
-            moduleProject.tasks.findByName(mavenTask).dependsOn("mavenPublishConfig")
+            def mavenModuleTask = moduleProject.tasks.findByName(mavenTask)
+            if (!mavenModuleTask) {
+                project.logger.info("WARNING: The subproject ${moduleProject} is missing the maven publiction task '${mavenTask}'.")
+                project.logger.info("*** Make sure that the 'build.gradle' file contains the MavenPublication '${moduleName}'.")
+            }
+            mavenModuleTask?.dependsOn("mavenPublishConfig")
         }
     }
 }
