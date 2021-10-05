@@ -8,7 +8,6 @@ import com.etendoerp.publication.PublicationUtils
 import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.TaskOutcome
 import spock.lang.Narrative
-import spock.lang.Shared
 import spock.lang.TempDir
 import spock.lang.Title
 
@@ -20,7 +19,7 @@ class CreateModuleBuildTest extends EtendoSpecification {
     static String REPO = PublicationUtils.REPOSITORY_NAME_PROP
     static String PKG  = PublicationUtils.MODULE_NAME_PROP
 
-    @TempDir @Shared File testProjectDir
+    @TempDir File testProjectDir
 
     @Override
     File getProjectDir() {
