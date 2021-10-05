@@ -55,7 +55,6 @@ class JarCoreGeneratorTest extends EtendoSpecification {
         Set<String> buildClasses = new File("${testProjectDir.absolutePath}/build/classes").list()
 
         Set<String> generatedClasses = new File("${testProjectDir.absolutePath}/build/tmp/generated").text.split('\n')
-        //buildClasses.removeAll(generatedClasses)
 
         //Excluding all generated inner classes
         for (String generated : generatedClasses) {
