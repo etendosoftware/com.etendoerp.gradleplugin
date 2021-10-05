@@ -9,14 +9,14 @@ def MASTER = "master"
 def DEV    = "dev"
 def PROD   = "prod"
 
-def URL_PROD = "https://repo.futit.cloud/repository/static-public-releases"
-def URL_DEV  = "https://repo.futit.cloud/repository/static-public-snapshots"
+def URL_PROD = "https://repo.futit.cloud/repository/maven-releases"
+def URL_DEV  = "https://repo.futit.cloud/repository/maven-snapshots"
 
 // Default mode
 def mode = DEV
 def pluginVersion = "1.0.0"
 
-def gitBranch() {
+static def gitBranch() {
     def branch = ""
     def proc = "git rev-parse --abbrev-ref HEAD".execute()
     proc.in.eachLine { line -> branch = line }
@@ -25,7 +25,7 @@ def gitBranch() {
     branch
 }
 
-if (MASTER == MASTER) {
+if (MASTER == gitBranch()) {
     mode = PROD
 }
 if (mode == DEV) {
@@ -46,8 +46,8 @@ publishing {
     repositories {
         maven {
             credentials {
-                username "--"
-                password "--"
+                username "$nexusUser"
+                password "$nexusPassword"
             }
             url(urlToPublish)
         }
