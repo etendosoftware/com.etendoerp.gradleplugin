@@ -13,16 +13,20 @@ import java.util.zip.ZipFile
 
 @Title("Test JarCore generation")
 @Stepwise
-class JarCoreGeneratorTest extends EtendoSpecification{
-    @TempDir @Shared File testProjectDir
+class JarCoreGeneratorTest extends EtendoSpecification {
+    @TempDir
+    @Shared
+    File testProjectDir
 
     boolean installed = false
+
     @Override
     File getProjectDir() {
         return testProjectDir
     }
-    def setup(){
-        FileUtils.copyDirectory(new File("src/test/resources/jars/environments/core"),testProjectDir)
+
+    def setup() {
+        FileUtils.copyDirectory(new File("src/test/resources/jars/environments/core"), testProjectDir)
     }
 
     def isInstalled(TaskOutcome expandOutcome, TaskOutcome setupOutcome, TaskOutcome installOutcome) {
@@ -32,6 +36,7 @@ class JarCoreGeneratorTest extends EtendoSpecification{
 
         installed = true
     }
+
     def "Creating Jar of core and check if the generated classes are excluded"() {
         when: "create a coreJar"
         def generateEntities = runTask(":generate.entities")
@@ -39,9 +44,9 @@ class JarCoreGeneratorTest extends EtendoSpecification{
 
         // JAR classes
         Set<String> jarClasses = new ArrayList<String>();
-        new ZipFile( "${testProjectDir.absolutePath}/build/libs/etendo-core.jar").entries().each {
+        new ZipFile("${testProjectDir.absolutePath}/build/libs/etendo-core.jar").entries().each {
             String filePath = it.toString()
-            if (filePath.endsWith(".class")){
+            if (filePath.endsWith(".class")) {
                 jarClasses.add(filePath)
             }
         }
@@ -49,18 +54,17 @@ class JarCoreGeneratorTest extends EtendoSpecification{
         // build/classes - generated
         Set<String> buildClasses = new File("${testProjectDir.absolutePath}/build/classes").list()
 
-        Set<String> generatedClasses =  new File("${testProjectDir.absolutePath}/build/tmp/generated").text.split('\n')
+        Set<String> generatedClasses = new File("${testProjectDir.absolutePath}/build/tmp/generated").text.split('\n')
         //buildClasses.removeAll(generatedClasses)
 
         //Excluding all generated inner classes
-        for(String generated: generatedClasses){
+        for (String generated : generatedClasses) {
             buildClasses.removeAll {
-                if(it.contains(generated)){
+                if (it.contains(generated)) {
                     it
                 }
             }
         }
-
 
 
         then: "The tasks run successfully, and the classes in Jar are the same that [build/clases]-generated"
