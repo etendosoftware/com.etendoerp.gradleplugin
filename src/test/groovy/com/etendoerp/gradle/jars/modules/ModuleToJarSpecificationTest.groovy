@@ -111,8 +111,10 @@ abstract class ModuleToJarSpecificationTest extends EtendoSpecification {
         def baseLocation = location
 
         if (locationDir) {
-            baseLocation += "$locationDir/"
+            baseLocation += locationDir.endsWith(File.separator) ? locationDir : "${locationDir}${File.separator}"
         }
+
+        def auxBaseLocation = baseLocation.endsWith(File.separator) ? baseLocation : "${baseLocation}${File.separator}"
 
         String pathToReplace = map.pathToReplace ?: baseLocation
 
@@ -128,7 +130,7 @@ abstract class ModuleToJarSpecificationTest extends EtendoSpecification {
             }
 
             // Ignore build directory
-            if (ignoreBuildDir && it.absolutePath.contains("${baseLocation}build/")) {
+            if (ignoreBuildDir && it.absolutePath.contains("${auxBaseLocation}build/")) {
                 return
             }
 
@@ -156,7 +158,7 @@ abstract class ModuleToJarSpecificationTest extends EtendoSpecification {
         String pathToIgnore  = map.pathToIgnore  ?: ""
         String pathToSearch  = map.pathToSearch  ?: ""
         Boolean ignoreDir    = map.ignoreDir     ?: true
-
+        String ignoreMatch   = map.ignorematch   ?: ""
 
         def files = []
         new ZipFile(jarFile).entries().each {
@@ -170,6 +172,10 @@ abstract class ModuleToJarSpecificationTest extends EtendoSpecification {
             }
 
             if (pathToIgnore && it.name.contains(pathToIgnore)) {
+                return
+            }
+
+            if (ignoreMatch && it.name.matches(ignoreMatch)) {
                 return
             }
 
