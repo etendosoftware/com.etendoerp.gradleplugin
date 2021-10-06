@@ -104,16 +104,16 @@ class MavenPublicationConfig {
             // JAR configuration
             def jarModuleTask = moduleProject.tasks.findByName("jar")
             if (!jarModuleTask) {
-                project.logger.info("WARNING: The subproject ${moduleProject} is missing the 'jar' task.")
-                project.logger.info("*** Make sure that the 'build.gradle' file is using the 'java' plugin.")
+                project.logger.warn("WARNING: The subproject ${moduleProject} is missing the 'jar' task.")
+                project.logger.warn("*** Make sure that the 'build.gradle' file is using the 'java' plugin.")
             }
             jarModuleTask?.dependsOn("mavenJarConfig")
 
             // Maven Publish configuration
             def mavenModuleTask = moduleProject.tasks.findByName(mavenTask)
             if (!mavenModuleTask) {
-                project.logger.info("WARNING: The subproject ${moduleProject} is missing the maven publiction task '${mavenTask}'.")
-                project.logger.info("*** Make sure that the 'build.gradle' file contains the MavenPublication '${moduleName}'.")
+                project.logger.warn("WARNING: The subproject ${moduleProject} is missing the maven publiction task '${mavenTask}'.")
+                project.logger.warn("*** Make sure that the 'build.gradle' file contains the MavenPublication '${moduleName}'.")
             }
             mavenModuleTask?.dependsOn("mavenPublishConfig")
         }
