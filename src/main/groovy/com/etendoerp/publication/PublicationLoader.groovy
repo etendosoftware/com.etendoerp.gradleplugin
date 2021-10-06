@@ -6,7 +6,7 @@ import org.gradle.api.Project
 class PublicationLoader {
 
     static void load(Project project) {
-
+        SubprojectJarsPublication.load(project)
         ModuleBuildTemplateLoader.load(project)
 
         /**
@@ -18,7 +18,6 @@ class PublicationLoader {
             def defaultPublishTask = "publishMavenJar"
             dependsOn({project.tasks.named(defaultPublishTask)})
         }
-
     }
 
 }
