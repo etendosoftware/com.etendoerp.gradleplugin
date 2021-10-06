@@ -1,16 +1,8 @@
 package com.etendoerp.gradle.jars.modules
 
+import com.etendoerp.gradle.jars.JarsUtils
 import com.etendoerp.gradle.tests.EtendoSpecification
-import org.gradle.api.tasks.bundling.Jar
 import org.gradle.internal.impldep.org.apache.commons.io.FileUtils
-import org.gradle.internal.impldep.org.apache.ivy.util.FileUtil
-import org.gradle.testkit.runner.BuildResult
-import spock.lang.Issue
-import spock.lang.Shared
-import spock.lang.TempDir
-import org.gradle.testkit.runner.TaskOutcome
-
-import java.nio.file.Files
 import java.util.zip.ZipFile
 
 abstract class ModuleToJarSpecificationTest extends EtendoSpecification {
@@ -29,7 +21,7 @@ abstract class ModuleToJarSpecificationTest extends EtendoSpecification {
         ant.copy(file: buildJarFile, todir: getProjectDir(), overwrite: true)
     }
 
-    String moduleToPath(String module) {
+    static String moduleToPath(String module) {
         return module.replace(".","/")
     }
 
@@ -48,21 +40,7 @@ abstract class ModuleToJarSpecificationTest extends EtendoSpecification {
         return files
     }
 
-    String dummyJavaClassNested(String packageName, String className, String methodName, List<String> nestedClasses=null) {
-        return """
-        package ${packageName};
-        
-        public class $className {
-            public String ${methodName}() {
-                return "test method";
-            }
-            
-            ${nestedClasses ? createMultipleJavaClasses(nestedClasses):""}
-        }
-        """
-    }
-
-    String createMultipleJavaClasses(List<String> javaClasses) {
+    static String createMultipleJavaClasses(List<String> javaClasses) {
         def classes = ""
         javaClasses.each {
             classes += createJavaClass(it) + "\n"
@@ -70,7 +48,7 @@ abstract class ModuleToJarSpecificationTest extends EtendoSpecification {
         return classes
     }
 
-    String createJavaClass(String className) {
+    static String createJavaClass(String className) {
         return """
             public class $className {
             } 
@@ -172,11 +150,11 @@ abstract class ModuleToJarSpecificationTest extends EtendoSpecification {
     }
 
 
-    void createJavaFiles(Map map=[:]) {
+    static void createJavaFiles(Map map=[:]) {
         String location            = map.location
         String module              = map.module
         List<String> javaClasses   = map.javaClasses as List<String>
-        List<String> nestedClasses = map.nestedClasses as List<String>
+
 
         File createdLocation = new File(location)
         if (!createdLocation.exists()) {
@@ -186,8 +164,37 @@ abstract class ModuleToJarSpecificationTest extends EtendoSpecification {
         javaClasses.each {javaClassName ->
             def javaClass = new File("${createdLocation.absolutePath}/${javaClassName}.java")
             javaClass.createNewFile()
-            javaClass << dummyJavaClassNested(module, javaClassName,"customClassMethod", nestedClasses)
+            javaClass << dummyJavaClassNested(map, module, javaClassName,"customClassMethod")
         }
+    }
+
+    static String dummyJavaClassNested(String packageName, String className, String methodName) {
+        return dummyJavaClassNested([:], packageName, className, methodName)
+    }
+
+    static String dummyJavaClassNested(Map map, String packageName, String className, String methodName) {
+        List<String> nestedClasses = (map.nestedClasses ?: []) as List<String>
+        List<String> imports       = (map.imports ?: []) as List<String>
+        List<String> customMethods = (map.methods ?: []) as List<String>
+        return dummyJavaClassNested(packageName, className, methodName, nestedClasses, imports, customMethods)
+    }
+
+    static String dummyJavaClassNested(String packageName, String className, String methodName, List<String> nestedClasses, List<String> imports, List<String> methods) {
+        return """
+        package ${packageName};
+        
+        ${imports ? JarsUtils.importsList(imports): ""}
+        
+        public class $className {
+            public String ${methodName}() {
+                return "test method";
+            }
+            
+            ${methods ? JarsUtils.generateMethods(methods) : ""}
+            
+            ${nestedClasses ? createMultipleJavaClasses(nestedClasses):""}
+        }
+        """
     }
 
     def getListOfClasses(String module, List<String> customClasses, List<String> nestedClasses) {
@@ -204,13 +211,7 @@ abstract class ModuleToJarSpecificationTest extends EtendoSpecification {
     }
 
     void validateClassFiles(String module, List<String> customClasses, List<String> nestedClasses) {
-        for (String customClass : customClasses) {
-            assert new File("${getProjectDir().absolutePath}/build/classes/${moduleToPath(module)}/${customClass}.class").exists()
-            for (String nested : nestedClasses) {
-                def nestedClass = "${customClass}\$${nested}"
-                assert new File("${getProjectDir().absolutePath}/build/classes/${moduleToPath(module)}/${nestedClass}.class").exists()
-            }
-        }
+        JarsUtils.validateClassFiles(getProjectDir().absolutePath, module, customClasses, nestedClasses)
     }
 
 }
