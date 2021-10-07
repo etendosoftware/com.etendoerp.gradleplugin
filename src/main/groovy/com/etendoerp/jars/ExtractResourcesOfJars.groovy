@@ -14,7 +14,7 @@ class ExtractResourcesOfJars {
 
                 }
             }
-            into "${project.buildDir}/"
+            into "${project.buildDir}/etendo"
 
             //Deleting path prefix for each extracted file
             eachFile { f ->
