@@ -12,14 +12,10 @@ class PublicationLoader {
         /**
          * This Task publish a version of a module.
          * The default publish will be a JAR version.
-         * if the command line parameter -Pzip is passed, the version will be a ZIP.
+         * The Sources JAR and the ZIP file of the module is also published.
          */
         project.tasks.register("publishVersion") {
             def defaultPublishTask = "publishMavenJar"
-
-            if (project.hasProperty(PublicationUtils.PUBLISH_ZIP)) {
-                defaultPublishTask = "publishZip"
-            }
             dependsOn({project.tasks.named(defaultPublishTask)})
         }
     }
