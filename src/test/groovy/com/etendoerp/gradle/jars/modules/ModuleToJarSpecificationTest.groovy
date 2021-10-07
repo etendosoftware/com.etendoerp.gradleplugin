@@ -1,19 +1,11 @@
 package com.etendoerp.gradle.jars.modules
 
-import com.etendoerp.gradle.tests.EtendoSpecification
-import org.gradle.api.tasks.bundling.Jar
+import com.etendoerp.gradle.jars.EtendoMockupSpecificationTest
 import org.gradle.internal.impldep.org.apache.commons.io.FileUtils
-import org.gradle.internal.impldep.org.apache.ivy.util.FileUtil
-import org.gradle.testkit.runner.BuildResult
-import spock.lang.Issue
-import spock.lang.Shared
-import spock.lang.TempDir
-import org.gradle.testkit.runner.TaskOutcome
 
-import java.nio.file.Files
 import java.util.zip.ZipFile
 
-abstract class ModuleToJarSpecificationTest extends EtendoSpecification {
+abstract class ModuleToJarSpecificationTest extends EtendoMockupSpecificationTest {
 
     final static String BASE_JAR_LOCATION     = "src/test/resources/jars"
     final static String ENVIRONMENTS_LOCATION = "src/test/resources/jars/environments"
