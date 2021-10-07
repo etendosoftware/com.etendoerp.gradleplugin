@@ -1,5 +1,6 @@
 package com.etendoerp.gradle.jars.dependencies
 
+import com.etendoerp.gradle.jars.EtendoMockupSpecificationTest
 import com.etendoerp.gradle.jars.JarsUtils
 import com.etendoerp.gradle.jars.modules.ModuleToJarSpecificationTest
 import com.etendoerp.gradle.jars.modules.ModuleToJarUtils
@@ -12,7 +13,7 @@ import spock.lang.TempDir
 import spock.lang.Title
 
 @Title("Test to check that a modules compiles when imports another module classes.")
-class ModuleWithOtherModuleDependencyTest extends EtendoSpecification {
+class ModuleWithOtherModuleDependencyTest extends EtendoMockupSpecificationTest {
 
     static String BASE_MODULE = PublicationUtils.BASE_MODULE_DIR
     static String REPO = PublicationUtils.REPOSITORY_NAME_PROP
@@ -23,11 +24,6 @@ class ModuleWithOtherModuleDependencyTest extends EtendoSpecification {
     @Override
     File getProjectDir() {
         testProjectDir
-    }
-
-    def setup() {
-        def buildXml = new File("${getProjectDir().absolutePath}/build.xml")
-        buildXml.text = JarsUtils.dummyBuildXml()
     }
 
     def "A module uses the classes from another module"() {

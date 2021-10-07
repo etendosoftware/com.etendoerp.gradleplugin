@@ -20,5 +20,9 @@ abstract class EtendoMockupSpecificationTest extends EtendoSpecification{
         """
         extraPlugin += buildFile.text
         buildFile.text = extraPlugin
+
+        // Override the build.xml file to prevent having tasks with the same name
+        def buildXml = new File("${getProjectDir().absolutePath}/build.xml")
+        buildXml.text = JarsUtils.dummyBuildXml()
     }
 }

@@ -1,5 +1,6 @@
 package com.etendoerp.gradle.jars.dependencies
 
+import com.etendoerp.gradle.jars.EtendoMockupSpecificationTest
 import com.etendoerp.gradle.jars.JarsUtils
 import com.etendoerp.gradle.jars.modules.ModuleToJarSpecificationTest
 import com.etendoerp.gradle.jars.modules.ModuleToJarUtils
@@ -10,7 +11,7 @@ import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.TaskOutcome
 import spock.lang.TempDir
 
-class ModuleWithMavenLibraryDependencyTest extends EtendoSpecification{
+class ModuleWithMavenLibraryDependencyTest extends EtendoMockupSpecificationTest {
 
     static String BASE_MODULE = PublicationUtils.BASE_MODULE_DIR
     static String REPO = PublicationUtils.REPOSITORY_NAME_PROP
@@ -21,11 +22,6 @@ class ModuleWithMavenLibraryDependencyTest extends EtendoSpecification{
     @Override
     File getProjectDir() {
         testProjectDir
-    }
-
-    def setup() {
-        def buildXml = new File("${getProjectDir().absolutePath}/build.xml")
-        buildXml.text = JarsUtils.dummyBuildXml()
     }
 
     def "Adding a dependency to the build gradle file and using it in a module compiles successfully"() {
