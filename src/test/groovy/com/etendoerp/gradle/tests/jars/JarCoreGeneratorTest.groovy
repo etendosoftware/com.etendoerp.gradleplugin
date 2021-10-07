@@ -1,6 +1,6 @@
 package com.etendoerp.gradle.tests.jars
 
-import com.etendoerp.gradle.tests.EtendoSpecification
+import com.etendoerp.gradle.jars.EtendoMockupSpecificationTest
 import org.gradle.internal.impldep.org.apache.commons.io.FileUtils
 import org.gradle.testkit.runner.TaskOutcome
 import spock.lang.Shared
@@ -8,12 +8,11 @@ import spock.lang.Stepwise
 import spock.lang.TempDir
 import spock.lang.Title
 
-import java.util.stream.Stream
 import java.util.zip.ZipFile
 
 @Title("Test JarCore generation")
 @Stepwise
-class JarCoreGeneratorTest extends EtendoSpecification {
+class JarCoreGeneratorTest extends EtendoMockupSpecificationTest {
     @TempDir
     @Shared
     File testProjectDir
