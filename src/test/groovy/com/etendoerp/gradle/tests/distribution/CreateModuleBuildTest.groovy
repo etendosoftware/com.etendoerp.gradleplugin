@@ -71,6 +71,22 @@ class CreateModuleBuildTest extends EtendoSpecification {
         [javapackage: "com.test.module2sub", version: "1.0.2", description: "com.test.module2sub"]| "etendo-test" | "com.test.module2sub"
     }
 
+
+    def "Running 'createModuleBuildTask' with undefined module"() {
+        given: "A an undefined module"
+        def module = "com.test.undefined"
+        def repository = "repo-test"
+
+        when: "The users runs the 'createModuleBuild' task"
+        def moduleBuildResult = runTaskAndFail(":createModuleBuild","-P${PKG}=${module}", "-P${REPO}=${repository}") as BuildResult
+
+        then: "The task will fail"
+        moduleBuildResult.task(":createModuleBuild").outcome == TaskOutcome.FAILED
+
+        and: "The output will show a descriptive message"
+        moduleBuildResult.output.contains("'${getProjectDir().absolutePath}/modules/${module}/' does not exists")
+    }
+
     void containsProperties(Map moduleProperties, String module, String repo, String taskOutput) {
         String javaPackage = moduleProperties.javapackage
         String version     = moduleProperties.version
