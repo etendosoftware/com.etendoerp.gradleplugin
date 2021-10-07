@@ -57,7 +57,35 @@ publishing {
 dependencies {
     compile     gradleApi()
     testCompile gradleTestKit()
-    testCompile 'junit:junit:4+'
+    testImplementation 'org.codehaus.groovy:groovy-all:2.5.14'
+    testImplementation platform("org.spockframework:spock-bom:2.0-M4-groovy-2.5")
+    testImplementation 'org.spockframework:spock-core'
+    testImplementation 'org.spockframework:spock-junit4'
+    testImplementation 'junit:junit:4.13.1'
+    testImplementation( "com.athaydes:spock-reports:2.0-groovy-2.5" ) {
+        transitive = false // this avoids affecting your version of Groovy/Spock
+    }
+    testImplementation 'org.postgresql:postgresql:42.2.22'
+
+}
+
+tasks.withType(Test).configureEach {
+    // Using JUnitPlatform for running tests
+    useJUnitPlatform()
+}
+
+test {
+    systemProperty 'com.athaydes.spockframework.report.showCodeBlocks', true
+    systemProperty 'nexusUser', project.hasProperty('nexusUser') ? project.nexusUser : System.getenv("NEXUS_USR")
+    systemProperty 'nexusPassword', project.hasProperty('nexusPassword') ? project.nexusPassword : System.getenv("NEXUS_PSW")
+    systemProperty 'test.bbdd.sid', project['test.bbdd.sid']
+    systemProperty 'test.bbdd.systemUser', project['test.bbdd.systemUser']
+    systemProperty 'test.bbdd.systemPassword', project['test.bbdd.systemPassword']
+    systemProperty 'test.bbdd.user', project['test.bbdd.systemUser']
+    systemProperty 'test.bbdd.password', project['test.bbdd.systemPassword']
+    systemProperty 'test.bbdd.url', project['test.bbdd.url']
+    systemProperty 'org.gradle.jvmargs', '-Xmx2g -XX:MaxPermSize=512m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8'
+    environment 'JAVA_HOME', System.getenv('JAVA_HOME')
 }
 
 gradlePlugin {
