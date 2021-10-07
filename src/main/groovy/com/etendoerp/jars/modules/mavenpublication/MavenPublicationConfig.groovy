@@ -6,7 +6,9 @@ import com.etendoerp.legacy.utils.NexusUtils
 import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
 import org.gradle.api.Task
+import org.gradle.api.publish.maven.tasks.AbstractPublishToMaven
 import org.gradle.api.tasks.bundling.Jar
+import org.gradle.api.tasks.bundling.Zip
 
 class MavenPublicationConfig {
 
@@ -27,6 +29,7 @@ class MavenPublicationConfig {
         }
 
         moduleProject.tasks.register("mavenJarConfig") {
+            dependsOn({project.tasks.findByName("compileJava")})
             doLast {
                 // Get the module name
                 moduleName = PublicationUtils.loadModuleName(project)
@@ -49,12 +52,6 @@ class MavenPublicationConfig {
                 // Configure the task
                 Task moduleJar = moduleProject.tasks.named("jar").get() as Jar
 
-                // Obtains all the .class files
-                moduleJar.from(javaClassesLocation) {
-                    include("$packagePath/**/*.class")
-                    exclude(PathUtils.fromPackageToPathClass(Utils.loadGeneratedEntitiesFile(project)))
-                }
-
                 // Obtains all the files from the 'src' folder, ignoring the '.java'.
                 // This is to prevent applying different logic on every file found.
                 String moduleSrcLocation = PathUtils.createPath(moduleLocation, PublicationUtils.SRC)
@@ -63,7 +60,7 @@ class MavenPublicationConfig {
                 }
 
                 // Store all the files excluding the 'src' folder
-                // in the 'META-INF/etendo' dir.
+                // in the 'META-INF/etendo/modules' dir.
                 String destinationDir = PathUtils.createPath(PublicationUtils.META_INF, PublicationUtils.ETENDO, PublicationUtils.BASE_MODULE_DIR, moduleName)
 
                 moduleJar.from(moduleLocation) {
@@ -75,37 +72,21 @@ class MavenPublicationConfig {
             }
         }
 
-        moduleProject.tasks.register("mavenSourcesJarConfig") {
-            doLast {
-                moduleName = PublicationUtils.loadModuleName(project)
-
-                project.logger.info("Starting module Sources JAR configuration.")
-
-                String moduleLocation = PathUtils.createPath(
-                        project.rootDir.absolutePath,
-                        PublicationUtils.BASE_MODULE_DIR,
-                        moduleName
-                )
-
-                if (!project.file(moduleLocation).exists()) {
-                    throw new IllegalArgumentException("The module $moduleLocation does not exist.")
-                }
-
-                // Configure the task
-                Task moduleJar = moduleProject.tasks.named("sourcesJar").get() as Jar
-
-                String moduleSrcLocation = PathUtils.createPath(moduleLocation, PublicationUtils.SRC)
-                moduleJar.from(moduleSrcLocation) {
-                    include("**/*.java")
-                }
-            }
-        }
-
         def moduleCapitalize = PublicationUtils.capitalizeModule(moduleName)
         def mavenTask = "publish${moduleCapitalize}PublicationTo${MavenPublicationLoader.PUBLICATION_DESTINE}"
 
         moduleProject.tasks.register("mavenPublishConfig") {
+            def zipTask  = "generateModuleZip"
+            dependsOn({
+                project.tasks.findByName(zipTask)
+            })
             doLast {
+                def zip = project.tasks.findByName(zipTask) as Zip
+                def zipFile = zip.archiveFile.get()
+
+                AbstractPublishToMaven publishTask = moduleProject.tasks.findByName(mavenTask) as AbstractPublishToMaven
+                publishTask.publication.artifact(zipFile)
+
                 // Configure the credentials
                 moduleProject.publishing.repositories.maven.credentials {
                     NexusUtils.askNexusCredentials(project)
@@ -120,14 +101,21 @@ class MavenPublicationConfig {
                 withSourcesJar()
             }
 
-            // Sources JAR configuration
-            moduleProject.tasks.findByName("sourcesJar").dependsOn("mavenSourcesJarConfig")
-
             // JAR configuration
-            moduleProject.tasks.findByName("jar").dependsOn("mavenJarConfig")
+            def jarModuleTask = moduleProject.tasks.findByName("jar")
+            if (!jarModuleTask) {
+                project.logger.warn("WARNING: The subproject ${moduleProject} is missing the 'jar' task.")
+                project.logger.warn("*** Make sure that the 'build.gradle' file is using the 'java' plugin.")
+            }
+            jarModuleTask?.dependsOn("mavenJarConfig")
 
             // Maven Publish configuration
-            moduleProject.tasks.findByName(mavenTask).dependsOn("mavenPublishConfig")
+            def mavenModuleTask = moduleProject.tasks.findByName(mavenTask)
+            if (!mavenModuleTask) {
+                project.logger.warn("WARNING: The subproject ${moduleProject} is missing the maven publiction task '${mavenTask}'.")
+                project.logger.warn("*** Make sure that the 'build.gradle' file contains the MavenPublication '${moduleName}'.")
+            }
+            mavenModuleTask?.dependsOn("mavenPublishConfig")
         }
     }
 }

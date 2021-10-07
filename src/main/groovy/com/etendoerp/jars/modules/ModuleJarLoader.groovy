@@ -7,8 +7,5 @@ class ModuleJarLoader {
 
     static load(Project project) {
         MavenPublicationLoader.load(project)
-        ModuleJarGenerator.load(project)
-        ModuleJarPublication.load(project)
     }
-
 }
