@@ -26,15 +26,6 @@ class CreateModuleBuildTest extends EtendoSpecification {
         testProjectDir
     }
 
-    def setup() {
-        def ant = new AntBuilder()
-
-        //Override the default build file
-        def buildXmlFile = new File("${ModuleToJarSpecificationTest.BASE_JAR_LOCATION}/build-publication.xml")
-        def destFile = new File("${getProjectDir().absolutePath}/build.xml")
-        ant.copy(file: buildXmlFile, tofile: destFile, overwrite: true)
-    }
-
     def "Creation of the 'build gradle' file"() {
         given: "A module to be convented to a gradle subproject"
         def module = moduleToSubproject
