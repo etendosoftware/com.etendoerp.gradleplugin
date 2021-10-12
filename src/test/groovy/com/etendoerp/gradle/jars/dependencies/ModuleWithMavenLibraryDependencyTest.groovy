@@ -61,7 +61,7 @@ class ModuleWithMavenLibraryDependencyTest extends EtendoMockupSpecificationTest
         where:
         moduleProperties                                                                        | moduleName           | repository    | dependencies                       | imports                               | javaClasses      | methods
         [javapackage: "com.test.moduledep", version: "1.0.0", description: "com.test.moduledep"]| "com.test.moduledep" | "etendo-test" |["com.google.code.gson:gson:2.8.7"] | ["com.google.gson.Gson"]              | ["CustomClass"]  | ["""void test() { Gson gson = new Gson(); }"""]
-        [javapackage: "com.test.etendodep", version: "1.0.0", description: "com.test.etendodep"]| "com.test.etendodep" | "etendo-test" |["com.test:dummytopublish:1.0.0"]   | ["com.test.dummytopublish.DummyTest"] | ["CustomClass2"] | ["""void test() { DummyTest gson = new DummyTest(); }"""]
+        [javapackage: "com.test.etendodep", version: "1.0.0", description: "com.test.etendodep"]| "com.test.etendodep" | "etendo-test" |["com.test:dummytopublish:1.0.0"]   | ["com.test.dummytopublish.DummyTest"] | ["CustomClass2"] | ["""void test() { DummyTest dummy = new DummyTest(); }"""]
     }
 
     def "Using a dependency not added in the build gradle file will fail"() {
