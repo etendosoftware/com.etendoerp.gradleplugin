@@ -1,0 +1,36 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        maven {
+            url "https://repo.futit.cloud/repository/maven-public-snapshots"
+            credentials {
+                username = System.getProperty("nexusUser")
+                password = System.getProperty("nexusPassword")
+            }
+        }
+        maven {
+            url 'https://repo.futit.cloud/repository/maven-releases'
+            credentials {
+                username = System.getProperty("nexusUser")
+                password = System.getProperty("nexusPassword")
+            }
+        }
+        maven {
+            url 'https://repo.futit.cloud/repository/maven-snapshots'
+            credentials {
+                username = System.getProperty("nexusUser")
+                password = System.getProperty("nexusPassword")
+            }
+        }
+    }
+}
+
+println("Settings TESTS root dir: ${this.rootDir}")
+
+new File("${this.rootDir}/modules").listFiles().each {
+    println("module : $it")
+    if (it.directory && new File(it, 'build.gradle').exists()) {
+        println("${it.name}")
+        include(":modules:${it.name}")
+    }
+}

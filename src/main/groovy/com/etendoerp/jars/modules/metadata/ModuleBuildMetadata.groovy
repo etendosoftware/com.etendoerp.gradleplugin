@@ -1,6 +1,6 @@
 package com.etendoerp.jars.modules.metadata
 
-import com.etendoerp.jars.modules.ModuleJarGenerator
+
 import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
 import org.gradle.api.artifacts.DependencySet
@@ -42,8 +42,12 @@ class ModuleBuildMetadata extends ModuleMetadata {
         // Get all the configurations defined in the subproject
         this.configurations = DependencyUtils.loadListOfConfigurations(moduleProject)
 
+        // This configuration is used to store all the subproject dependencies
+        def configContainer = moduleProject.configurations.findByName(PublicationUtils.MODULE_DEPENDENCY_CONTAINER)
+        this.dependencies = configContainer.dependencies
+
         // Load all the dependencies defined in the build.gradle of a subproject
-        this.dependencies = DependencyUtils.loadDependenciesFromConfigurations(this.configurations)
+        DependencyUtils.loadDependenciesFromConfigurations(this.configurations, this.dependencies)
 
         artifactId = moduleName.toString().replace(group + ".", "")
     }

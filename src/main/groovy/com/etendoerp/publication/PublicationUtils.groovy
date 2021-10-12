@@ -29,6 +29,9 @@ class PublicationUtils {
 
     final static String CONFIGURATION_NAME = "implementation"
 
+    final static String ETENDO_DEPENDENCY_CONTAINER = "etendoDependencyContainer"
+    final static String MODULE_DEPENDENCY_CONTAINER = "moduleDependencyContainer"
+
     final static String BASE     = "build"
     final static String CLASSES  = "classes"
     final static String META_INF = "META-INF"
@@ -39,6 +42,8 @@ class PublicationUtils {
 
     // Files to exclude from a module
     final static EXCLUDED_FILES = [
+            "build/",
+            "build/**",
             ".gradle/**",
             "gradle/**",
             "deploy.gradle",
@@ -67,6 +72,10 @@ class PublicationUtils {
             throw new IllegalArgumentException("The command line parameter -P${REPOSITORY_NAME_PROP}=<repository name> is missing.")
         }
         return repositoryName
+    }
+
+    static String capitalizeModule(String moduleName){
+        return moduleName.substring(0,1).toUpperCase() + moduleName.substring(1)
     }
 
     /**

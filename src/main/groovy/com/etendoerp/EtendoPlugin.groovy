@@ -3,6 +3,7 @@ package com.etendoerp
 import com.etendoerp.jars.JarLoader
 import com.etendoerp.legacy.EtendoLegacy
 import com.etendoerp.legacy.ant.AntLoader
+import com.etendoerp.modules.ModulesConfigurationLoader
 import com.etendoerp.publication.PublicationLoader
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -28,6 +29,6 @@ class EtendoPlugin implements Plugin<Project> {
         EtendoLegacy.load(project)
         JarLoader.load(project)
         PublicationLoader.load(project)
-
+        ModulesConfigurationLoader.load(project)
     }
 }

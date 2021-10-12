@@ -1,5 +1,6 @@
 package com.etendoerp.jars
 
+import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
 import org.gradle.api.tasks.Copy
 
@@ -9,22 +10,21 @@ class ExtractResourcesOfJars {
 
         project.tasks.register("extractResourcesOfJar", Copy) {
             from {
-                project.configurations.compile.findResults {
-                    project.zipTree(it).matching {
-                        include 'META-INF/etendo/'
+                project.configurations.findByName(PublicationUtils.ETENDO_DEPENDENCY_CONTAINER).findResults {
+                    project.zipTree(it).matching { 
+                        include 'META-INF/etendo/' 
                         include 'META-INF/build.xml'
                     }
-
                 }
             }
-            into "${project.buildDir}/"
+            into "${project.buildDir}/etendo"
 
             //Deleting path prefix for each extracted file
             eachFile { f ->
                 if (f.path == 'META-INF/build.xml') {
                     f.path = 'META-INF/etendo/build.xml'
                 } else {
-                    f.path = f.path.replaceFirst('META-INF/', '')
+                    f.path = f.path.replaceFirst('META-INF/etendo/', '')
                 }
             }
             includeEmptyDirs false
