@@ -157,11 +157,8 @@ class JarCoreGenerator {
         ]
 
         project.jar.dependsOn("jarConfig")
-        project.jarConfig.dependsOn("cleanResources")
         project.jarConfig.dependsOn(resourcesDirs)
-        project.jarConfig.mustRunAfter("cleanResources")
         project.sourcesJar.dependsOn("sourcesJarConfig")
-        project.sourcesJarConfig.mustRunAfter("cleanResources")
 
         project.jar.from{
             project.configurations.compileClasspath.collect { it.isDirectory() ? it : project.zipTree(it) }
