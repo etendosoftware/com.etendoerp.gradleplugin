@@ -33,7 +33,7 @@ class ModuleWithMavenLibraryDependencyTest extends EtendoMockupSpecificationTest
         ModuleToJarUtils.createADModuleFile([baseLocation: moduleLocation, moduleProperties: moduleProperties])
 
         and: "The users runs the 'createModuleBuild' task"
-        def moduleBuildResult = runTask(":createModuleBuild","-P${PKG}=${module}", "-P${REPO}=${repository}") as BuildResult
+        def moduleBuildResult = runTask(":createModuleBuild","-P${PKG}=${module}", "-P${REPO}=${repository}", "-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}") as BuildResult
 
         and: "The task will finish successfully"
         moduleBuildResult.task(":createModuleBuild").outcome == TaskOutcome.SUCCESS
@@ -59,9 +59,9 @@ class ModuleWithMavenLibraryDependencyTest extends EtendoMockupSpecificationTest
         JarsUtils.validateClassFiles(getProjectDir().absolutePath, module, javaClasses, [])
 
         where:
-        moduleProperties                                                                        | moduleName           | repository    | dependencies                       | imports                  | javaClasses     | methods
-        [javapackage: "com.test.moduledep", version: "1.0.0", description: "com.test.moduledep"]| "com.test.moduledep" | "etendo-test" |["com.google.code.gson:gson:2.8.7"] | ["com.google.gson.Gson"] | ["CustomClass"] | ["""void test() { Gson gson = new Gson(); }"""]
-
+        moduleProperties                                                                        | moduleName           | repository    | dependencies                       | imports                               | javaClasses      | methods
+        [javapackage: "com.test.moduledep", version: "1.0.0", description: "com.test.moduledep"]| "com.test.moduledep" | "etendo-test" |["com.google.code.gson:gson:2.8.7"] | ["com.google.gson.Gson"]              | ["CustomClass"]  | ["""void test() { Gson gson = new Gson(); }"""]
+        [javapackage: "com.test.etendodep", version: "1.0.0", description: "com.test.etendodep"]| "com.test.etendodep" | "etendo-test" |["com.test:dummytopublish:1.0.0"]   | ["com.test.dummytopublish.DummyTest"] | ["CustomClass2"] | ["""void test() { DummyTest dummy = new DummyTest(); }"""]
     }
 
     def "Using a dependency not added in the build gradle file will fail"() {

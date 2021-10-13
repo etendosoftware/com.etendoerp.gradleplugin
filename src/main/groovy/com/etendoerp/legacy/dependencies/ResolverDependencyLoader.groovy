@@ -1,5 +1,6 @@
 package com.etendoerp.legacy.dependencies
 
+import com.etendoerp.legacy.utils.NexusUtils
 import org.gradle.api.Project
 import org.gradle.api.logging.LogLevel
 
@@ -18,6 +19,8 @@ class ResolverDependencyLoader {
 
         project.gradle.projectsEvaluated {
             project.logger.info("Running GRADLE projectsEvaluated.")
+
+            NexusUtils.configureRepositories(project)
 
             List<File> jarFiles = ResolverDependencyUtils.getJarFiles(project)
 
