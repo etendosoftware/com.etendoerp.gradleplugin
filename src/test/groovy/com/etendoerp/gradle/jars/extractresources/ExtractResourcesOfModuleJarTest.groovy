@@ -13,7 +13,7 @@ import spock.lang.Title
 @Narrative(""" When a Etendo dependency is added it should be resolved correctly. When any task of the root project is ran,
 the 'extractResourcesOfJar' should be trigger. This task should extract the resources found in the 'META-INF'
 folder of the JAR file in the 'build/etendo/modules' directory""")
-class ExtractResourcesOfJars extends EtendoSpecification {
+class ExtractResourcesOfModuleJarTest extends EtendoSpecification {
 
     @TempDir File testProjectDir
 
