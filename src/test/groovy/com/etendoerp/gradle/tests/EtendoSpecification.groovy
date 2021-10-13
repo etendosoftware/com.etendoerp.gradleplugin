@@ -1,6 +1,7 @@
 package com.etendoerp.gradle.tests
 
 import com.etendoerp.gradle.utils.DBCleanupMode
+import com.etendoerp.publication.PublicationUtils
 import groovy.sql.Sql
 import org.gradle.internal.impldep.com.google.common.io.Files
 import org.gradle.testkit.runner.GradleRunner
@@ -15,6 +16,10 @@ abstract class EtendoSpecification extends Specification implements EtendoSpecif
 
     File buildFile
     Map<String, String> args
+
+    public static String BASE_MODULE = PublicationUtils.BASE_MODULE_DIR
+    public static String REPO = PublicationUtils.REPOSITORY_NAME_PROP
+    public static String PKG  = PublicationUtils.MODULE_NAME_PROP
 
     /**
      * Override this method to return the directory where the gradle project will be created, to run the tests
