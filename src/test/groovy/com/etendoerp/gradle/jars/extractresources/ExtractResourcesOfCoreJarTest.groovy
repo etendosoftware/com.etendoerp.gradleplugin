@@ -10,8 +10,6 @@ import spock.lang.Title
 @Title("Test to verify the correct extraction of the resources of a Etendo core jar.")
 @Narrative(""" TODO: Currently this test will fail because the gradle ant class loader is adding the Etendo core library.
 This causes problems because the 'Etendo core' contains classes that are already defined in the 'Gradle project'
-
-The test sets a Etendo core dependency and runs the 'dependency' task to trigger the 'extractResourcesOfJar' task.
 """)
 class ExtractResourcesOfCoreJarTest extends EtendoSpecification {
 
@@ -27,8 +25,7 @@ class ExtractResourcesOfCoreJarTest extends EtendoSpecification {
             "config",
             "referencedata",
             "modules",
-            // TODO: Check that the jar contains the 'build.xml' file
-            //"build.xml"
+            "build.xml"
     ]
 
     @TempDir File testProjectDir

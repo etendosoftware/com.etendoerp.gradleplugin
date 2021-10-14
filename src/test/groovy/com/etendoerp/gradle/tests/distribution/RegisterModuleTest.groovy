@@ -1,11 +1,13 @@
 package com.etendoerp.gradle.tests.distribution
 
 import com.etendoerp.gradle.tests.EtendoSpecification
+import spock.lang.Ignore
 import spock.lang.PendingFeature
 import spock.lang.TempDir
 import spock.lang.Title
 
 @Title("TODO: Add missing test")
+@Ignore
 class RegisterModuleTest extends EtendoSpecification {
     @TempDir File testProjectDir
 
