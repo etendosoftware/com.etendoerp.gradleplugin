@@ -27,6 +27,27 @@ class ResolverDependencyUtils {
         // The DependencySet can contain same dependencies with different versions
         DependencyUtils.loadDependenciesFromConfigurations(baseProjectConfigurations, containerSet)
 
+        /**
+         * Hack to load all the project and subproject dependencies to the 'root' project.
+         * This allow defining dependencies in the 'build.gradle' file of submodules and being recognized
+         * in all the project, simulating the legacy behavior.
+         *
+         * Only the major version of a dependency will be used, this is because the project sets all the
+         * 'modules' in the main 'sourceSets', making the project and subprojects act like one project.
+         *
+         * PROS: If the project is considered like only one, there is not 'circular dependencies'.
+         *
+         * CONS: If two modules are using the same library with different version, the major one is taking
+         * into account.
+         *
+         */
+        containerSet.each {
+            def dep = it
+            project.dependencies {
+                implementation(dep)
+            }
+        }
+
         // The collect method will perform the resolution of dependencies
         // And will return the major version of a dependency
         return container.collect()

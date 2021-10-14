@@ -67,18 +67,10 @@ class NexusUtils {
      *
      */
     static askNexusCredentials(Project project) {
-        def nexusUser = "";
-        def nexusPassword = "";
-        if(project.ext.get("nexusUser") != null && project.ext.get("nexusPassword") != null) {
-            nexusUser = project.ext.get("nexusUser")
-            nexusPassword = project.ext.get("nexusPassword")
-        } else if(System.getProperty("nexusUser") != null && System.getProperty("nexusPassword") != null) {
-            nexusUser = System.getProperty("nexusUser")
-            nexusPassword = System.getProperty("nexusPassword")
-        } else if(project.hasProperty("mavenUser") && project.hasProperty("mavenPassword")) {
-            nexusUser = project.property("mavenUser")
-            nexusPassword = project.property("mavenPassword")
-        } else {
+
+        def (nexusUser, nexusPassword) = getCredentials(project)
+
+        if (!nexusUser || ! nexusPassword) {
             def input = project.getServices().get(UserInputHandler.class)
             nexusUser = project.getServices().get(UserInputHandler.class).askQuestion("Nexus user", "")
             nexusPassword = project.getServices().get(UserInputHandler.class).askQuestion("Nexus password", "")
@@ -94,14 +86,8 @@ class NexusUtils {
             project.ext.set("nexusPassword", nexusPassword)
         }
 
-        project.repositories.configureEach {
-            def repoCredentials = it["credentials"] as PasswordCredentials
-            // Use credentials asked via the console when repo does not have any credentials configured
-            if (repoCredentials.getUsername() == null && repoCredentials.getPassword() == null) {
-                repoCredentials.setUsername(nexusUser)
-                repoCredentials.setPassword(nexusPassword)
-            }
-        }
+        configureRepositories(project, nexusUser as String, nexusPassword as String)
+
         project.repositories {
             maven {
                 url "https://repo.futit.cloud/repository/maven-releases"
@@ -112,6 +98,71 @@ class NexusUtils {
             }
             maven {
                 url "https://repo.futit.cloud/repository/maven-public-releases"
+            }
+        }
+    }
+
+    static def getCredentials(Project project) {
+        def nexusUser     = ""
+        def nexusPassword = ""
+
+        if (project.ext.get("nexusUser") != null && project.ext.get("nexusPassword") != null) {
+            nexusUser = project.ext.get("nexusUser")
+            nexusPassword = project.ext.get("nexusPassword")
+        } else if (System.getProperty("nexusUser") != null && System.getProperty("nexusPassword") != null) {
+            nexusUser = System.getProperty("nexusUser")
+            nexusPassword = System.getProperty("nexusPassword")
+        } else if (project.hasProperty("mavenUser") && project.hasProperty("mavenPassword")) {
+            nexusUser = project.property("mavenUser")
+            nexusPassword = project.property("mavenPassword")
+        }
+
+        return [nexusUser, nexusPassword]
+    }
+
+    static void configureRepositories(Project project) {
+        def (username, password) = getCredentials(project)
+        configureRepositories(project, username as String, password as String)
+    }
+
+    /**
+     * Configure all project and subproject repositories with the System credentials.
+     * The credentials could be passed by the command line parameters '-DnexusUser=user -DnexusPassword=password'
+     */
+    static void configureRepositories(Project project, String usernameCredential, String passwordCredential) {
+
+        project.logger.info("Starting project repositories configuration.")
+
+        /**
+         * Gets all the subproject repositories and set its in the root project.
+         * This is used to resolved all subproject dependencies.
+         */
+        project.subprojects.each {
+            it.repositories.each {repo ->
+                // Currently only maven repositories are taking into account.
+                def repoCredentials = repo["credentials"] as PasswordCredentials
+                project.repositories {
+                    maven {
+                        url "${repo.properties.get("url")}"
+                        if (repoCredentials.username && repoCredentials.password) {
+                            credentials {
+                                username = repoCredentials.username
+                                password = repoCredentials.password
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (usernameCredential != null && passwordCredential != null) {
+            project.repositories.configureEach {
+                def repoCredentials = it["credentials"] as PasswordCredentials
+                // Configures only the repositories without credentials.
+                if (repoCredentials.getUsername() == null && repoCredentials.getPassword() == null) {
+                    repoCredentials.setUsername(usernameCredential)
+                    repoCredentials.setPassword(passwordCredential)
+                }
             }
         }
     }
