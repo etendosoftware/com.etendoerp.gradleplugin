@@ -50,6 +50,15 @@ class PathUtils {
         return result
     }
 
+    static  List<String> fromPackageToPathJava(List<String> classes){
+        ArrayList<String> result = new ArrayList<>()
+
+        for (String currentClass in classes){
+            result.add(currentClass.replace('.','/').concat('.java'))
+        }
+        return result
+    }
+
 
     static  List<String> getClassExcludingGenerated(Project project, String classLocation){
         return  project.fileTree(classLocation).matching ({

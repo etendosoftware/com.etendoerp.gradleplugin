@@ -46,7 +46,11 @@ class JarCoreGenerator {
         project.tasks.register("sourcesJarConfig") {
             doLast {
                 project.logger.info("Starting Sources JAR configuration.")
+                def generated = Utils.loadGeneratedEntitiesFile(project)
                 def sourcesJarTask = (project.sourcesJar as Jar)
+
+                //Excluding src-gen
+                sourcesJarTask.exclude(PathUtils.fromPackageToPathJava(generated))
 
                 sourcesJarTask.exclude 'META-INF'
                 sourcesJarTask.exclude 'src-gen'
