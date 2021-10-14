@@ -53,13 +53,13 @@ class ExtractResourcesOfCoreJarTest extends EtendoSpecification {
         """
 
         when: "The users runs the 'dependencies' task"
-        def dependenciesTaskResult = runTask(":dependencies")
+        def dependenciesTaskResult = runTask(":dependencies","-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
 
         then: "The task will finish successfully."
         dependenciesTaskResult.task(":dependencies").outcome == TaskOutcome.SUCCESS
 
         and: "The output will contain the core dependency."
-        dependenciesTaskResult.output.contains("${ETENDO_CORE_GROUP}")
+        dependenciesTaskResult.output.contains(core)
 
         and: "The resources of the Etendo core will be extracted in the 'build/etendo' directory"
         def location = new File("${getProjectDir().absolutePath}/build/etendo")
