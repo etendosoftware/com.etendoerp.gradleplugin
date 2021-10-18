@@ -110,13 +110,6 @@ class LegacyScriptLoader {
                     transitive = true
                 }
             }
-
-            // hack to load jar dependencies.
-            implementation project.fileTree(project.projectDir) {
-                include "**/lib/**/*.jar"
-                exclude "\${env.CATALINA_HOME}"
-                exclude "WebContent"
-            }
         }
 
         /**

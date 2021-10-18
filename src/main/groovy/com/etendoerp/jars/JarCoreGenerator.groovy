@@ -16,14 +16,13 @@ class JarCoreGenerator {
     static load(Project project) {
 
         project.dependencies {
-            project.dependencies {
-                implementation project.fileTree(dir: "${project.rootDir}/lib", include: ['**/*.jar'])
-                implementation project.fileTree(dir: "${project.rootDir}/modules", include: ['**/*.jar'])
-                implementation project.fileTree(dir: "${project.rootDir}/modules_core", include: ['**/*.jar'])
-                implementation project.fileTree(dir: "${project.rootDir}/src-core/lib", include: ['**/*.jar'])
-                implementation project.fileTree(dir: "${project.rootDir}/src-wad/lib", include: ['**/*.jar'])
-                implementation project.fileTree(dir: "${project.rootDir}/src-trl/lib", include: ['**/*.jar'])
-            }
+            implementation project.fileTree(dir: "${project.rootDir}/lib", include: ['**/*.jar'])
+            implementation project.fileTree(dir: "${project.rootDir}/modules", include: ['**/*.jar'])
+            implementation project.fileTree(dir: "${project.rootDir}/modules_core", include: ['**/*.jar'])
+            implementation project.fileTree(dir: "${project.rootDir}/src-core/lib", include: ['**/*.jar'])
+            implementation project.fileTree(dir: "${project.rootDir}/src-wad/lib", include: ['**/*.jar'])
+            implementation project.fileTree(dir: "${project.rootDir}/src-trl/lib", include: ['**/*.jar'])
+            implementation project.fileTree(dir: "${project.rootDir}/src-db/database/lib", include: ['**/*.jar'])
         }
 
         project.tasks.register("jarConfig") {
@@ -38,6 +37,20 @@ class JarCoreGenerator {
 
                 // Workaround for issue: https://issues.apache.org/jira/browse/LOG4J2-673
                 jarTask.exclude "**/Log4j2Plugins.dat"
+
+                // Create a "fat" jar
+                jarTask.from{
+                    project.configurations.compileClasspath.collect {
+                        if (it.getAbsolutePath().contains("ob-rhino-1.6R7.jar")) {
+                            return null
+                        }
+                        if (it.isDirectory()) {
+                            it
+                        } else {
+                            project.zipTree(it)
+                        }
+                    }
+                }
 
                 jarTask.from(RESOURCES_DIR) {
                     into(RESOURCES_JAR_DESTINATION)
@@ -192,7 +205,7 @@ class JarCoreGenerator {
         project.tasks.register("copyBuild", Copy) {
             from ("${project.projectDir}")
             include "build.xml"
-            into "${project.buildDir}/resources"
+            into "${project.buildDir}/resources/etendo"
         }
         project.tasks.register("copyReferenceData", Copy) {
             from ("${project.projectDir}/referencedata")
@@ -244,10 +257,6 @@ class JarCoreGenerator {
         project.sourcesJar.dependsOn("sourcesJarConfig")
         project.sourcesJarConfig.dependsOn(sourcesJarDependencies)
         project.sourcesJarConfig.mustRunAfter("cleanResources")
-
-        project.jar.from{
-            project.configurations.compileClasspath.collect { it.isDirectory() ? it : project.zipTree(it) }
-        }
     }
 }
 
