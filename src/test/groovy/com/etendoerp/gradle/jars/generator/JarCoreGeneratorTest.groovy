@@ -4,7 +4,6 @@ import com.etendoerp.gradle.jars.EtendoMockupSpecificationTest
 import org.gradle.internal.impldep.org.apache.commons.io.FileUtils
 import org.gradle.testkit.runner.TaskOutcome
 import spock.lang.Narrative
-import spock.lang.Shared
 import spock.lang.Stepwise
 import spock.lang.TempDir
 import spock.lang.Title
