@@ -261,8 +261,13 @@ class JarCoreGeneratorTest extends EtendoMockupSpecificationTest {
         // JAR classes
         Set<String> jarClasses = listJarFiles("${testProjectDir.absolutePath}/build/libs/${testProjectDir.getName()}-sources.jar")
 
-        // build/classes - generated
+        // build/classes - generated - resources
         Set<String> buildClasses = new File("${testProjectDir.absolutePath}/src").list()
+        buildClasses.removeAll {
+            if (!it.endsWith(".java")) {
+                it
+            }
+        }
 
         assert buildClasses == jarClasses
 
