@@ -56,7 +56,7 @@ class JarCoreGeneratorTest extends EtendoMockupSpecificationTest {
 
     def "Creating Jar of core and check if the generated classes are excluded"() {
 
-        given: "A dummy core project, with some .java files, and inner classes in src folder, and some .java in the src-gen directory."
+        given: "A dummy core project with some .java files and inner classes in src folder and some .java in the src-gen directory."
 
         when: "Create a core Jar."
         def generateEntities = runTask(":generate.entities")
@@ -84,7 +84,7 @@ class JarCoreGeneratorTest extends EtendoMockupSpecificationTest {
             }
         }
 
-        then: "The tasks run successfully, and the classes in Jar are the same that [build/clases]-generated"
+        then: "The tasks run successfully and the classes in Jar are the same that [build/clases]-generated"
         assert jar.task(":jar").outcome == TaskOutcome.SUCCESS
         assert generateEntities.task(":generate.entities").outcome == TaskOutcome.SUCCESS
         assert new File("${testProjectDir.absolutePath}/build/libs/etendo-core.jar").exists()
@@ -92,8 +92,8 @@ class JarCoreGeneratorTest extends EtendoMockupSpecificationTest {
 
     }
 
-    def "Creating Core Jar and check if the src resources ere correctly includes"() {
-        given: "A dummy core project, with some .xml and .ftl files in src folder"
+    def "Creating Core Jar and check if the src resources are correctly includes"() {
+        given: "A dummy core project with some .xml and .ftl files in src folder"
         when: "create a coreJar"
         runTask(":generate.entities")
         def jar = runTask(":jar")
@@ -107,7 +107,7 @@ class JarCoreGeneratorTest extends EtendoMockupSpecificationTest {
             }
         }
 
-        // Generating  resources files in src
+        and:  "Generating resources files in src"
         Set<String> resources = new File("${testProjectDir.absolutePath}/src").list()
         resources.removeAll {
             if (it.endsWith(".class") || it.endsWith(".java")) {
@@ -115,14 +115,14 @@ class JarCoreGeneratorTest extends EtendoMockupSpecificationTest {
             }
         }
 
-        then: "The tasks run successfully, and the resources are added in META-INF/etendo/src"
+        then: "The tasks run successfully and the resources are added in META-INF/etendo/src"
         assert jar.task(":jar").outcome == TaskOutcome.SUCCESS
         assert new File("${testProjectDir.absolutePath}/build/libs/etendo-core.jar").exists()
         assert resourcesFromJar == resources
     }
 
     def "Creating Core Jar and check if the beans.xml file is included"() {
-        given: "A dummy core project, with beans.xml file in /modules_core/org.openbravo.base.weld/config/ folder"
+        given: "A dummy core project with beans.xml file in /modules_core/org.openbravo.base.weld/config/ folder"
         when: "create a coreJar"
         runTask(":generate.entities")
         def jar = runTask(":jar")
@@ -144,7 +144,100 @@ class JarCoreGeneratorTest extends EtendoMockupSpecificationTest {
             }
         }
 
-        then: "The tasks run successfully, and the beans.xml file is in the JAR"
+        then: "The tasks run successfully and the beans.xml file is in the JAR"
+        assert jar.task(":jar").outcome == TaskOutcome.SUCCESS
+        assert new File("${testProjectDir.absolutePath}/build/libs/etendo-core.jar").exists()
+        assert resourcesFromJar == resources
+    }
+
+
+    def "Creating Core Jar and check if the build.xml file is included"() {
+        given: "A dummy core project with build.xml"
+        when: "create a coreJar"
+        runTask(":generate.entities")
+        def jar = runTask(":jar")
+
+        and: "add in resourcesFromJar list the build.xml file if exist"
+        Set<String> resourcesFromJar = new ArrayList<String>();
+        new ZipFile("${testProjectDir.absolutePath}/build/libs/etendo-core.jar").entries().each {
+            if (it.toString().contains("META-INF/etendo/build.xml")) {
+                String fileName = Paths.get(it.toString()).getFileName().toString()
+                resourcesFromJar.add(fileName)
+            }
+        }
+
+        and: "add in resources list the build.xml file from the expected directory"
+        Set<String> resources = new File("${testProjectDir.absolutePath}").list()
+        resources.removeAll {
+            if (it != "build.xml") {
+                it
+            }
+        }
+
+        then: "The tasks run successfully and the build.xml file is in the JAR"
+        assert jar.task(":jar").outcome == TaskOutcome.SUCCESS
+        assert new File("${testProjectDir.absolutePath}/build/libs/etendo-core.jar").exists()
+        assert resourcesFromJar == resources
+    }
+
+    def "Creating Core Jar and check if the modules and modules_core are included"() {
+        given: "A dummy core project with a module and modules core"
+        when: "create a coreJar"
+        runTask(":generate.entities")
+        def jar = runTask(":jar")
+
+        and: "add in resourcesFromJar list all modules and modules_core resources files"
+        Set<String> resourcesFromJar = new ArrayList<String>();
+        new ZipFile("${testProjectDir.absolutePath}/build/libs/etendo-core.jar").entries().each {
+            if (it.toString().contains("META-INF/etendo/modules")) {
+                if(!it.isDirectory()){
+                    String fileName = Paths.get(it.toString()).getFileName().toString()
+                    resourcesFromJar.add(fileName)
+                }
+            }
+        }
+
+        and: "add in resources list the files from the modules and modules_core directories"
+        Set<String> resources = new File("${testProjectDir.absolutePath}/modules/testModule").list()
+        resources.addAll( new File("${testProjectDir.absolutePath}/modules_core/org.openbravo.base.weld/config").list())
+        resources.removeAll {
+            if (!new File(it).isDirectory() && (it.endsWith(".class") || it.endsWith(".java"))) {
+                it
+            }
+        }
+
+        then: "The tasks run successfully and the resources from modules and modules_core are in the Jar"
+        assert jar.task(":jar").outcome == TaskOutcome.SUCCESS
+        assert new File("${testProjectDir.absolutePath}/build/libs/etendo-core.jar").exists()
+        assert resourcesFromJar == resources
+    }
+
+    def "Creating Core Jar and check if the config directory are included"() {
+        given: "A dummy core project"
+        when: "create a coreJar"
+        runTask(":generate.entities")
+        def jar = runTask(":jar")
+
+        and: "add in resourcesFromJar all the files in config directory"
+        Set<String> resourcesFromJar = new ArrayList<String>();
+        new ZipFile("${testProjectDir.absolutePath}/build/libs/etendo-core.jar").entries().each {
+            if (it.toString().contains("META-INF/etendo/config")) {
+                if (!it.isDirectory()) {
+                    String fileName = Paths.get(it.toString()).getFileName().toString()
+                    resourcesFromJar.add(fileName)
+                }
+            }
+        }
+
+        and: "add in resources list the files from the config directory ends in .template"
+        Set<String> resources = new File("${testProjectDir.absolutePath}/config").list()
+        resources.removeAll {
+            if (!it.endsWith(".template")) {
+                it
+            }
+        }
+
+        then: "The tasks run successfully and the config files are in the Jar"
         assert jar.task(":jar").outcome == TaskOutcome.SUCCESS
         assert new File("${testProjectDir.absolutePath}/build/libs/etendo-core.jar").exists()
         assert resourcesFromJar == resources

@@ -128,7 +128,7 @@ class JarCoreGenerator {
         project.tasks.register("copyBuild", Copy) {
             from ("${project.projectDir}")
             include "build.xml"
-            into "${project.buildDir}/resources"
+            into "${project.buildDir}/resources/etendo"
         }
         project.tasks.register("copyReferenceData", Copy) {
             from ("${project.projectDir}/referencedata")
