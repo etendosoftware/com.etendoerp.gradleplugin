@@ -1,7 +1,6 @@
 package com.etendoerp.gradle.jars.extractresources
 
-import com.etendoerp.gradle.jars.JarsUtils
-import com.etendoerp.gradle.tests.EtendoSpecification
+import com.etendoerp.gradle.jars.EtendoCoreJarSpecificationTest
 import org.gradle.testkit.runner.TaskOutcome
 import spock.lang.Narrative
 import spock.lang.TempDir
@@ -11,12 +10,7 @@ import spock.lang.Title
 @Narrative(""" TODO: Currently this test will fail because the gradle ant class loader is adding the Etendo core library.
 This causes problems because the 'Etendo core' contains classes that are already defined in the 'Gradle project'
 """)
-class ExtractResourcesOfCoreJarTest extends EtendoSpecification {
-
-    final static String ETENDO_CORE_GROUP   = "com.etendoerp.platformtest"
-    final static String ETENDO_CORE_NAME    = "etendo-core-test"
-    final static String ETENDO_CORE_VERSION = "1.0.0"
-    final static String ETENDO_CORE_REPO    = "https://repo.futit.cloud/repository/etendo-test-core/"
+class ExtractResourcesOfCoreJarTest extends EtendoCoreJarSpecificationTest {
 
     final static List<String> CORE_FILES = [
             "src",
@@ -37,17 +31,7 @@ class ExtractResourcesOfCoreJarTest extends EtendoSpecification {
 
     def "The resources of the core jar are extracted correctly"() {
         given: "A project adding the Etendo core jar dependency."
-        def core = "${ETENDO_CORE_GROUP}:${ETENDO_CORE_NAME}:${ETENDO_CORE_VERSION}"
-        buildFile << JarsUtils.generateDependenciesBlock([core])
-
-        and: "The project contains the core repository"
-        buildFile << """
-        repositories {
-            maven {
-                url "${ETENDO_CORE_REPO}"
-            }
-        }
-        """
+        assert buildFile.text.contains(CORE)
 
         when: "The users runs the 'dependencies' task"
         def dependenciesTaskResult = runTask(":dependencies","-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
@@ -56,7 +40,7 @@ class ExtractResourcesOfCoreJarTest extends EtendoSpecification {
         dependenciesTaskResult.task(":dependencies").outcome == TaskOutcome.SUCCESS
 
         and: "The output will contain the core dependency."
-        dependenciesTaskResult.output.contains(core)
+        dependenciesTaskResult.output.contains(CORE)
 
         and: "The resources of the Etendo core will be extracted in the 'build/etendo' directory"
         def location = new File("${getProjectDir().absolutePath}/build/etendo")
@@ -64,9 +48,8 @@ class ExtractResourcesOfCoreJarTest extends EtendoSpecification {
     }
 
     static void containsAllCoreFiles(File coreLocation) {
-        def listFiles = coreLocation.list()
         CORE_FILES.each {coreFile ->
-            assert listFiles.find {it == coreFile} != null
+            assert new File("${coreLocation.absolutePath}/${coreFile}").exists()
         }
     }
 }
