@@ -8,7 +8,7 @@ import spock.lang.Title
 
 /**
  * The 'source.path' property is changed by the Setup task, using the 'System.getProperty("user.dir")'.
- * file: ConfigurationApp.java - line: 533
+ * file: ConfigurationApp.java - line: 833
  */
 
 @Title("Setup Task Tests")
