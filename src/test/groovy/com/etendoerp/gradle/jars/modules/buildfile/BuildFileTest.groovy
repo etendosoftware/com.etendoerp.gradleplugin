@@ -2,9 +2,10 @@ package com.etendoerp.gradle.jars.modules.buildfile
 
 import com.etendoerp.gradle.jars.modules.ModuleToJarSpecificationTest
 import com.etendoerp.modules.ModulesConfigurationLoader
-import org.gradle.testkit.runner.TaskOutcome
 import spock.lang.TempDir
+import spock.lang.Title
 
+@Title("Test to verify that the users contains the java plugin in a module with the 'build.gradle' file")
 class BuildFileTest extends ModuleToJarSpecificationTest {
     @TempDir File testProjectDir
 
