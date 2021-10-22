@@ -69,6 +69,17 @@ class MavenPublicationConfig {
                     exclude(PublicationUtils.EXCLUDED_FILES)
                     into(destinationDir)
                 }
+
+                /**
+                 * This is used to include all the classes from 'build/classes' used by the BuildValidationHandler
+                 *
+                 * The default compileJava task will put the .class files in the build/etendo-classes dir.
+                 */
+                moduleJar.from(moduleLocation) {
+                    include("build/classes/**")
+                    into(destinationDir)
+                }
+
             }
         }
 
