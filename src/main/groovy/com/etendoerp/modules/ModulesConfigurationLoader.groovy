@@ -24,6 +24,7 @@ import org.gradle.api.Project
 class ModulesConfigurationLoader {
 
     final static String JAVA_SOURCES = "src"
+    final static String ERROR_MISSING_PLUGIN = "Make sure that the 'build.gradle' file is using the 'java' plugin."
 
     static void load(Project project) {
         def moduleProject = project.findProject(":${PublicationUtils.BASE_MODULE_DIR}")
@@ -31,6 +32,23 @@ class ModulesConfigurationLoader {
         if (moduleProject != null) {
             moduleProject.subprojects.each {subproject ->
                 subproject.afterEvaluate {
+
+                    // Throw error when a module subproject does not have the java plugin
+                    def jarModuleTask = subproject.tasks.findByName("jar")
+                    if (!jarModuleTask) {
+                        throw new IllegalArgumentException("WARNING: The subproject ${subproject} is missing the 'jar' task. \n" +
+                                "*** ${ERROR_MISSING_PLUGIN}")
+                    }
+
+                    /**
+                     * Override the default output for the .class files because the
+                     * BuildValidationHandler considers it as a core class. (Search all classes in 'build/classes' for each module).
+                     * The BuildValidationHandler tries to load the classes but
+                     * if a class contains a library not included in the classpath, the 'update.database' task fails.
+                     */
+                    def output = subproject.file("${subproject.buildDir.absolutePath}/etendo-classes")
+                    subproject.sourceSets.main.java.destinationDirectory.set(output)
+
                     subproject.sourceSets.main.java.srcDirs += JAVA_SOURCES
                     subproject.sourceSets.main.compileClasspath += project.sourceSets.main.output
                     subproject.sourceSets.main.runtimeClasspath += project.sourceSets.main.output
