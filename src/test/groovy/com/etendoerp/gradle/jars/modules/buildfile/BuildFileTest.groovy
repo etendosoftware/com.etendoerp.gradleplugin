@@ -29,6 +29,7 @@ class BuildFileTest extends ModuleToJarSpecificationTest {
         and: "The users runs the javaCompile task"
         def compilationResult = runTaskAndFail(":${BASE_MODULE}:${module}:javaCompile")
 
+        // The project fails in the configuration phase.
         then: "The task will fail and the output will show the error of missing the java plugin"
         compilationResult.output.contains("java.lang.IllegalArgumentException")
         compilationResult.output.contains(ModulesConfigurationLoader.ERROR_MISSING_PLUGIN)

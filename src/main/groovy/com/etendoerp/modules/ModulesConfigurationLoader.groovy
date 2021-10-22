@@ -2,6 +2,7 @@ package com.etendoerp.modules
 
 import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
+import org.gradle.api.plugins.JavaPlugin
 
 /**
  * This class configures all the module subprojects sourcesSets.
@@ -34,9 +35,8 @@ class ModulesConfigurationLoader {
                 subproject.afterEvaluate {
 
                     // Throw error when a module subproject does not have the java plugin
-                    def jarModuleTask = subproject.tasks.findByName("jar")
-                    if (!jarModuleTask) {
-                        throw new IllegalArgumentException("WARNING: The subproject ${subproject} is missing the 'jar' task. \n" +
+                    if (!subproject.getPluginManager().hasPlugin("java")) {
+                        throw new IllegalArgumentException("WARNING: The subproject ${subproject} is missing the 'java' plugin. \n" +
                                 "*** ${ERROR_MISSING_PLUGIN}")
                     }
 
