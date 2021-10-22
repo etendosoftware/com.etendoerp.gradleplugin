@@ -3,6 +3,7 @@ package com.etendoerp.gradle.jars
 import com.etendoerp.gradle.tests.EtendoSpecification
 
 abstract class EtendoCoreJarSpecificationTest extends EtendoSpecification {
+
     public final static String ETENDO_CORE_GROUP   = "com.etendoerp.platform"
     public final static String ETENDO_CORE_NAME    = "etendo-core"
     public final static String ETENDO_CORE_VERSION = "[1.0.0,)"
