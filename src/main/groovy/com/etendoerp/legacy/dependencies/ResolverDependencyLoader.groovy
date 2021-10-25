@@ -1,5 +1,6 @@
 package com.etendoerp.legacy.dependencies
 
+import com.etendoerp.jars.ExtractResourcesOfJars
 import com.etendoerp.legacy.utils.NexusUtils
 import org.gradle.api.Project
 import org.gradle.api.logging.LogLevel
@@ -23,6 +24,9 @@ class ResolverDependencyLoader {
             NexusUtils.configureRepositories(project)
 
             List<File> jarFiles = ResolverDependencyUtils.getJarFiles(project)
+
+            ExtractResourcesOfJars.extractResources(project)
+            ExtractResourcesOfJars.copyConfigFile(project)
 
             def antClassLoader = org.apache.tools.ant.Project.class.classLoader
             def newPath = []

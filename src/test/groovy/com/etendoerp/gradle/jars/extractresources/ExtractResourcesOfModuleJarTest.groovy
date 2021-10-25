@@ -9,10 +9,10 @@ import spock.lang.Narrative
 import spock.lang.TempDir
 import spock.lang.Title
 
-@Title("Test to verify that the task 'extractResourcesOfJar' extracts the resources of a Etendo dependency.")
-@Narrative(""" When a Etendo dependency is added it should be resolved correctly. When any task of the root project is ran,
-the 'extractResourcesOfJar' should be trigger. This task should extract the resources found in the 'META-INF'
-folder of the JAR file in the 'build/etendo/modules' directory""")
+@Title("Test to verify the correct extraction of the resources of a Etendo module JAR")
+@Narrative(""" When a Etendo dependency is added it should be resolved correctly. After the project is evaluated
+all the Etendo module dependencies should be extracted in the 'build/etendo/module' dir.
+""")
 class ExtractResourcesOfModuleJarTest extends EtendoSpecification {
 
     @TempDir File testProjectDir
@@ -43,7 +43,7 @@ class ExtractResourcesOfModuleJarTest extends EtendoSpecification {
         and: "The users sets a Etendo dependency in the 'build.gradle' file of the module"
         buildFile << JarsUtils.generateDependenciesBlock(dependencies)
 
-        // Running any task from the root project should trigger the 'extractResourcesOfJar' task.
+        // The configuration phase of the project should extract the resources
         when: "The users runs the 'dependencies' task"
         def dependenciesTaskResult = runTask(":dependencies")
 
