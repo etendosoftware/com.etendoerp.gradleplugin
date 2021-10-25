@@ -6,6 +6,11 @@ import spock.lang.Narrative
 import spock.lang.TempDir
 import spock.lang.Title
 
+/**
+ * The 'source.path' property is changed by the Setup task, using the 'System.getProperty("user.dir")'.
+ * file: ConfigurationApp.java - line: 833
+ */
+
 @Title("Setup Task Tests")
 @Narrative("""
 Collection of tests for the Setup task.
@@ -55,7 +60,7 @@ class SetupTest extends EtendoSpecification {
             props.getProperty("bbdd.systemPassword") == "test_postgres"
             props.getProperty("bbdd.user") == "test_tad"
             props.getProperty("bbdd.password") == "test_tad"
-            props.getProperty("source.path") == "/test/source/path/"
+            props.getProperty("source.path") == "${getTestProjectDir().absolutePath}"
             props.getProperty("attach.path") == "/test/source/path/attachments"
             props.getProperty("bbdd.url") == "jdbc:postgresql://localhost:5439"
         }
@@ -103,7 +108,7 @@ class SetupTest extends EtendoSpecification {
             props.getProperty("bbdd.systemPassword") == "test_postgres"
             props.getProperty("bbdd.user") == "test_tad"
             props.getProperty("bbdd.password") == "test_tad"
-            props.getProperty("source.path") == "/test/source/path/"
+            props.getProperty("source.path") == "${getTestProjectDir().absolutePath}"
             props.getProperty("attach.path") == "/test/source/path/attachments"
             props.getProperty("bbdd.url") == "jdbc:postgresql://testhost:5439"
         }
