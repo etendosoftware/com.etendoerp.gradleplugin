@@ -1,6 +1,0 @@
-plugins {
-    id 'java'
-}
-dependencies {
-    implementation 'org.redisson:redisson:3.15.4'
-}

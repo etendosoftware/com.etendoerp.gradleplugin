@@ -1,4 +1,0 @@
-<?xml version="1.0"?>
-<database name="SEQUENCE NSEQ_NONTRANSSEQTEST">
-    <sequence name="NSEQ_NONTRANSSEQTEST" start="1" increment="1"/>
-</database>
