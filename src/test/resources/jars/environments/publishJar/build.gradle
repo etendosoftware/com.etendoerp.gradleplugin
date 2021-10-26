@@ -1,0 +1,97 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+    id 'war'
+    id 'idea'
+    id 'com.etendoerp.gradleplugin' //version '1.0.0-SNAPSHOT'
+}
+compileJava.options.encoding = "UTF-8"
+
+final String DEV_URL = "https://repo.futit.cloud/repository/etendo-test/"
+final String PROD_URL = "https://repo.futit.cloud/repository/etendo-test/"
+group = 'com.etendoerp.platform'
+def versionTs = 0;
+if (file('version.properties').exists()) {
+    def props = new Properties()
+    props.load(new FileInputStream(file('version.properties')))
+    if (props != null && props.containsKey('version.ts') && props.containsKey('version.ts')) {
+        versionTs = props['version.ts']
+    }
+}
+
+static def getVersionSuffix() {
+    def branch = ""
+    def proc = "git rev-parse --abbrev-ref HEAD".execute()
+    proc.in.eachLine { line -> branch = line }
+    proc.err.eachLine { line -> println line }
+    proc.waitFor()
+    if ("master" != branch) {
+        return ""
+    } else {
+        return ""
+    }
+}
+
+version = '1.0.' + versionTs + getVersionSuffix()
+
+def artifactID = 'etendo-core'
+def javaPackage = group + '.' + artifactID
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+}
+
+jar{
+    archiveBaseName.set("${javaPackage}")
+    zip64 = true
+}
+
+
+publishing {
+    publications {
+        core(MavenPublication) {
+            artifactId = artifactID
+            groupId = group
+            version = project.version
+        }
+    }
+
+    repositories {
+        maven {
+            url ''
+        }
+    }
+}
+
+task exportProjectVersion doLast {
+    ant.propertyfile(file: "version.properties") {
+        entry(key: "version.tag", value: project.version)
+    }
+}
+
+task configPublishJAR(){
+    doLast {
+        def publishTask = tasks.findByName("publishCorePublicationToMavenRepository") as AbstractPublishToMaven
+        publishTask.publication.artifact( file("$buildDir/libs/etendo-core-1.0.0.jar"))
+        if(project.version.endsWith('-SNAPSHOT')) {
+            publishing.repositories.maven.url = "https://repo.futit.cloud/repository/etendo-test"
+        }
+        else {
+            publishing.repositories.maven.url = "https://repo.futit.cloud/repository/etendo-test"
+        }
+        publishing.repositories.maven.credentials {
+            username = System.getProperty("nexusUser")
+            password = System.getProperty("nexusPassword")
+        }
+    }
+
+}
+
+task publishCoreJar(dependsOn: [jar, configPublishJAR, publishCorePublicationToMavenRepository]) { }
+
+
+
+
+
+
+
