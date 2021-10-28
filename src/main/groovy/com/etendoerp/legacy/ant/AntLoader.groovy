@@ -52,6 +52,8 @@ class AntLoader {
                     buildFile = new File('build.xml')
                 }
 
+                project.ant.properties['is.source.jar'] = isSourceJar
+
                 /** map from ant tasks to gradle **/
                 project.ant.importBuild(buildFile) { String oldTargetName ->
                     switch (oldTargetName) {
@@ -72,6 +74,11 @@ class AntLoader {
                             return oldTargetName
                     }
                 }
+
+                /**
+                 * The cleanSubFolders task is running after the core.lib task
+                 */
+                project.tasks.findByName("core.lib")?.mustRunAfter("cleanSubfolders")
 
                 project.ant.properties['is.source.jar'] = isSourceJar
 
