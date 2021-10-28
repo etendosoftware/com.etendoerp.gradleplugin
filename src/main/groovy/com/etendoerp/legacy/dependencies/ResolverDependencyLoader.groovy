@@ -1,5 +1,6 @@
 package com.etendoerp.legacy.dependencies
 
+import com.etendoerp.jars.ExtractResourcesOfJars
 import com.etendoerp.legacy.utils.NexusUtils
 import org.gradle.api.Project
 import org.gradle.api.logging.LogLevel
@@ -23,6 +24,9 @@ class ResolverDependencyLoader {
             NexusUtils.configureRepositories(project)
 
             List<File> jarFiles = ResolverDependencyUtils.getJarFiles(project)
+
+            ExtractResourcesOfJars.extractResources(project)
+            ExtractResourcesOfJars.copyConfigFile(project)
 
             // Note: previously the antClassLoader was used to add classes to ant's classpath
             // but when the core is a complete jar (with libs) affecting the class loader can cause collisions

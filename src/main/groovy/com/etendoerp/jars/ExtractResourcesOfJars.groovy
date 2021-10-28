@@ -2,13 +2,15 @@ package com.etendoerp.jars
 
 import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
-import org.gradle.api.tasks.Copy
-
 
 class ExtractResourcesOfJars {
-    static load(Project project) {
 
-        project.tasks.register("extractResourcesOfJar", Copy) {
+    /**
+     * Extract all the resources of the JAR files which contains 'META-INF/etendo' directory
+     * @param project
+     */
+    static void extractResources(Project project) {
+        project.copy {
             from {
                 project.configurations.findByName(PublicationUtils.ETENDO_DEPENDENCY_CONTAINER).findResults {
                     project.zipTree(it).matching { 
@@ -29,9 +31,27 @@ class ExtractResourcesOfJars {
             }
             includeEmptyDirs false
         }
+    }
 
-        project.tasks.matching {it != project.extractResourcesOfJar}.all {it.dependsOn project.extractResourcesOfJar}
+    /**
+     * Copies the 'config' files located in the 'build/etendo/config' dir to the
+     * root project. The copy is performed only if the 'config' dir
+     * does not exists in the root project.
+     * @param project
+     */
+    static void copyConfigFile(Project project) {
+        def etendoConfigLocation = project.file("${project.buildDir}/etendo/config")
+        def rootConfigLocation   = project.file("${project.rootDir}/config")
 
+        if (etendoConfigLocation.exists() && !rootConfigLocation.exists()) {
+            project.logger.info("Copying 'etendo/config' file to the root project.")
+            project.copy {
+                from(project.file("${project.buildDir}/etendo")) {
+                    include("config/**")
+                }
+                into project.rootDir
+            }
+        }
     }
 }
 
