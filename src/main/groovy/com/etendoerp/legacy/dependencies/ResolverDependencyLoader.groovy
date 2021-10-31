@@ -1,9 +1,11 @@
 package com.etendoerp.legacy.dependencies
 
 import com.etendoerp.jars.ExtractResourcesOfJars
+import com.etendoerp.legacy.ant.AntLoader
 import com.etendoerp.legacy.utils.NexusUtils
 import org.gradle.api.Project
 import org.gradle.api.logging.LogLevel
+import org.gradle.api.tasks.ant.AntTarget
 
 class ResolverDependencyLoader {
 
@@ -38,14 +40,44 @@ class ResolverDependencyLoader {
             def newPath = []
             def dependencies = []
             //
+
+            /**
+             * aux ant path used to hold gradle jar files
+             */
+            project.ant.path(id:'gradle.custom')
+
             jarFiles.each {
                 newPath.add project.ant.path(location: it)
                 dependencies.add project.ant.path(location: it)
+                project.ant.references['gradle.custom'].add(project.ant.path(location: it))
             }
+
+            project.logger.info("* gradle.custom classpath: ${project.ant.references['gradle.custom']}")
+
+            /**
+             * Creates an Ant property with the value of the gradle Jar paths.
+             * Ex: '/path/to/jar0:/path/to/jar1/'
+             *
+             * This is used when the project loads the Ant file
+             * to pass the Gradle libs classpath (dependencies defined with 'implementation').
+             *
+             * This is a workaround to the problem when an Ant target calls another target with '<antcall/>'
+             * and the Gradle classpath is not being recognized.
+             *
+             * When a target uses the 'depends' value pointing to another Ant target there is no problem.
+             * <antcall/> should be avoided.
+             *
+             * Also sometimes when Ant calls forked classes, the Ant references 'refid' defined by Gradle will be lost.
+             * To prevents 'refid' errors a property with 'value' is used.
+             *
+             */
+            project.ant.properties['gradle.custom.dependencies'] = project.ant.references['gradle.custom'].toString()
 
             // This gets all dependencies and sets them in ant as a file list with id: "gradle.libs"
             // Ant task build.local.context uses this to copy them to WebContent
             project.ant.filelist(id: 'gradle.libs', files: dependencies.join(','))
+
+            AntLoader.loadAntFile(project)
 
             //
             project.ant.references.keySet().forEach {
