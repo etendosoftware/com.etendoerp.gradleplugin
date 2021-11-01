@@ -7,8 +7,8 @@ plugins {
 }
 compileJava.options.encoding = "UTF-8"
 
-final String DEV_URL = "https://repo.futit.cloud/repository/etendo-test/"
-final String PROD_URL = "https://repo.futit.cloud/repository/etendo-test/"
+final String DEV_URL = "https://repo.futit.cloud/repository/etendo-test-publish/"
+final String PROD_URL = "https://repo.futit.cloud/repository/etendo-test-publish/"
 group = 'com.etendoerp.platform'
 def versionTs = 0;
 if (file('version.properties').exists()) {
@@ -74,10 +74,10 @@ task configPublishJAR(){
         def publishTask = tasks.findByName("publishCorePublicationToMavenRepository") as AbstractPublishToMaven
         publishTask.publication.artifact( file("$buildDir/libs/etendo-core-1.0.0.jar"))
         if(project.version.endsWith('-SNAPSHOT')) {
-            publishing.repositories.maven.url = "https://repo.futit.cloud/repository/etendo-test"
+            publishing.repositories.maven.url = "https://repo.futit.cloud/repository/etendo-test-publish"
         }
         else {
-            publishing.repositories.maven.url = "https://repo.futit.cloud/repository/etendo-test"
+            publishing.repositories.maven.url = "https://repo.futit.cloud/repository/etendo-test-publish"
         }
         publishing.repositories.maven.credentials {
             username = System.getProperty("nexusUser")
