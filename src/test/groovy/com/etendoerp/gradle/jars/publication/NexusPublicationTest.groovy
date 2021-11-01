@@ -40,7 +40,7 @@ class NexusPublicationTest extends EtendoMockupSpecificationTest {
     def cleanupSpec() {
         HttpURLConnection uc
         try {
-            URL url = new URL( "https://repo.futit.cloud/service/rest/v1/components?repository=etendo-test")
+            URL url = new URL( "https://repo.futit.cloud/service/rest/v1/components?repository=etendo-test-publish")
             uc = url.openConnection()
             uc.setRequestMethod("GET")
             String userPass = System.getProperty("nexusUser") + ":" + System.getProperty("nexusPassword")
@@ -86,10 +86,10 @@ class NexusPublicationTest extends EtendoMockupSpecificationTest {
 
         when: "A users wants to publish a JAR version of the module in the Nexus repository ‘etendo-test’"
         and: "The users runs the command ./gradlew publishVersion -Ppkg=com.test.mymodule -Prepo=etendo-test"
-        def result = runTask(":publishVersion", "-Ppkg=$module", "-Prepo=etendo-test")
+        def result = runTask(":publishVersion", "-Ppkg=$module", "-Prepo=etendo-test-publish")
 
         then: "The user should obtain a BUILD SUCCESS message"
-        and: "The module should be publicated in the Nexus repository ‘etendo-test’"
+        and: "The module should be publicated in the Nexus repository ‘etendo-test-publish’"
         result.task(":publishVersion").outcome == TaskOutcome.SUCCESS
     }
 }

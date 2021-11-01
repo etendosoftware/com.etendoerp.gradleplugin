@@ -12,7 +12,7 @@ group = "com.test"
 version = "1.0.0"
 description = "com.test.nontransactional"
 ext.artifact = "nontransactional"
-ext.repository = "https://repo.futit.cloud/repository/etendo-test"
+ext.repository = "https://repo.futit.cloud/repository/etendo-test-publish"
 
 configurations {
     moduleDependencyContainer
@@ -29,14 +29,14 @@ publishing {
     }
     repositories {
         maven {
-            url "https://repo.futit.cloud/repository/etendo-test"
+            url "https://repo.futit.cloud/repository/etendo-test-publish"
         }
     }
 }
 
 repositories {
     maven {
-        url "https://repo.futit.cloud/repository/etendo-test"
+        url "https://repo.futit.cloud/repository/etendo-test-publish"
     }
     maven {
         url "https://repo.futit.cloud/repository/maven-releases"
