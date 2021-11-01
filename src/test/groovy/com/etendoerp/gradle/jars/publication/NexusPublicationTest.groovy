@@ -1,20 +1,12 @@
 package com.etendoerp.gradle.jars.publication
 
 import com.etendoerp.gradle.jars.EtendoMockupSpecificationTest
-import com.etendoerp.gradle.utils.DBCleanupMode
-import groovy.json.JsonParser
 import groovy.json.JsonSlurper
-import org.gradle.internal.impldep.com.google.api.client.json.Json
 import org.gradle.internal.impldep.org.apache.commons.io.FileUtils
 import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.TaskOutcome
 import spock.lang.*
 
-
-import java.net.http.HttpClient
-import java.net.http.HttpHeaders
-import java.net.http.HttpRequest
-import java.time.Duration
 
 @Title("Jars publication test")
 @Narrative("""
