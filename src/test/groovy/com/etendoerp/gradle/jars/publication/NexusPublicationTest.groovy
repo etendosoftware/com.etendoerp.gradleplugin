@@ -1,10 +1,20 @@
 package com.etendoerp.gradle.jars.publication
 
 import com.etendoerp.gradle.jars.EtendoMockupSpecificationTest
+import com.etendoerp.gradle.utils.DBCleanupMode
+import groovy.json.JsonParser
+import groovy.json.JsonSlurper
+import org.gradle.internal.impldep.com.google.api.client.json.Json
 import org.gradle.internal.impldep.org.apache.commons.io.FileUtils
 import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.TaskOutcome
 import spock.lang.*
+
+
+import java.net.http.HttpClient
+import java.net.http.HttpHeaders
+import java.net.http.HttpRequest
+import java.time.Duration
 
 @Title("Jars publication test")
 @Narrative("""
@@ -25,6 +35,31 @@ class NexusPublicationTest extends EtendoMockupSpecificationTest {
 
     def setup(){
         FileUtils.copyDirectory(new File("${ENVIRONMENTS_LOCATION}/publishJar"), testProjectDir)
+    }
+
+    def cleanupSpec() {
+        HttpURLConnection uc
+        try {
+            URL url = new URL( "https://repo.futit.cloud/service/rest/v1/components?repository=etendo-test")
+            uc = url.openConnection()
+            uc.setRequestMethod("GET")
+            String userPass = System.getProperty("nexusUser") + ":" + System.getProperty("nexusPassword")
+            String basicAuth = "Basic " + new String(Base64.getEncoder().encode(userPass.getBytes()));
+            uc.setRequestProperty("Authorization", basicAuth);
+            def responseText = uc.getInputStream().getText()
+            def jsonSlurper = new JsonSlurper()
+            def obj = jsonSlurper.parseText(responseText)
+            for (def module :obj.items ){
+                URL url2 = new URL("https://repo.futit.cloud/service/rest/v1/components/"+ module.id)
+                uc = url2.openConnection()
+                uc.setRequestMethod("DELETE")
+                uc.setRequestProperty("Authorization", basicAuth);
+                uc.getInputStream()
+            }
+        }
+        catch (Exception e ){
+            print(e)
+        }
     }
 
     def "JAVA_HOME is declared properly"() {
@@ -57,5 +92,4 @@ class NexusPublicationTest extends EtendoMockupSpecificationTest {
         and: "The module should be publicated in the Nexus repository ‘etendo-test’"
         result.task(":publishVersion").outcome == TaskOutcome.SUCCESS
     }
-
 }
