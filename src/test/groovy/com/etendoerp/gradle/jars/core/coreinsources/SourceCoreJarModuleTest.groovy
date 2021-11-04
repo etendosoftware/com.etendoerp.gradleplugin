@@ -1,6 +1,6 @@
 package com.etendoerp.gradle.jars.core.coreinsources
 
-import com.etendoerp.gradle.tests.EtendoSpecification
+import com.etendoerp.gradle.jars.EtendoCoreSourcesSpecificationTest
 import com.etendoerp.gradle.utils.DBCleanupMode
 import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.TaskOutcome
@@ -16,7 +16,7 @@ The module in sources has a dependency of a module in Jar. The test verify that
 the module in Jar is installed correctly after the 'update.database' task.
 """)
 @Stepwise
-class SourceCoreJarModuleTest extends EtendoSpecification {
+class SourceCoreJarModuleTest extends EtendoCoreSourcesSpecificationTest {
 
     @TempDir @Shared File testProjectDir
 
@@ -38,8 +38,9 @@ class SourceCoreJarModuleTest extends EtendoSpecification {
 
     def "Installing Etendo sources core with source modules"() {
         given: "A Etendo sources core environment"
-        def expandResult = runTask(":expand")
-        assert expandResult.task(":expand").outcome == TaskOutcome.SUCCESS
+        expandMock()
+        def expandResult = runTask(":expandCoreMock")
+        assert expandResult.task(":expandCoreMock").outcome == TaskOutcome.SUCCESS
 
         and: "The users adds a sources module dependency"
         def moduleGroup = SOURCE_MODULE_GROUP
@@ -48,7 +49,7 @@ class SourceCoreJarModuleTest extends EtendoSpecification {
         dependencies {
           moduleDeps('${moduleGroup}:${moduleName}:[1.0.0,)@zip') { transitive = true }
         }
-        
+
         repositories {
           maven {
             url 'https://repo.futit.cloud/repository/maven-unsupported-releases'
