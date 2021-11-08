@@ -37,8 +37,6 @@ class ExtractResourcesOfJars {
                 if (filePath.contains(JAR_ETENDO_LOCATION)) {
 
                     // The jar is the Etendo core
-                    println("jarfile name: ${jarFile.name}")
-                    println("jarfile name: ${jarFile.absolutePath}")
                     if (jarFile.name.contains(JarCoreGenerator.ETENDO_CORE)) {
                         etendoJarFiles.put(JarCoreGenerator.ETENDO_CORE, unzipJar)
                         break
