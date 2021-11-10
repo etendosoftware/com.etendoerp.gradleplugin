@@ -139,7 +139,7 @@ class JarCoreGenerator {
                     "${project.projectDir}/src-util/modulescript/build/classes"
             ])
             include "**/*${FileExtensions.CLASS}"
-            into "${project.buildDir}/resources/src-util"
+            into "${project.buildDir}/resources/etendo/src-util"
         }
 
         project.tasks.register("copyWebResources", Copy) {
