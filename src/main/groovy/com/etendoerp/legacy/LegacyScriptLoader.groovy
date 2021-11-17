@@ -325,6 +325,16 @@ class LegacyScriptLoader {
             }
         }
 
+        /** Copy quartz.properties template */
+        project.task("createQuartzProperties", type: Copy) {
+            from file("config/quartz.properties.template")
+            into file("config")
+            rename { String fileName ->
+                fileName.replace("quartz.properties.template", "quartz.properties")
+            }
+        }
+
+
         /** Copy Openbravo.properties template and set values */
         project.task("prepareConfig") {
             def configExists = new File("config/Openbravo.properties").exists()
@@ -336,6 +346,11 @@ class LegacyScriptLoader {
             def backupConfigExists = project.file("config/backup.properties").exists()
             if (!backupConfigExists) {
                 dependsOn project.tasks.findByName("createBackupProperties")
+            }
+
+            def quartzExists = project.file("config/quartz.properties").exists()
+            if(!quartzExists) {
+                dependsOn project.tasks.findByName("createQuartzProperties")
             }
 
             doLast {
