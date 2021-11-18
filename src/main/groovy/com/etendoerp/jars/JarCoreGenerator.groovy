@@ -41,7 +41,9 @@ class JarCoreGenerator {
                 // Create a "fat" jar
                 jarTask.from{
                     project.configurations.compileClasspath.collect {
-                        if (it.getAbsolutePath().contains("ob-rhino-1.6R7.jar")) {
+                        def absolutePath = it.getAbsolutePath()
+                        if (absolutePath.contains("ob-rhino-1.6R7.jar") || absolutePath.contains("lib" + File.separator + "test")) {
+                            project.logger.info("Excluding '${absolutePath}' from the core jar.")
                             return null
                         }
                         if (it.isDirectory()) {
@@ -82,15 +84,33 @@ class JarCoreGenerator {
         }
 
         project.tasks.register("cleanResources") {
-            def resourcesFolder = new File("${project.buildDir}/resources")
-            if (resourcesFolder.exists() && resourcesFolder.isDirectory()) {
-                resourcesFolder.deleteDir()
+            doLast {
+                def resourcesFolder = new File("${project.buildDir}/resources")
+                if (resourcesFolder.exists() && resourcesFolder.isDirectory()) {
+                    resourcesFolder.deleteDir()
+                }
             }
         }
 
+        /**
+         * When core in jar, modules dir in the root could have custom src-wad files
+         * This files needs to be compiled, and are used in the 'wad' task.
+         */
+        project.tasks.register("copySrcWad", Copy) {
+            from "${project.projectDir}/src-wad"
+            include "build.xml"
+            exclude "**/*${FileExtensions.JAR}"
+            into "${project.buildDir}/resources/etendo/src-wad"
+        }
+
+        /**
+         * beans.xml template used to prevent scanning all the classes in the Etendo core fat jar
+         * Using 'jandex' index, this file is not used.
+         */
         project.tasks.register("copyBeans", Copy) {
-            from "${project.projectDir}/modules_core/org.openbravo.base.weld/config/beans.xml"
+            from "${project.projectDir}/modules_core/org.openbravo.base.weld/config/beans.xml.jar.template"
             into "${project.buildDir}/resources"
+            rename("beans.xml.jar.template","beans.xml")
         }
 
         project.tasks.register("copySrcDB", Copy) {
@@ -98,6 +118,7 @@ class JarCoreGenerator {
             exclude "**/*${FileExtensions.JAVA}"
             exclude "**/*${FileExtensions.HBM_XML}"
             exclude "**/*${FileExtensions.XSQL}"
+            exclude "**/*${FileExtensions.JAR}"
             into "${project.buildDir}/resources/etendo/src-db"
         }
 
@@ -114,6 +135,7 @@ class JarCoreGenerator {
             exclude "**/*${FileExtensions.JAVA}"
             exclude "**/*${FileExtensions.HBM_XML}"
             exclude "**/*${FileExtensions.XSQL}"
+            exclude "**/*${FileExtensions.JAR}"
             into "${project.buildDir}/resources/etendo/modules"
         }
 
@@ -122,6 +144,7 @@ class JarCoreGenerator {
             exclude "**/*${FileExtensions.JAVA}"
             exclude "**/*${FileExtensions.HBM_XML}"
             exclude "**/*${FileExtensions.XSQL}"
+            exclude "**/*${FileExtensions.JAR}"
             into "${project.buildDir}/resources/etendo/modules"
         }
 
@@ -134,11 +157,11 @@ class JarCoreGenerator {
         }
 
         project.tasks.register("copySrcUtil", Copy) {
-            from ([
-                    "${project.projectDir}/src-util/buildvalidation/build/classes",
-                    "${project.projectDir}/src-util/modulescript/build/classes"
-            ])
-            include "**/*${FileExtensions.CLASS}"
+            from ("${project.projectDir}/src-util") {
+                include "**/*${FileExtensions.CLASS}"
+                include"**/build.xml"
+                exclude "diagnostic/**"
+            }
             into "${project.buildDir}/resources/etendo/src-util"
         }
 
@@ -174,6 +197,7 @@ class JarCoreGenerator {
                 "copyBeans",
                 "copySrcDB",
                 "copySrc",
+                "copySrcWad",
                 "copyModules",
                 "copyModulesCore",
                 "copySrcJmh",
@@ -181,13 +205,23 @@ class JarCoreGenerator {
                 "copyWebResources"
         ]
 
+        /**
+         * The cleanResources task must run before the Copy task and Jandex to prevent deleting
+         * the 'resources' directory.
+         */
         project.jar.dependsOn("jarConfig")
+        resourcesDirs.each {
+            project.tasks.findByName(it).mustRunAfter("cleanResources")
+        }
+        def jandexTask = project.tasks.findByName("jandex")
+        if (jandexTask) {
+            jandexTask.mustRunAfter(project.tasks.findByName("cleanResources"))
+        }
+
+        project.tasks.findByName("jarConfig").dependsOn(project.tasks.findByName("cleanResources"))
         project.jarConfig.dependsOn(resourcesDirs)
         project.sourcesJar.dependsOn("sourcesJarConfig")
 
-        project.jar.from{
-            project.configurations.compileClasspath.collect { it.isDirectory() ? it : project.zipTree(it) }
-        }
     }
 }
 
