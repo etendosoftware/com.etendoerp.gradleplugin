@@ -2,27 +2,96 @@ package com.etendoerp.jars
 
 import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
+import org.gradle.api.file.FileTree
 
 class ExtractResourcesOfJars {
+
+    public static String JAR_ETENDO_LOCATION = PathUtils.createPath(
+            PublicationUtils.META_INF,
+            PublicationUtils.ETENDO
+    )
+
+    public static String JAR_ETENDO_MODULE_LOCATION = PathUtils.createPath(
+            PublicationUtils.META_INF,
+            PublicationUtils.ETENDO,
+            PublicationUtils.BASE_MODULE_DIR
+    )
 
     /**
      * Extract all the resources of the JAR files which contains 'META-INF/etendo' directory
      * @param project
      */
     static void extractResources(Project project) {
-        project.copy {
-            from {
-                project.configurations.findByName(PublicationUtils.ETENDO_DEPENDENCY_CONTAINER).findResults {
-                    project.zipTree(it).matching { include 'META-INF/etendo/' }
+
+        Map<String, FileTree> etendoJarFiles = [:]
+
+        /**
+         * Filter the Etendo Jar files
+         */
+        project.configurations.findByName(PublicationUtils.ETENDO_DEPENDENCY_CONTAINER).findResults {jarFile ->
+            FileTree unzipJar = project.zipTree(jarFile)
+            for (File file : unzipJar) {
+                def filePath = file.absolutePath
+
+                // Is a Etendo Jar
+                if (filePath.contains(JAR_ETENDO_LOCATION)) {
+
+                    // The jar is the Etendo core
+                    if (jarFile.name.contains(JarCoreGenerator.ETENDO_CORE)) {
+                        etendoJarFiles.put(JarCoreGenerator.ETENDO_CORE, unzipJar)
+                        break
+                    }
+
+                    // The jar is a Etendo module
+                    if (filePath.contains(JAR_ETENDO_MODULE_LOCATION)) {
+                        // Obtains the module name
+                        def moduleLoc = filePath.substring(filePath.lastIndexOf(JAR_ETENDO_MODULE_LOCATION)).replace(JAR_ETENDO_MODULE_LOCATION,"")
+                        def moduleName = moduleLoc.split(File.separator)[0]
+
+                        if (moduleName) {
+                            etendoJarFiles.put(moduleName, unzipJar)
+                            break
+                        }
+                    }
                 }
             }
-            into "${project.buildDir}/etendo"
+        }
 
-            //Deleting path prefix for each extracted file
-            eachFile { f ->
-                f.path = f.path.replaceFirst( 'META-INF/etendo/', '')
+        etendoJarFiles.each {
+            String name = it.key
+            FileTree files = it.value
+
+            def metainfFilter = files.matching {
+                include "${JAR_ETENDO_LOCATION}"
             }
-            includeEmptyDirs false
+
+            project.copy {
+                from {
+                    metainfFilter
+                }
+                into "${project.buildDir}/etendo"
+                eachFile { f ->
+                    f.path = f.path.replaceFirst("${JAR_ETENDO_LOCATION}", '')
+                }
+                includeEmptyDirs false
+            }
+
+            // The Jar is a module
+            if (name != JarCoreGenerator.ETENDO_CORE) {
+                def srcFilter = files.matching {
+                    include '**/*'
+                    exclude 'META-INF/**'
+                    exclude '**/*.class'
+                }
+
+                project.copy {
+                    from {
+                        srcFilter
+                    }
+                    into "${project.buildDir}/etendo/modules/${name}/src"
+                    includeEmptyDirs false
+                }
+            }
         }
     }
 

@@ -16,14 +16,13 @@ class JarCoreGenerator {
     static load(Project project) {
 
         project.dependencies {
-            project.dependencies {
-                implementation project.fileTree(dir: "${project.rootDir}/lib", include: ['**/*.jar'])
-                implementation project.fileTree(dir: "${project.rootDir}/modules", include: ['**/*.jar'])
-                implementation project.fileTree(dir: "${project.rootDir}/modules_core", include: ['**/*.jar'])
-                implementation project.fileTree(dir: "${project.rootDir}/src-core/lib", include: ['**/*.jar'])
-                implementation project.fileTree(dir: "${project.rootDir}/src-wad/lib", include: ['**/*.jar'])
-                implementation project.fileTree(dir: "${project.rootDir}/src-trl/lib", include: ['**/*.jar'])
-            }
+            implementation project.fileTree(dir: "${project.rootDir}/lib", include: ['**/*.jar'])
+            implementation project.fileTree(dir: "${project.rootDir}/modules", include: ['**/*.jar'])
+            implementation project.fileTree(dir: "${project.rootDir}/modules_core", include: ['**/*.jar'])
+            implementation project.fileTree(dir: "${project.rootDir}/src-core/lib", include: ['**/*.jar'])
+            implementation project.fileTree(dir: "${project.rootDir}/src-wad/lib", include: ['**/*.jar'])
+            implementation project.fileTree(dir: "${project.rootDir}/src-trl/lib", include: ['**/*.jar'])
+            implementation project.fileTree(dir: "${project.rootDir}/src-db/database/lib", include: ['**/*.jar'])
         }
 
         project.tasks.register("jarConfig") {
@@ -36,8 +35,30 @@ class JarCoreGenerator {
                 //Excluding src-gen
                 jarTask.exclude(PathUtils.fromPackageToPathClass(generated))
 
+                // Workaround for issue: https://issues.apache.org/jira/browse/LOG4J2-673
+                jarTask.exclude "**/Log4j2Plugins.dat"
+
+                // Create a "fat" jar
+                jarTask.from{
+                    project.configurations.compileClasspath.collect {
+                        if (it.getAbsolutePath().contains("ob-rhino-1.6R7.jar")) {
+                            return null
+                        }
+                        if (it.isDirectory()) {
+                            it
+                        } else {
+                            project.zipTree(it)
+                        }
+                    }
+                }
+
                 jarTask.from(RESOURCES_DIR) {
                     into(RESOURCES_JAR_DESTINATION)
+                }
+
+                jarTask.manifest {
+                    // make lo4j2 work in the generated jar, since the log4j jar is a multirelease one
+                    attributes 'Multi-Release': 'true'
                 }
 
             }
