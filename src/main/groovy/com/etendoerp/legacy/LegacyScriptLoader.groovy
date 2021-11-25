@@ -224,39 +224,46 @@ class LegacyScriptLoader {
 
         /** Copy backup.properties template */
         project.task("createBackupProperties", type: Copy) {
-            from project.file("config/backup.properties.template")
-            into project.file("config")
-            rename { String fileName ->
-                fileName.replace("backup.properties.template", "backup.properties")
+            if(!project.file("config/backup.properties").exists() && project.file("config/backup.properties.template").exists()) {
+                from project.file("config/backup.properties.template")
+                into project.file("config")
+                rename { String fileName ->
+                    fileName.replace("backup.properties.template", "backup.properties")
+                }
             }
         }
 
         /** Copy Openbravo.properties template */
         project.task("createOBProperties", type: Copy) {
-            from project.file("config/Openbravo.properties.template")
-            into project.file("config")
-            rename { String fileName ->
-                fileName.replace("Openbravo.properties.template", "Openbravo.properties")
+            if(!project.file("config/Openbravo.properties").exists() && project.file("config/Openbravo.properties.template").exists()) {
+                from project.file("config/Openbravo.properties.template")
+                into project.file("config")
+                rename { String fileName ->
+                    fileName.replace("Openbravo.properties.template", "Openbravo.properties")
+                }
+            }
+        }
+
+        /** Copy quartz.properties template */
+        project.task("createQuartzProperties", type: Copy) {
+            if(!project.file("config/quartz.properties").exists() && project.file("config/quartz.properties.template").exists()){
+                from project.file("config/quartz.properties.template")
+                into project.file("config")
+                rename { String fileName ->
+                    fileName.replace("quartz.properties.template", "quartz.properties")
+                }
             }
         }
 
         /** Copy Openbravo.properties template and set values */
         project.task("prepareConfig") {
-            def configExists = new File("config/Openbravo.properties").exists()
-            if(!configExists) {
-                // If property file does not exists, copy it from the template
-                dependsOn project.tasks.findByName("createOBProperties")
-            }
-
-            def backupConfigExists = project.file("config/backup.properties").exists()
-            if (!backupConfigExists) {
-                dependsOn project.tasks.findByName("createBackupProperties")
-            }
+            dependsOn project.tasks.findByName("createOBProperties")
+            dependsOn project.tasks.findByName("createBackupProperties")
+            dependsOn project.tasks.findByName("createQuartzProperties")
 
             doLast {
                 def props = new Properties()
                 project.file("gradle.properties").withInputStream { props.load(it) }
-
                 ant.propertyfile(file: "config/Openbravo.properties") {
 
                     // Find all properties in gradle.properties and set their value in Openbravo.properties
