@@ -39,7 +39,7 @@ class ExpandCustomModuleTest extends EtendoSpecification {
         expandCustomModuleTaskResult.task(":expandCustomModule").outcome == TaskOutcome.SUCCESS
 
         and: "The module will be expanded in the 'modules' dir "
-        def moduleLocation = new File("${testProjectDir.getAbsolutePath()}/modules/${moduleSourceGroup}.${moduleSourceName}")
+        def moduleLocation = new File("${testProjectDir.getAbsolutePath()}/modules/${moduleSourceGroup}.${moduleSourceName}/src-db")
         assert moduleLocation.exists()
     }
 }

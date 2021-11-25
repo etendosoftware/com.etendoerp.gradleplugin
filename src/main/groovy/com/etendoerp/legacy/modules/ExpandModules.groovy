@@ -51,9 +51,15 @@ class ExpandModules {
                 FileTree unzipCustomModule = project.zipTree(customModuleJarFile)
 
                 Task expandCustomTask = project.tasks.named("expandCustomModule").get() as Sync
-                expandCustomTask.from(unzipCustomModule)
-                expandCustomTask.into(project.file(moduleLocation))
 
+                expandCustomTask.from(unzipCustomModule) {
+                    include ("${moduleName}/**")
+                }
+                expandCustomTask.into(project.file(moduleLocation))
+                expandCustomTask.eachFile {fcp ->
+                    fcp.path = fcp.path.replaceFirst("^$moduleName", '')
+                }
+                expandCustomTask.includeEmptyDirs = false
             }
         }
 
