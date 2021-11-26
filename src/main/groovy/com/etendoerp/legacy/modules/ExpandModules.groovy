@@ -4,18 +4,24 @@ import com.etendoerp.jars.PathUtils
 import com.etendoerp.legacy.utils.NexusUtils
 import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
-import org.gradle.api.Task
 import org.gradle.api.file.FileTree
-import org.gradle.api.tasks.Sync
+import org.gradle.api.tasks.Delete
 
 class ExpandModules {
 
     static void load(Project project) {
 
-        project.tasks.register("expandCustomModuleConfig") {
+        project.task("cleanCustomExpandTmpDir", type: Delete) {
+            delete {
+                project.tasks.findByName("expandCustomModule").getTemporaryDir()
+            }
+        }
+
+        project.tasks.register("expandCustomModule") {
+            def extractDir = getTemporaryDir()
+            finalizedBy(project.tasks.findByName("cleanCustomExpandTmpDir"))
             doLast {
                 String moduleName = PublicationUtils.loadModuleName(project)
-
                 NexusUtils.askNexusCredentials(project)
 
                 String moduleLocation = PathUtils.createPath(
@@ -50,22 +56,17 @@ class ExpandModules {
 
                 FileTree unzipCustomModule = project.zipTree(customModuleJarFile)
 
-                Task expandCustomTask = project.tasks.named("expandCustomModule").get() as Sync
-
-                expandCustomTask.from(unzipCustomModule) {
-                    include ("${moduleName}/**")
+                // Copy the files to a temporary dir
+                project.copy {
+                    from (unzipCustomModule)
+                    into (extractDir)
                 }
-                expandCustomTask.into(project.file(moduleLocation))
-                expandCustomTask.eachFile {fcp ->
-                    fcp.path = fcp.path.replaceFirst("^$moduleName", '')
-                }
-                expandCustomTask.includeEmptyDirs = false
-            }
-        }
 
-        project.tasks.register("expandCustomModule", Sync) {
-            dependsOn("expandCustomModuleConfig")
-            doLast {
+                // Sync the files with the module directory
+                project.ant.sync(todir:"${moduleLocation}") {
+                    ant.fileset(dir: "${extractDir.getAbsolutePath()}/${moduleName}")
+                }
+
                 project.logger.info("The custom module was expanded successfully.")
             }
         }
