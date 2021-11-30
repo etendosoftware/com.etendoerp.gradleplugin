@@ -21,14 +21,6 @@ class JarCoreModulesUpdateTest extends EtendoCoreJarSpecificationTest {
         testProjectDir
     }
 
-    def setup() {
-        buildFile << """
-        dependencies {
-            implementation files('/home/futit/Escritorio/ETENDO/core_9nov_sources_jar/etendo_core/build/libs/etendo-core-1.0.0-SNAPSHOT.jar')
-        }
-        """
-    }
-
     public final static String PRE_EXPAND_MODULE_GROUP = "com.test"
     public final static String PRE_EXPAND_MODULE_NAME  = "premoduletoexpand"
 
