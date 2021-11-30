@@ -26,4 +26,64 @@ class CoreUtils {
         return false
     }
 
+    static List<GroovyRowResult> executeQuery(String query, Object connection) {
+        List<GroovyRowResult> queryResult = null
+
+        def con = connection
+        con.url = "${con.url}${System.getProperty('test.bbdd.sid')}"
+
+        Sql.withInstance(con as Map<String, Object>) {
+            Sql sql ->  queryResult = sql.rows(query)
+        }
+
+        return queryResult
+    }
+
+    static List<List<Object>> executeQueryInserts(String query, Object connection) {
+        def queryResult = null
+
+        def con = connection
+        con.url = "${con.url}${System.getProperty('test.bbdd.sid')}"
+
+        Sql.withInstance(con as Map<String, Object>) {
+            Sql sql ->  queryResult = sql.executeInsert(query)
+        }
+
+        return queryResult
+    }
+
+    static int executeQueryUpdate(String query, Object connection) {
+        int queryResult = 0
+
+        def con = connection
+        con.url = "${con.url}${System.getProperty('test.bbdd.sid')}"
+
+        Sql.withInstance(con as Map<String, Object>) {
+            Sql sql ->  queryResult = sql.executeUpdate(query)
+        }
+
+        return queryResult
+    }
+
+    static Boolean updateModule(String javapackage, Map valuesMap, Object connection) {
+        def values = generateUpdateQueryValues(valuesMap)
+
+        def qry = "update ad_module set ${values} where javapackage = '${javapackage}'"
+        def qryResult = executeQueryUpdate(qry, connection)
+
+        if (qryResult == 0) {
+            return false
+        }
+        return true
+    }
+
+    static String generateUpdateQueryValues(Map valuesMap) {
+        def values = ""
+        valuesMap.each {
+            values += "${it.getKey()}='${it.getValue()}',"
+        }
+        values = values.substring(0,values.length() - 1)
+        return values
+    }
+
 }
