@@ -6,7 +6,6 @@ import groovy.sql.GroovyRowResult
 import org.gradle.testkit.runner.TaskOutcome
 import spock.lang.Issue
 import spock.lang.Narrative
-import spock.lang.Shared
 import spock.lang.TempDir
 import spock.lang.Title
 
@@ -14,7 +13,7 @@ import spock.lang.Title
 @Narrative(""" After adding a source module and a jar module and running the 'update.database' task,
 the modules should be imported to the database and updated correctly.""")
 class JarCoreModulesUpdateTest extends EtendoCoreJarSpecificationTest {
-    @TempDir @Shared File testProjectDir
+    @TempDir File testProjectDir
 
     @Override
     File getProjectDir() {
@@ -129,6 +128,10 @@ class JarCoreModulesUpdateTest extends EtendoCoreJarSpecificationTest {
         and: "The pre expanded module changes should be updated in the database"
         assert containsAuthor("${preExpandModGroup}.${preExpandModName}", author)
 
+        where:
+        coreType  | _
+        "sources" | _
+        "jar"     | _
     }
 
     static Boolean containsAuthor(String javapackage, String author) {

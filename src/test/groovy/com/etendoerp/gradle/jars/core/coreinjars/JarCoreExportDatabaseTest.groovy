@@ -1,12 +1,13 @@
 package com.etendoerp.gradle.jars.core.coreinjars
 
 import com.etendoerp.gradle.jars.EtendoCoreJarSpecificationTest
+import com.etendoerp.gradle.jars.EtendoCoreSourcesSpecificationTest
+import com.etendoerp.gradle.jars.JarsUtils
 import com.etendoerp.gradle.jars.core.coreinsources.CoreUtils
 import com.etendoerp.gradle.utils.DBCleanupMode
 import org.gradle.testkit.runner.TaskOutcome
 import spock.lang.Issue
 import spock.lang.Narrative
-import spock.lang.Shared
 import spock.lang.TempDir
 import spock.lang.Title
 
@@ -15,7 +16,7 @@ import spock.lang.Title
 running the 'export.database' task creates the new module dir in the 'root/modules' and export
 the new changes for the others modules""")
 class JarCoreExportDatabaseTest extends EtendoCoreJarSpecificationTest {
-    @TempDir @Shared File testProjectDir
+    @TempDir File testProjectDir
 
     @Override
     File getProjectDir() {
@@ -32,10 +33,28 @@ class JarCoreExportDatabaseTest extends EtendoCoreJarSpecificationTest {
 
     @Issue("EPL-13")
     def "Running export database with a new module created and another with some changes"() {
-        given: "A Etendo environment with the Core Jar dependency"
-        def dependenciesTaskResult = runTask(":dependencies","-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
+        if (coreType.equalsIgnoreCase("sources")) {
+            // Replace the core in jar dependency
+            buildFile.text = buildFile.text.replace("${JarsUtils.IMPLEMENTATION} '${CORE}'","")
+
+            JarsUtils.addCoreMockTask(
+                    buildFile,
+                    EtendoCoreSourcesSpecificationTest.CORE,
+                    EtendoCoreSourcesSpecificationTest.ETENDO_CORE_REPO,
+                    args.get("nexusUser"),
+                    args.get("nexusPassword")
+            )
+        }
+
+        given: "A Etendo environment with the Core dependency"
+        def dependenciesTaskResult = runTask(":dependencies","--refresh-dependencies", "-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
         dependenciesTaskResult.task(":dependencies").outcome == TaskOutcome.SUCCESS
         assert dependenciesTaskResult.output.contains(CORE)
+
+        if (coreType.equalsIgnoreCase("sources")) {
+            def expandCoreMockResult = runTask(":expandCoreMock")
+            assert expandCoreMockResult.task(":expandCoreMock").outcome == TaskOutcome.SUCCESS
+        }
 
         and: "The users adds a sources module dependency before running the install"
         def preExpandModGroup = PRE_EXPAND_MODULE_GROUP
@@ -90,6 +109,10 @@ class JarCoreExportDatabaseTest extends EtendoCoreJarSpecificationTest {
         File preADModuleFile = new File(preExpandModLocation, "src-db/database/sourcedata/AD_MODULE.xml")
         assert preADModuleFile.text.contains("<AUTHOR><![CDATA[${author}]]></AUTHOR>")
 
+        where:
+        coreType  | _
+        "sources" | _
+        "jar"     | _
     }
 
     static Boolean createModule(String javapackage) {
