@@ -23,11 +23,6 @@ class JarCoreExportDatabaseTest extends EtendoCoreJarSpecificationTest {
         testProjectDir
     }
 
-    @Override
-    DBCleanupMode cleanDatabase() {
-        return DBCleanupMode.ONCE
-    }
-
     public final static String PRE_EXPAND_MODULE_GROUP = "com.test"
     public final static String PRE_EXPAND_MODULE_NAME  = "premoduletoexpand"
 

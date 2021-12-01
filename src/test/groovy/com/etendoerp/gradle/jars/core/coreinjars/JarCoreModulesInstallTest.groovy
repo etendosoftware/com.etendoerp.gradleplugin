@@ -22,11 +22,6 @@ class JarCoreModulesInstallTest extends EtendoCoreJarSpecificationTest {
         testProjectDir
     }
 
-    @Override
-    DBCleanupMode cleanDatabase() {
-        return DBCleanupMode.ONCE
-    }
-
     public final static String SOURCE_MODULE_GROUP = "com.test"
     public final static String SOURCE_MODULE_NAME  = "moduletoexpand"
 
