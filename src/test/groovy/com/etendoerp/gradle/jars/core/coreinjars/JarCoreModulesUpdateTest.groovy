@@ -35,7 +35,7 @@ class JarCoreModulesUpdateTest extends EtendoCoreJarSpecificationTest {
         given: "A Etendo environment with the Core Jar dependency"
         def dependenciesTaskResult = runTask(":dependencies","-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
         dependenciesTaskResult.task(":dependencies").outcome == TaskOutcome.SUCCESS
-        //assert dependenciesTaskResult.output.contains(CORE)
+        assert dependenciesTaskResult.output.contains(CORE)
 
         and: "The users adds a sources module dependency before running the install"
         def preExpandModGroup = PRE_EXPAND_MODULE_GROUP
