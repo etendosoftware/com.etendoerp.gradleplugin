@@ -1,6 +1,7 @@
 package com.etendoerp.legacy
 
 import com.etendoerp.legacy.dependencies.ResolverDependencyLoader
+import com.etendoerp.legacy.modules.ExpandModules
 import com.etendoerp.legacy.modules.ModuleZipLoader;
 import org.gradle.api.Project
 
@@ -10,5 +11,6 @@ class EtendoLegacy {
         LegacyScriptLoader.load(project)
         ModuleZipLoader.load(project)
         ResolverDependencyLoader.load(project)
+        ExpandModules.load(project)
     }
 }

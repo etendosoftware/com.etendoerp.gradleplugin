@@ -36,10 +36,6 @@ class SourceCoreJarModuleInstallTest extends EtendoCoreSourcesSpecificationTest 
         def expandResult = runTask(":expandCoreMock")
         assert expandResult.task(":expandCoreMock").outcome == TaskOutcome.SUCCESS
 
-        and: "The users runs the 'expandModules' task."
-        def expandModulesResult = runTask(":expandModules")
-        assert expandModulesResult.task(":expandModules").outcome == TaskOutcome.SUCCESS
-
         and: "The users adds a jar module dependency"
         def moduleGroup = JAR_MODULE_GROUP
         def moduleName = JAR_MODULE_NAME

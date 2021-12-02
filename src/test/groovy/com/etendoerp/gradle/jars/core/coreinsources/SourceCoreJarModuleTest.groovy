@@ -57,9 +57,9 @@ class SourceCoreJarModuleTest extends EtendoCoreSourcesSpecificationTest {
         }
         """
 
-        and: "The users runs the 'expandModules' task."
-        def expandModulesResult = runTask(":expandModules")
-        assert expandModulesResult.task(":expandModules").outcome == TaskOutcome.SUCCESS
+        and: "The users runs the expandCustomModule task passing by command line the module to expand"
+        def expandCustomModuleTaskResult = runTask(":expandCustomModule","-Ppkg=${moduleGroup}.${moduleName}","-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
+        expandCustomModuleTaskResult.task(":expandCustomModule").outcome == TaskOutcome.SUCCESS
 
         and: "The module is resolved correctly"
         def moduleLocation = new File("${getProjectDir().absolutePath}/modules/${moduleGroup}.${moduleName}")
