@@ -126,7 +126,7 @@ class JarCoreGenerator {
          * Using 'jandex' index, this file is not used.
          */
         project.tasks.register("copyBeans", Copy) {
-            from "${project.projectDir}/modules_core/org.openbravo.base.weld/config/beans.xml.jar.template"
+            from "${project.projectDir}/resources/META-INF/beans.xml.jar.template"
             into "${project.buildDir}/resources"
             rename("beans.xml.jar.template","beans.xml")
         }
