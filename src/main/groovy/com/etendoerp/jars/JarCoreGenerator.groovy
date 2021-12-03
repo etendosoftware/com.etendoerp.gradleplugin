@@ -166,14 +166,6 @@ class JarCoreGenerator {
             into "${project.buildDir}/resources/etendo/modules"
         }
 
-        project.tasks.register("copySrcJmh", Copy) {
-            from "${project.projectDir}/src-jmh"
-            exclude "**/*${FileExtensions.JAVA}"
-            exclude "**/*${FileExtensions.HBM_XML}"
-            exclude "**/*${FileExtensions.XSQL}"
-            into "${project.buildDir}/resources/src-jmh"
-        }
-
         project.tasks.register("copySrcUtil", Copy) {
             from ("${project.projectDir}/src-util") {
                 include "**/*${FileExtensions.CLASS}"
@@ -218,7 +210,6 @@ class JarCoreGenerator {
                 "copySrcWad",
                 "copyModules",
                 "copyModulesCore",
-                "copySrcJmh",
                 "copySrcUtil",
                 "copyWebResources"
         ]
