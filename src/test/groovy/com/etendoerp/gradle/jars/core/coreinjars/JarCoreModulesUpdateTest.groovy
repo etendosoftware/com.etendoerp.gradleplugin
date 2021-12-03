@@ -1,6 +1,8 @@
 package com.etendoerp.gradle.jars.core.coreinjars
 
 import com.etendoerp.gradle.jars.EtendoCoreJarSpecificationTest
+import com.etendoerp.gradle.jars.EtendoCoreSourcesSpecificationTest
+import com.etendoerp.gradle.jars.JarsUtils
 import com.etendoerp.gradle.jars.core.coreinsources.CoreUtils
 import groovy.sql.GroovyRowResult
 import org.gradle.testkit.runner.TaskOutcome
@@ -31,10 +33,28 @@ class JarCoreModulesUpdateTest extends EtendoCoreJarSpecificationTest {
 
     @Issue("EPL-13")
     def "Running update database with source and jar modules" () {
-        given: "A Etendo environment with the Core Jar dependency"
-        def dependenciesTaskResult = runTask(":dependencies","-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
+        if (coreType.equalsIgnoreCase("sources")) {
+            // Replace the core in jar dependency
+            buildFile.text = buildFile.text.replace("${JarsUtils.IMPLEMENTATION} '${CORE}'","")
+
+            JarsUtils.addCoreMockTask(
+                    buildFile,
+                    EtendoCoreSourcesSpecificationTest.CORE,
+                    EtendoCoreSourcesSpecificationTest.ETENDO_CORE_REPO,
+                    args.get("nexusUser"),
+                    args.get("nexusPassword")
+            )
+        }
+
+        given: "A Etendo environment with the Core dependency"
+        def dependenciesTaskResult = runTask(":dependencies","--refresh-dependencies", "-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
         dependenciesTaskResult.task(":dependencies").outcome == TaskOutcome.SUCCESS
         assert dependenciesTaskResult.output.contains(CORE)
+
+        if (coreType.equalsIgnoreCase("sources")) {
+            def expandCoreMockResult = runTask(":expandCoreMock")
+            assert expandCoreMockResult.task(":expandCoreMock").outcome == TaskOutcome.SUCCESS
+        }
 
         and: "The users adds a sources module dependency before running the install"
         def preExpandModGroup = PRE_EXPAND_MODULE_GROUP
