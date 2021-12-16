@@ -19,7 +19,7 @@ class PrepareConfigJarTest extends EtendoCoreJarSpecificationTest {
 
     def "Default values when 'gradle properties' is empty or does not exists"() {
         given: "A Project with the Etendo core jar"
-        def dependenciesTaskResult = runTask(":dependencies","-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
+        def dependenciesTaskResult = runTask(":dependencies","--refresh-dependencies","-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
         dependenciesTaskResult.task(":dependencies").outcome == TaskOutcome.SUCCESS
         assert dependenciesTaskResult.output.contains(CORE)
 
@@ -55,7 +55,7 @@ class PrepareConfigJarTest extends EtendoCoreJarSpecificationTest {
 
     def "Create Openbravo.properties using the 'gradle properties' file"() {
         given: "A Project with the Etendo core jar"
-        def dependenciesTaskResult = runTask(":dependencies","-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
+        def dependenciesTaskResult = runTask(":dependencies","--refresh-dependencies","-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
         dependenciesTaskResult.task(":dependencies").outcome == TaskOutcome.SUCCESS
         assert dependenciesTaskResult.output.contains(CORE)
 
@@ -106,7 +106,7 @@ class PrepareConfigJarTest extends EtendoCoreJarSpecificationTest {
 
     def "Running 'prepareConfig' task multiple times"() {
         given: "A Project with the Etendo core jar"
-        def dependenciesTaskResult = runTask(":dependencies","-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
+        def dependenciesTaskResult = runTask(":dependencies","--refresh-dependencies","-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
         dependenciesTaskResult.task(":dependencies").outcome == TaskOutcome.SUCCESS
         assert dependenciesTaskResult.output.contains(CORE)
 

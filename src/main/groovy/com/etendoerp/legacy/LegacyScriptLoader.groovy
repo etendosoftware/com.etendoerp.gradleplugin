@@ -96,23 +96,6 @@ class LegacyScriptLoader {
         }
 
         /**
-         * DEPENDENCIES
-         */
-        project.dependencies {
-            project.dependencies {
-                moduleDeps ('com.smf:smartclient.debugtools:[1.0.1,)@zip') {
-                    transitive = true
-                }
-                moduleDeps ('com.smf:smartclient.boostedui:[1.0.0,)@zip') {
-                    transitive = true
-                }
-                moduleDeps ('com.smf:securewebservices:[1.1.1,)@zip') {
-                    transitive = true
-                }
-            }
-        }
-
-        /**
          * REPOSITORIES CONFIGURATIONS
          */
 
