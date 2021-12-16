@@ -11,6 +11,8 @@ class DependenciesLoader {
     public static String RESOLVED_ARTIFACTS_FILE_NAME   = "build.resolved.artifacts.gradle"
     public static String UNRESOLVED_ARTIFACTS_FILE_NAME = "build.unresolved.artifacts.gradle"
 
+    public static String ALL_JARS_FILES = "build.jar.files.gradle"
+
     public static List<String> EXCLUDED_JARS = [
             "**/openbravo-core.jar",
             "**/dbsourcemanager.jar",
@@ -42,11 +44,9 @@ class DependenciesLoader {
                 List<DependencyArtifact> dependencyArtifactList = []
 
                 def jarFiles = project.fileTree(locationToSearch).matching {
-//                    include ("**/ant-1.9.2.jar")
-                    include ("lib/build/*.jar")
-//                    include("**/itext-pdfa-5.5.0.jar")
-//                    include("**/itextpdf-5.5.0.jar")
+                    include ("**/*.jar")
                     exclude (EXCLUDED_JARS)
+                    exclude ("**/test/**")
                     exclude ("**/gradle/**")
                     exclude ("**/WebContent/WEB-INF/**")
                     exclude ("**/WEB-INF/lib/**")

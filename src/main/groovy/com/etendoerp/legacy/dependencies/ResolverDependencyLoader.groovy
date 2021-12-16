@@ -1,5 +1,6 @@
 package com.etendoerp.legacy.dependencies
 
+import com.etendoerp.dependencies.EtendoCoreDependencies
 import com.etendoerp.jars.ExtractResourcesOfJars
 import com.etendoerp.legacy.ant.AntLoader
 import com.etendoerp.legacy.utils.NexusUtils
@@ -24,6 +25,11 @@ class ResolverDependencyLoader {
             project.logger.info("Running GRADLE projectsEvaluated.")
 
             NexusUtils.configureRepositories(project)
+
+            // Load Etendo core dependencies when the core is in jar
+            if (!AntLoader.isCoreInSources(project)) {
+                EtendoCoreDependencies.loadCoreDependencies(project)
+            }
 
             List<File> jarFiles = ResolverDependencyUtils.getJarFiles(project)
 
