@@ -21,7 +21,9 @@ class DependencyArtifact {
     String repositoryLocation
     String publicationName
     Project project
-    Logger log = LoggerFactory.getLogger(this.class.name) as Logger
+
+    public static String DEFAULT_GROUP   = "com.etendoerp"
+    public static String DEFAULT_VERSION = "1.0.0"
 
     DependencyArtifact() {}
 
@@ -59,8 +61,8 @@ class DependencyArtifact {
         String artifactName = this.originalName.replace(FileExtensions.JAR, "")
         def splitName = artifactName.split("-")
 
-        String defaultGroup = "com.test"
-        String version = "1.0.0"
+        String defaultGroup = DEFAULT_GROUP
+        String version = DEFAULT_VERSION
         int versionIndex
 
         for (int i = 0; i < splitName.size(); i++) {
@@ -84,7 +86,5 @@ class DependencyArtifact {
         this.artifactId = artifactName
         this.version = version
     }
-
-
 
 }
