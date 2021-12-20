@@ -55,17 +55,9 @@ class AntLoader {
      * @return
      */
     static boolean isCoreInSources(Project project) {
-        def baseProjectConfigurations = DependencyUtils.loadListOfConfigurations(project)
-
-        for (Configuration configuration : baseProjectConfigurations) {
-            for (Dependency dependency : configuration.allDependencies) {
-                if (dependency.name == JarCoreGenerator.ETENDO_CORE) {
-                    return false
-                }
-            }
-        }
-
-        return true
+        def modulesCoreLocation = project.file("modules_core")
+        def srcCoreLocation = project.file("src-core")
+        return modulesCoreLocation.exists() && srcCoreLocation.exists()
     }
 
     static void loadAntFile(Project project) {
