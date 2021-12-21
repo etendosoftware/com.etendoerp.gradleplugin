@@ -14,13 +14,15 @@ class DependenciesLoader {
     static void load(Project project) {
         project.tasks.register("searchJarDependency") {
             doLast {
+                String urlToPublish        = URL_TO_PUBLISH
+                String repositoryToPublish = REPOSITORY_TO_PUBLISH
 
                 // Get user repository
                 String repoParameter = project.findProperty(REPOSITORY_PARAMETER)
                 if (repoParameter) {
-                    REPOSITORY_TO_PUBLISH = repoParameter
+                    repositoryToPublish = repoParameter
                 }
-                URL_TO_PUBLISH = URL_TO_PUBLISH + REPOSITORY_TO_PUBLISH
+                urlToPublish = urlToPublish + repositoryToPublish
 
                 // Default location to search jars files
                 def locationToSearch = project.rootDir
@@ -36,7 +38,7 @@ class DependenciesLoader {
                     defaultDestination = new File(defaultDestination, destinationParameter)
                 }
 
-                def dependenciesProcessor = new DependenciesProcessor(project, locationToSearch, defaultDestination, REPOSITORY_TO_PUBLISH, URL_TO_PUBLISH)
+                def dependenciesProcessor = new DependenciesProcessor(project, locationToSearch, defaultDestination, repositoryToPublish, urlToPublish)
                 dependenciesProcessor.process()
             }
         }
