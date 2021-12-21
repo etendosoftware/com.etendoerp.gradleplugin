@@ -22,6 +22,11 @@ class JarCoreModulesInstallTest extends EtendoCoreJarSpecificationTest {
         testProjectDir
     }
 
+    @Override
+    String getCoreVersion() {
+        return ETENDO_22q1_VERSION
+    }
+
     public final static String SOURCE_MODULE_GROUP = "com.test"
     public final static String SOURCE_MODULE_NAME  = "moduletoexpand"
 
@@ -32,11 +37,13 @@ class JarCoreModulesInstallTest extends EtendoCoreJarSpecificationTest {
     def "Running install with modules dir and modules dependencies"() {
         if (coreType.equalsIgnoreCase("sources")) {
             // Replace the core in jar dependency
-            buildFile.text = buildFile.text.replace("${JarsUtils.IMPLEMENTATION} '${CORE}'","")
+            buildFile.text = buildFile.text.replace("${JarsUtils.IMPLEMENTATION} '${getCore()}'","")
+
+            def coreSources = getCore() + "@zip"
 
             JarsUtils.addCoreMockTask(
                     buildFile,
-                    EtendoCoreSourcesSpecificationTest.CORE,
+                    coreSources,
                     EtendoCoreSourcesSpecificationTest.ETENDO_CORE_REPO,
                     args.get("nexusUser"),
                     args.get("nexusPassword")
@@ -46,7 +53,7 @@ class JarCoreModulesInstallTest extends EtendoCoreJarSpecificationTest {
         given: "A Etendo environment with the Core dependency"
         def dependenciesTaskResult = runTask(":dependencies","--refresh-dependencies", "-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
         dependenciesTaskResult.task(":dependencies").outcome == TaskOutcome.SUCCESS
-        assert dependenciesTaskResult.output.contains(CORE)
+        assert dependenciesTaskResult.output.contains(getCore())
 
         if (coreType.equalsIgnoreCase("sources")) {
             def expandCoreMockResult = runTask(":expandCoreMock")

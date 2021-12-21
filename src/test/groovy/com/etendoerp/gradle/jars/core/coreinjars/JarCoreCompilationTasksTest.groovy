@@ -24,12 +24,17 @@ class JarCoreCompilationTasksTest extends EtendoCoreJarSpecificationTest{
         return DBCleanupMode.ONCE
     }
 
+    @Override
+    String getCoreVersion() {
+        return ETENDO_22q1_VERSION
+    }
+
     @Issue("EPL-13")
     def "Running compilation tasks" () {
         given: "A Etendo environment with the Core Jar dependency"
-        def dependenciesTaskResult = runTask(":dependencies","-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
+        def dependenciesTaskResult = runTask(":dependencies","--refresh-dependencies","-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
         dependenciesTaskResult.task(":dependencies").outcome == TaskOutcome.SUCCESS
-        assert dependenciesTaskResult.output.contains(CORE)
+        assert dependenciesTaskResult.output.contains(getCore())
 
         when: "The users runs the install task"
         def setupResult = runTask("setup")
