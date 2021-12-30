@@ -123,7 +123,7 @@ class LegacyScriptLoader {
             def extractDir =  getTemporaryDir()
             project.afterEvaluate {
                 def etendo = project.getExtensions().getByName("etendo")
-                project.dependencies.add("coreDep", 'com.smf.classic.core:ob:' + etendo.coreVersion + '@zip')
+                project.dependencies.add("coreDep", 'com.etendoerp.platform.core:etendo-core:' + etendo.coreVersion + '@zip')
                 if (extractDir.exists()) {
                     project.delete(extractDir.getPath())
                 }
