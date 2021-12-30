@@ -201,6 +201,7 @@ class JarCoreGenerator {
 
         project.tasks.register("copyConfig", Copy) {
             from ("${project.projectDir}/config")
+            include ("**/*.template")
             exclude 'Format.xml'
             exclude 'Openbravo.properties'
             exclude 'checksums'
