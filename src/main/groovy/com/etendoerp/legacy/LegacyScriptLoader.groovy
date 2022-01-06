@@ -51,6 +51,26 @@ class LegacyScriptLoader {
                 'org.openbravo.advpaymentmngt',
                 'org.openbravo.v3'
         ]
+        def whiteSyncCoreList = [
+                'legal/**',
+                'lib/**',
+                'modules_core/**',
+                'referencedata/**',
+                'src/**',
+                'src-db/**',
+                'src-test/**',
+                'src-core/**',
+                'src-jmh/**',
+                'src-trl/**',
+                'src-util/**',
+                'src-wad/**',
+                'web/**',
+                '*.template',
+                'config/*.template',
+                'gradlew',
+                'gradle.bat',
+                'build.xml'
+        ]
 
         project.ext {
             nexusUser = null
@@ -96,23 +116,6 @@ class LegacyScriptLoader {
         }
 
         /**
-         * DEPENDENCIES
-         */
-        project.dependencies {
-            project.dependencies {
-                moduleDeps ('com.smf:smartclient.debugtools:[1.0.1,)@zip') {
-                    transitive = true
-                }
-                moduleDeps ('com.smf:smartclient.boostedui:[1.0.0,)@zip') {
-                    transitive = true
-                }
-                moduleDeps ('com.smf:securewebservices:[1.1.1,)@zip') {
-                    transitive = true
-                }
-            }
-        }
-
-        /**
          * REPOSITORIES CONFIGURATIONS
          */
 
@@ -140,7 +143,7 @@ class LegacyScriptLoader {
             def extractDir =  getTemporaryDir()
             project.afterEvaluate {
                 def etendo = project.getExtensions().getByName("etendo")
-                project.dependencies.add("coreDep", 'com.smf.classic.core:ob:' + etendo.coreVersion + '@zip')
+                project.dependencies.add("coreDep", 'com.etendoerp.platform:etendo-core:' + etendo.coreVersion + '@zip')
                 if (extractDir.exists()) {
                     project.delete(extractDir.getPath())
                 }
@@ -180,19 +183,8 @@ class LegacyScriptLoader {
             into "${project.projectDir}"
             // Preserve files that are allowed to be modified by the user, and those not included in the Core zip
             preserve {
-                include 'attachments'
-                include 'gradle.properties'
-                include 'modules/'
-                include 'settings.gradle'
-                include 'gradlew.bat'
-                include 'gradlew'
-                include 'build.gradle'
-                include 'gradle/'
-                include 'config/Openbravo.properties'
-                include 'config/log4j2-web.xml'
-                include 'config/log4j2.xml'
-                include 'config/Format.xml'
-                include 'config/redisson-config.yaml'
+                include '**'
+                exclude(whiteSyncCoreList)
             }
         }
 
