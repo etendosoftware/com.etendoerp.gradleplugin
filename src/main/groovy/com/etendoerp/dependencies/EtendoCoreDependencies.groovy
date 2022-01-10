@@ -7,8 +7,8 @@ class EtendoCoreDependencies {
 
     static void loadCoreCompilationDependencies(Project project) {
         // Listing jar files - scope: COMPILATION
-        // Total artifacts      = 87
-        // Resolved artifacts   = 87
+        // Total artifacts      = 88
+        // Resolved artifacts   = 88
         // Unresolved artifacts = 0
 
         def (nexusUser, nexusPassword) = NexusUtils.getCredentials(project)
@@ -62,6 +62,7 @@ class EtendoCoreDependencies {
             implementation('org.mozilla:rhino:1.7.13') { transitive = false }
             implementation('org.hibernate.common:hibernate-commons-annotations:5.1.0.Final') { transitive = false }
             implementation('org.apache.poi:poi:3.10.1') { transitive = false }
+            implementation('com.etendoerp:rhino-engine:1.7.13') { transitive = false }
             implementation('commons-pool:commons-pool:1.5.6') { transitive = false }
             implementation('com.fasterxml.jackson.core:jackson-databind:2.11.2') { transitive = false }
             implementation('org.jboss:jandex:2.0.5.Final') { transitive = false }
