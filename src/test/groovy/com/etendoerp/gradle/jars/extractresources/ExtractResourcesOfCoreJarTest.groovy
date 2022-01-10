@@ -34,7 +34,7 @@ class ExtractResourcesOfCoreJarTest extends EtendoCoreJarSpecificationTest {
         assert buildFile.text.contains(CORE)
 
         when: "The users runs the 'dependencies' task"
-        def dependenciesTaskResult = runTask(":dependencies","-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
+        def dependenciesTaskResult = runTask(":dependencies","--refresh-dependencies","-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
 
         then: "The task will finish successfully."
         dependenciesTaskResult.task(":dependencies").outcome == TaskOutcome.SUCCESS

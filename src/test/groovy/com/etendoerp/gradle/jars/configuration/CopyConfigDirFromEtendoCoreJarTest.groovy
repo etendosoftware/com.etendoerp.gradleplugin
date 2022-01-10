@@ -27,7 +27,7 @@ class CopyConfigDirFromEtendoCoreJarTest extends EtendoCoreJarSpecificationTest 
 
     def "Adding the Etendo core dependency JAR copies the config folder to the root project"() {
         given: "A Project with the Etendo core jar"
-        def dependenciesTaskResult = runTask(":dependencies","-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
+        def dependenciesTaskResult = runTask(":dependencies","--refresh-dependencies","-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
         dependenciesTaskResult.task(":dependencies").outcome == TaskOutcome.SUCCESS
         assert dependenciesTaskResult.output.contains(CORE)
 
