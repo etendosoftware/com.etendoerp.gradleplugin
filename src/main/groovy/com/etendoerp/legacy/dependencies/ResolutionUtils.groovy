@@ -80,7 +80,7 @@ class ResolutionUtils {
             for (DependencyResult dependency: it.resolutionResult.allDependencies) {
                 DefaultResolvedDependencyResult dependencyResult = dependency as DefaultResolvedDependencyResult
                 def dependencyName = dependencyResult.getSelected().getId().toString()
-                project.logger.error("Requested dependency: ${dependencyResult.getRequested()} -> Selected: ${dependencyResult.getSelected()}")
+                project.logger.info("Requested dependency: ${dependencyResult.getRequested()} -> Selected: ${dependencyResult.getSelected()}")
                 if (isCoreDependency(dependencyName)) {
                     continue
                 }
@@ -112,11 +112,11 @@ class ResolutionUtils {
         def sourcesModulesContainer = project.configurations.create(SOURCE_MODULES_CONTAINER + System.currentTimeMillis())
 
         if (extension.ignoreSourceModulesResolution) {
-            project.logger.error("Ignoring source modules resolution.")
+            project.logger.info("Ignoring source modules resolution.")
             return sourcesModulesContainer
         }
 
-        project.logger.error("Loading source modules dependencies from 'modules/' to perform the resolution conflicts.")
+        project.logger.info("Loading source modules dependencies from 'modules/' to perform the resolution conflicts.")
 
         def modulesLocation = new File(project.rootDir, PublicationUtils.BASE_MODULE_DIR)
         List<File> sourceModules = new ArrayList<>()
