@@ -29,8 +29,11 @@ import org.gradle.api.artifacts.Dependency
  */
 class CoreMetadata {
 
-    public final static String DEFAULT_ETENDO_CORE_GROUP   = "com.etendoerp.platform"
-    public final static String DEFAULT_ETENDO_CORE_NAME    = "etendo-core"
+    public final static String CLASSIC_ETENDO_CORE_GROUP = "com.smf.classic.core"
+    public final static String CLASSIC_ETENDO_CORE_NAME  = "ob"
+
+    public final static String DEFAULT_ETENDO_CORE_GROUP = "com.etendoerp.platform"
+    public final static String DEFAULT_ETENDO_CORE_NAME  = "etendo-core"
 
     Project project
     CoreType coreType
