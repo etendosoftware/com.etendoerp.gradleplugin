@@ -3,7 +3,9 @@ package com.etendoerp.legacy.dependencies
 import org.gradle.api.Project
 
 /**
- * Class used to load the properties of a Etendo Artifact
+ * Class used to load or create the properties file of a Etendo Artifact.
+ * The Etendo artifact could be a Etendo source module, the Etendo core JAR or Etendo core sources.
+ * The created or loaded file is used to obtain the necessary information to perform resolution conflicts.
  */
 class EtendoArtifactMetadata {
 
