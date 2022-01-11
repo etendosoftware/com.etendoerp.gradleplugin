@@ -1,6 +1,8 @@
 package com.etendoerp.legacy.dependencies
 
 import com.etendoerp.EtendoPluginExtension
+import com.etendoerp.core.CoreMetadata
+import com.etendoerp.core.CoreType
 import com.etendoerp.dependencies.EtendoCoreDependencies
 import com.etendoerp.jars.ExtractResourcesOfJars
 import com.etendoerp.legacy.ant.AntLoader
@@ -26,14 +28,14 @@ class ResolverDependencyLoader {
             project.logger.info("Running GRADLE projectsEvaluated.")
 
             NexusUtils.configureRepositories(project)
+            CoreMetadata coreMetadata = new CoreMetadata(project)
 
             def extension = project.extensions.findByType(EtendoPluginExtension)
-
             boolean loadCompilationDependencies = extension.loadCompilationDependencies
             boolean loadTestDependencies        = extension.loadTestDependencies
 
             // Load Etendo core compilation dependencies when the core is in jar
-            if (!AntLoader.isCoreInSources(project) || loadCompilationDependencies) {
+            if (coreMetadata.coreType == CoreType.JAR || loadCompilationDependencies) {
                 EtendoCoreDependencies.loadCoreCompilationDependencies(project)
             }
 
@@ -42,10 +44,8 @@ class ResolverDependencyLoader {
                 EtendoCoreDependencies.loadCoreTestDependencies(project)
             }
 
-            List<File> jarFiles = ResolverDependencyUtils.getJarFiles(project)
-
-            ExtractResourcesOfJars.extractResources(project)
-            ExtractResourcesOfJars.copyConfigFile(project)
+            DependencyContainer dependencyContainer = new DependencyContainer(project, coreMetadata)
+            List<File> jarFiles = dependencyContainer.processJarFiles()
 
             // Note: previously the antClassLoader was used to add classes to ant's classpath
             // but when the core is a complete jar (with libs) affecting the class loader can cause collisions
