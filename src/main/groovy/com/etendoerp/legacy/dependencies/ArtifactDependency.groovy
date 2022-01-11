@@ -8,6 +8,10 @@ import org.gradle.api.artifacts.Dependency
 import org.gradle.api.artifacts.ResolvedArtifact
 import org.gradle.api.file.FileTree
 
+/**
+ * This class process a ResolvedArtifact to define if is a Maven or Etendo (module o core) dependency.
+ * Contains information about the resolved artifact.
+ */
 class ArtifactDependency {
 
     public static String JAR_ETENDO_LOCATION = PathUtils.createPath(
@@ -165,7 +169,7 @@ class ArtifactDependency {
         File sourceModule = new File(modulesLocation, this.moduleName)
 
         if (sourceModule && sourceModule.exists()) {
-            project.logger.error("The JAR module '${moduleName}' already exists in the 'modules/' directory. Skipping extraction.")
+            project.logger.info("The JAR module '${moduleName}' already exists in the 'modules/' directory. Skipping extraction.")
             return
         }
 
