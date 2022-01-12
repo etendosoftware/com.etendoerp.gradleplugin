@@ -83,21 +83,48 @@ class ArtifactDependency {
     }
 
     void extract() {
-        // extract only jar files
-        if (this.extension != "jar") {
-            return
-        }
-
         switch (this.type) {
             case DependencyType.ETENDOCORE:
                 extractEtendoCore()
                 break
             case DependencyType.ETENDOJARMODULE:
-                extractEtendoModule()
+                extractEtendoJarModule()
+                break
+            case DependencyType.ETENDOZIPMODULE:
+                extractEtendoZipModule()
                 break
             default:
                 break
         }
+    }
+
+    void extractEtendoZipModule() {
+
+        project.logger.info("Extracting ZIP module '${this.moduleName}'.")
+
+        File tempDir = project.tasks.register("extractZip-${this.moduleName}-${System.currentTimeMillis()}").get().temporaryDir
+        // Clean tmp dir
+        project.delete(tempDir)
+
+        FileTree unzipModule = project.zipTree(this.locationFile)
+
+        // Copy the files to a temporary dir
+        project.copy {
+            from (unzipModule)
+            into (tempDir)
+        }
+
+        // Sync the files with the module directory
+        project.ant.sync(todir:"${PublicationUtils.BASE_MODULE_DIR}${File.separator}${moduleName}") {
+            ant.fileset(dir: "${tempDir.getAbsolutePath()}${File.separator}${moduleName}")
+        }
+
+        // TODO: Delete the JAR module if exits
+
+        // TODO: Create metadata file
+
+        // Clean tmp dir
+        project.delete(tempDir)
     }
 
     void extractEtendoCore() {
@@ -163,7 +190,7 @@ class ArtifactDependency {
         }
     }
 
-    void extractEtendoModule() {
+    void extractEtendoJarModule() {
         // Extract only the Etendo jar file if the module is not already in sources - 'modules/' dir
         File modulesLocation = new File("${project.rootDir.absolutePath}${File.separator}${PublicationUtils.BASE_MODULE_DIR}")
         File sourceModule = new File(modulesLocation, this.moduleName)

@@ -16,7 +16,8 @@ import org.gradle.api.internal.artifacts.result.DefaultResolvedDependencyResult
  */
 class ResolutionUtils {
 
-    final static String SOURCE_MODULES_CONTAINER = "sourcesModulesContainer"
+    final static String SOURCE_MODULES_CONTAINER  = "sourcesModulesContainer"
+    final static String SOURCE_MODULES_RESOLUTION = "sourceModulesResolution"
 
     static List<String> CORE_DEPENDENCIES = [
             "${CoreMetadata.CLASSIC_ETENDO_CORE_GROUP}:${CoreMetadata.CLASSIC_ETENDO_CORE_NAME}",
@@ -99,24 +100,36 @@ class ResolutionUtils {
         return false
     }
 
-    /**
-     * Creates a custom configuration and loads all the Source modules dependencies
-     * containing the 'etendo.artifact.metadata' file.
-     * @param project
-     * @return
-     */
-    static Configuration loadSourceModulesDependencies(Project project) {
+    static Configuration loadSourceModulesDependenciesResolution(Project project) {
         def extension = project.extensions.findByType(EtendoPluginExtension)
-
-        // Creates a configuration container
-        def sourcesModulesContainer = project.configurations.create(SOURCE_MODULES_CONTAINER + System.currentTimeMillis())
+        def sourcesModulesResolution = project.configurations.create(SOURCE_MODULES_RESOLUTION + System.currentTimeMillis())
 
         if (extension.ignoreSourceModulesResolution) {
             project.logger.info("Ignoring source modules resolution.")
-            return sourcesModulesContainer
+            return sourcesModulesResolution
         }
 
-        project.logger.info("Loading source modules dependencies from 'modules/' to perform the resolution conflicts.")
+        project.logger.info("Loading sources modules dependencies to perform resolution.")
+        return loadSourceModulesDependencies(project, sourcesModulesResolution)
+    }
+
+    /**
+     * Loads all the source modules dependencies to the configuration passed, or creates a new one.
+     * The obtained source modules are those containing the 'etendo.artifact.metadata' file.
+     * @param project
+     * @param configuration
+     * @return
+     */
+    static Configuration loadSourceModulesDependencies(Project project, Configuration configuration = null) {
+
+        def sourcesModulesContainer = configuration
+
+        // Creates a configuration container
+        if (!sourcesModulesContainer) {
+            sourcesModulesContainer = project.configurations.create(SOURCE_MODULES_CONTAINER + System.currentTimeMillis())
+        }
+
+        project.logger.info("Loading source modules dependencies from 'modules/'.")
 
         def modulesLocation = new File(project.rootDir, PublicationUtils.BASE_MODULE_DIR)
         List<File> sourceModules = new ArrayList<>()
@@ -133,6 +146,7 @@ class ResolutionUtils {
                 def name = moduleMetadata.name
                 def version = moduleMetadata.version
                 def sourceModule = "${group}:${name}:${version}"
+                project.logger.info("Source module dependency loaded: ${sourceModule}")
                 project.dependencies.add(sourcesModulesContainer.name, sourceModule)
             }
         }

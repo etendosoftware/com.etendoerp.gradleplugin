@@ -1,5 +1,6 @@
 package com.etendoerp.legacy.dependencies
 
+import com.etendoerp.EtendoPluginExtension
 import com.etendoerp.core.CoreMetadata
 import com.etendoerp.core.CoreType
 import com.etendoerp.jars.modules.metadata.DependencyUtils
@@ -7,7 +8,6 @@ import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.Dependency
 import org.gradle.api.artifacts.DependencySet
-import org.gradle.api.artifacts.ResolvedArtifact
 
 /**
  * Class used to contain the Maven and Etendo dependencies.
@@ -26,7 +26,7 @@ import org.gradle.api.artifacts.ResolvedArtifact
  *      Etendo JARs modules will be extracted.
  *
  * -Core in JARs.
- *      Mavend and Etendo dependencies should be returned.
+ *      Maven and Etendo dependencies should be returned.
  *      Resolution conflicts should be performed.
  *      Etendo JARs modules will be extracted.
  *      Etendo core JAR will be extracted in case of new version.
@@ -67,12 +67,15 @@ class DependencyContainer {
         this.etendoDependenciesZipFiles = new HashMap<>()
         this.dependenciesMap = new HashMap<>()
 
-        def applyDependenciesToMainProject = true
+        def extension = project.extensions.findByType(EtendoPluginExtension)
+
+        def performResolutionConflicts = extension.performResolutionConflicts
+        def applyDependenciesToMainProject = extension.applyDependenciesToMainProject
 
         if (coreMetadata.coreType == CoreType.SOURCES ) {
             if (coreMetadata.supportJars) {
                 // Resolve and extract Etendo modules
-                loadDependenciesFiles(true, true)
+                loadDependenciesFiles(true, performResolutionConflicts)
                 etendoDependenciesFiles.addAll(collectDependenciesFiles(this.etendoDependenciesJarFiles, applyDependenciesToMainProject))
             } else {
                 // The core does not support Jars, ignore performing resolution conflicts.
@@ -83,7 +86,7 @@ class DependencyContainer {
 
         if (coreMetadata.coreType == CoreType.JAR) {
             // When the core is in JAR the Etendo core dependency will be already applied
-            loadDependenciesFiles(false, true)
+            loadDependenciesFiles(false, performResolutionConflicts)
 
             // Collect the core dependency
             etendoDependenciesFiles.add(collectCoreJarDependency())
@@ -114,7 +117,7 @@ class DependencyContainer {
         DependencySet resolutionDependencySet = resolutionContainer.dependencies
 
         // Load source modules dependencies
-        Configuration sourceModules = ResolutionUtils.loadSourceModulesDependencies(project)
+        Configuration sourceModules = ResolutionUtils.loadSourceModulesDependenciesResolution(project)
 
         // Load all the dependencies from the container and sourceModules to the created resolutionContainer
         DependencyUtils.loadDependenciesFromConfigurations([container, sourceModules], resolutionDependencySet)
