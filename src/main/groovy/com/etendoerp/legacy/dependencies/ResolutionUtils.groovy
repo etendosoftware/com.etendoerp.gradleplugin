@@ -10,6 +10,7 @@ import org.gradle.api.artifacts.ModuleVersionIdentifier
 import org.gradle.api.artifacts.result.DependencyResult
 import org.gradle.api.internal.artifacts.ivyservice.resolveengine.result.ComponentSelectionReasonInternal
 import org.gradle.api.internal.artifacts.result.DefaultResolvedDependencyResult
+import org.gradle.api.tasks.diagnostics.DependencyInsightReportTask
 
 /**
  * Class containing helper methods to perform resolution version conflicts.
@@ -18,6 +19,8 @@ class ResolutionUtils {
 
     final static String SOURCE_MODULES_CONTAINER  = "sourcesModulesContainer"
     final static String SOURCE_MODULES_RESOLUTION = "sourceModulesResolution"
+
+    final static String RESOLUTION_REPORT_TASK = "resolutionReportTask"
 
     static List<String> CORE_DEPENDENCIES = [
             "${CoreMetadata.CLASSIC_ETENDO_CORE_GROUP}:${CoreMetadata.CLASSIC_ETENDO_CORE_NAME}",
@@ -31,7 +34,6 @@ class ResolutionUtils {
      * @param configuration
      */
     static List<String> dependenciesResolutionConflict(Project project, Configuration configuration) {
-        def configurationName = configuration.getName()
         def extension = project.extensions.findByType(EtendoPluginExtension)
 
         def forceParameter = project.findProperty("force")
@@ -46,24 +48,32 @@ class ResolutionUtils {
                 ComponentSelectionReasonInternal reason = selectionReason
                 ModuleVersionIdentifier module = moduleVersion
                 if (reason.conflictResolution && module != null) {
-                    project.logger.info("********************************************")
-                    project.logger.info("Found a conflict resolution with: ${module}")
-                    project.logger.info("Description: ${reason.descriptions}")
-                    def group = module.group
-                    def name = module.name
-
-                    project.logger.info("To obtain more information run: ./gradlew :dependencyInsight --configuration ${configurationName} --dependency ${group}:${name}")
-                    project.logger.info("********************************************")
-
-                    // Throw on core conflict
-                    if (isCoreDependency(module.toString()) && !force) {
-                        throw new IllegalArgumentException("Cannot have a conflict with the core dependency - ${module}")
-                    }
+                    handleResolutionConflict(project, configuration, reason, module, force)
                 }
             }
         }
         // Trigger the resolution
         return getIncomingDependencies(project, configuration)
+    }
+
+    static void handleResolutionConflict(Project project, Configuration configuration, ComponentSelectionReasonInternal reason, ModuleVersionIdentifier module, boolean force) {
+        project.logger.info("********************************************")
+        project.logger.info("Found a conflict resolution with: ${module}")
+        project.logger.info("Description: ${reason.descriptions}")
+        def group = module.group
+        def name = module.name
+
+        // Create task to report the dependency graph
+        def reportTask = project.tasks.register("${RESOLUTION_REPORT_TASK}${System.currentTimeMillis()}", DependencyInsightReportTask).get()
+        reportTask.setConfiguration(configuration)
+        reportTask.setDependencySpec("${group}:${name}")
+        project.logger.info("****************** REPORT ******************")
+        reportTask.report()
+
+        // Throw on core conflict
+        if (isCoreDependency(module.toString()) && !force) {
+            throw new IllegalArgumentException("Cannot have a conflict with the core dependency - ${module}")
+        }
     }
 
     /**

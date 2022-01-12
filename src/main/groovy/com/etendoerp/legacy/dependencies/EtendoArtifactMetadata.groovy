@@ -44,7 +44,7 @@ class EtendoArtifactMetadata {
         }
 
         if (!propertiesLocation || !propertiesLocation.exists()) {
-            project.logger.error("The Etendo Artifact Properties '${propertiesLocation.absolutePath}' does not exists. Type: ${this.type.toString()}")
+            project.logger.info("The Etendo Artifact Properties '${propertiesLocation.absolutePath}' does not exists. Type: ${this.type.toString()}")
             return false
         }
 
