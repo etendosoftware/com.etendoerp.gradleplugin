@@ -139,58 +139,7 @@ class DependencyContainer {
         }
 
         // Filter maven and Etendo dependencies
-        filterDependenciesFiles(container)
-    }
-
-    /**
-     * Loads the dependencies map with the module name has key and the Dependency has value.
-     * @param container
-     */
-    void loadDependenciesMap(Configuration container) {
-        this.dependenciesMap = new HashMap<>()
-        for (Dependency dependency : container.dependencies) {
-            def group = dependency.group
-            def name = dependency.name
-            String moduleName = "${group}.${name}"
-            this.dependenciesMap.put(moduleName, dependency)
-        }
-    }
-
-    /**
-     * Filters the external dependencies by type:
-     *  - MAVEN
-     *  - ETENDOJARMODULE
-     *  - ETENDOZIPMODULE
-     *  - ETENDOCORE
-     * @param container
-     */
-    void filterDependenciesFiles(Configuration container) {
-        loadDependenciesMap(container)
-        this.mavenDependenciesFiles     = new HashMap<>()
-        this.etendoDependenciesJarFiles = new HashMap<>()
-        this.etendoDependenciesZipFiles = new HashMap<>()
-
-        def resolvedArtifacts = container.resolvedConfiguration.resolvedArtifacts
-
-        for (ResolvedArtifact resolvedArtifact : resolvedArtifacts) {
-            ArtifactDependency artifactDependency = new ArtifactDependency(project, resolvedArtifact)
-            // Get the 'Dependency' object
-            artifactDependency.dependency = this.dependenciesMap.get(artifactDependency.moduleName)
-            switch (artifactDependency.type) {
-                case DependencyType.ETENDOCORE:
-                    this.etendoCoreDependencyFile = artifactDependency
-                    break
-                case DependencyType.ETENDOJARMODULE:
-                    this.etendoDependenciesJarFiles.put(artifactDependency.moduleName, artifactDependency)
-                    break
-                case DependencyType.ETENDOZIPMODULE:
-                    this.etendoDependenciesZipFiles.put(artifactDependency.moduleName, artifactDependency)
-                    break
-                default:
-                    this.mavenDependenciesFiles.put(artifactDependency.moduleName, artifactDependency)
-                    break
-            }
-        }
+        ResolverDependencyUtils.filterDependenciesFiles(project, container, this)
     }
 
     /**
