@@ -120,7 +120,6 @@ class LegacyScriptLoader {
          */
 
         project.repositories {
-            jcenter()
             maven {
                 url "https://repo.futit.cloud/repository/maven-releases"
             }

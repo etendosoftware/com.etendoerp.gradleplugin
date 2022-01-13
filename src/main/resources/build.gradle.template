@@ -39,7 +39,6 @@ publishing {
 
 repositories {
     mavenCentral()
-    jcenter()
     maven {
         url "${repository}"
     }

@@ -45,7 +45,6 @@ repositories {
         url "https://repo.futit.cloud/repository/maven-public-jars"
     }
     mavenCentral()
-    jcenter()
 }
 
 /**
