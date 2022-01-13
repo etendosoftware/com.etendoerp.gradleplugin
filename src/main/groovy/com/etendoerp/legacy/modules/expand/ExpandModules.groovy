@@ -1,60 +1,59 @@
 package com.etendoerp.legacy.modules.expand
 
-import com.etendoerp.jars.PathUtils
-import com.etendoerp.publication.PublicationUtils
+import com.etendoerp.core.CoreMetadata
+import com.etendoerp.core.CoreType
+import com.etendoerp.legacy.dependencies.ArtifactDependency
+import com.etendoerp.legacy.utils.NexusUtils
 import org.gradle.api.Project
-import org.gradle.api.file.FileTree
-import org.gradle.api.internal.artifacts.result.DefaultResolvedDependencyResult
 
 class ExpandModules {
 
     static void load (Project project) {
-        project.tasks.register("expandModules2") {
+
+        // TODO: Change the task name
+        project.tasks.register("expandModulesRefactor") {
             def extractDir = getTemporaryDir()
-
             doLast {
-                // Get core version to apply different logic
-                def coreVersion = 21
+                CoreMetadata coreMetadata = new CoreMetadata(project)
 
-                if (coreVersion == 21) {
-                    expandModulesOnlySources(project, extractDir)
+                if (coreMetadata.coreType == CoreType.UNDEFINED) {
+                    throw new IllegalArgumentException("The Etendo core is undefined.")
                 }
 
-                if (coreVersion == 22) {
+                NexusUtils.askNexusCredentials(project)
 
+                if (!coreMetadata.supportJars) {
+                    expandModulesOnlySources(project, coreMetadata)
+                } else {
+                    expandModulesMix(project, extractDir)
                 }
             }
         }
     }
 
     // Expand only the source version of the modules
-    static void expandModulesOnlySources(Project project, File extractDir) {
-        def sourceModules = ExpandUtils.getSourceModulesFiles(project)
-        project.logger.info("Source Modules: ${sourceModules}")
-
-        for (element in sourceModules) {
-            String moduleName = element.key
-            File moduleFile = element.value
-
-            // Clean tmp dir
-            project.delete(extractDir)
-
-            FileTree unzipModule = project.zipTree(moduleFile)
-
-            // Copy the files to a temporary dir
-            project.copy {
-                from (unzipModule)
-                into (extractDir)
-            }
-
-            // Sync the files with the module directory
-            project.ant.sync(todir:"${PublicationUtils.BASE_MODULE_DIR}${File.separator}${moduleName}") {
-                ant.fileset(dir: "${extractDir.getAbsolutePath()}${File.separator}${moduleName}")
-            }
-
-            // Clean tmp dir
-            project.delete(extractDir)
+    static void expandModulesOnlySources(Project project, CoreMetadata coreMetadata) {
+        // Add the core dependency
+        def sourceModules = ExpandUtils.getSourceModulesFiles(project, coreMetadata)
+        for (ArtifactDependency artifact in sourceModules) {
+            artifact.extract()
         }
+    }
+
+    // TODO:
+    static void expandModulesMix(Project project, File extractDir) {
+        // Get all the dependencies defined by the moduleDeps config
+        def moduleDepConfig = project.configurations.getByName("moduleDeps")
+
+        // Perform resolution conflicts
+
+        // Filter the Jar and Zip files
+
+        // For each Zip file:
+        // If is defined by the user (not transitive), delete the Jar version if exists in build/etendo and sync it in modules/
+
+        // If is transitive (not defined by the user):
+        // Prevent extracting if is in the Jar file list(above) or in the /build/etendo dir.
 
     }
 
