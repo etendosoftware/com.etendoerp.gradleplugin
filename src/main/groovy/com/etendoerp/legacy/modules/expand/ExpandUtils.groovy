@@ -5,8 +5,11 @@ import com.etendoerp.core.CoreMetadata
 import com.etendoerp.jars.modules.metadata.DependencyUtils
 import com.etendoerp.legacy.dependencies.ArtifactDependency
 import com.etendoerp.legacy.dependencies.ResolutionUtils
+import com.etendoerp.legacy.dependencies.ResolverDependencyUtils
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ResolvedArtifact
+
+import java.lang.module.Configuration
 
 class ExpandUtils {
 
@@ -19,31 +22,19 @@ class ExpandUtils {
         def extension = project.extensions.findByType(EtendoPluginExtension)
         def performResolutionConflicts = extension.performResolutionConflicts
 
+        List<ArtifactDependency> artifactDependencies
+
         if (performResolutionConflicts) {
-            // Create custom configuration container
-            def resolutionContainer = project.configurations.create(EXPAND_SOURCES_RESOLUTION_CONTAINER)
-            def resolutionDependencySet = resolutionContainer.dependencies
-
-            // Add the current core version
-            def core = "${coreMetadata.coreGroup}:${coreMetadata.coreName}:${coreMetadata.coreVersion}"
-            project.logger.info("* Adding the core dependency to perform resolution conflicts. ${core}")
-            project.dependencies.add(EXPAND_SOURCES_RESOLUTION_CONTAINER, core)
-
-            // Load source modules dependencies to perform resolution.
-            def sourceDepConfig = ResolutionUtils.loadSourceModulesDependenciesResolution(project)
-
-            // Add the defined 'moduleDeps' and source dependencies to the resolution container
-            DependencyUtils.loadDependenciesFromConfigurations([moduleDepConfig, sourceDepConfig], resolutionDependencySet)
-
-            ResolutionUtils.dependenciesResolutionConflict(project, resolutionContainer)
+           artifactDependencies = performExpandResolutionConflicts(project, coreMetadata, true, false)
         }
+
+        // TODO: use the 'artifactDependencies' (if not null) to obtain the correct version of the 'modulesDeps' dependencies
 
         project.logger.info("* Getting incoming dependencies from the '${moduleDepConfig.name}' configuration.")
         def incomingDependencies = ResolutionUtils.getIncomingDependencies(project, moduleDepConfig)
 
         return collectDependenciesFiles(project, incomingDependencies, "zip")
     }
-
 
     /**
      * Collect the defined extension of a dependency
@@ -52,12 +43,12 @@ class ExpandUtils {
      * @param dependencies The dependencies to collect
      * @return List<ArtifactDependency> List of ArtifactDependency objects
      */
-    static List<ArtifactDependency> collectDependenciesFiles(Project project, List<String> dependencies, String extension) {
+    static List<ArtifactDependency> collectDependenciesFiles(Project project, List<ArtifactDependency> dependencies, String extension) {
         List<ArtifactDependency> collection = new ArrayList<>()
 
         int index = 0
         dependencies.each {
-            def sourceDependency = "${it}@${extension}"
+            def sourceDependency = "${it.displayName}@${extension}"
             try {
                 project.logger.info("Trying to resolve the dependency: ${sourceDependency}")
 
@@ -89,6 +80,47 @@ class ExpandUtils {
         }
         return collection
     }
+
+    static void performExpandResolutionConflicts(Project project, CoreMetadata coreMetadata, boolean addCoreDependency, boolean addProjectDependencies) {
+        // Create custom configuration container
+        def resolutionContainer = project.configurations.create(EXPAND_SOURCES_RESOLUTION_CONTAINER)
+        def resolutionDependencySet = resolutionContainer.dependencies
+
+        if (addCoreDependency) {
+            // Add the current core version
+            def core = "${coreMetadata.coreGroup}:${coreMetadata.coreName}:${coreMetadata.coreVersion}"
+            project.logger.info("* Adding the core dependency to perform resolution conflicts. ${core}")
+            project.dependencies.add(EXPAND_SOURCES_RESOLUTION_CONTAINER, core)
+        }
+
+        def configurationsToLoad = []
+
+        // Load user defined dependencies
+        def moduleDepConfig = project.configurations.getByName("moduleDeps")
+        configurationsToLoad.add(moduleDepConfig)
+
+        // Load source modules dependencies to perform resolution.
+        def sourceDepConfig = ResolutionUtils.loadSourceModulesDependenciesResolution(project)
+        configurationsToLoad.add(sourceDepConfig)
+
+        if (addProjectDependencies) {
+            // Load project dependencies
+            def projectDependencies = ResolverDependencyUtils.loadAllDependencies(project)
+            configurationsToLoad.add(projectDependencies)
+        }
+
+        // Add the defined dependencies to the resolution container
+        DependencyUtils.loadDependenciesFromConfigurations(configurationsToLoad, resolutionDependencySet)
+
+        // Perform resolution
+        ResolutionUtils.dependenciesResolutionConflict(project, resolutionContainer)
+    }
+
+    // TODO: update the 'configurationToResolve' with the resolutionConfigurations
+    static Configuration resolve(Project project, Configuration configurationToResolve, List<Configuration> resolutionConfigurations) {
+
+    }
+
 
     static String getModuleName(String dependency) {
         def parts = dependency.split(":")

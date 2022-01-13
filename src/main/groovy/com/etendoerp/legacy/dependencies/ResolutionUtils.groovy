@@ -33,7 +33,7 @@ class ResolutionUtils {
      * @param project
      * @param configuration
      */
-    static List<String> dependenciesResolutionConflict(Project project, Configuration configuration) {
+    static List<ArtifactDependency> dependenciesResolutionConflict(Project project, Configuration configuration) {
         def extension = project.extensions.findByType(EtendoPluginExtension)
 
         def forceParameter = project.findProperty("force")
@@ -85,20 +85,22 @@ class ResolutionUtils {
      * @param configuration
      * @return
      */
-    static List<String> getIncomingDependencies(Project project, Configuration configuration) {
-        Set<String> incomingDependencies = []
+    static List<ArtifactDependency> getIncomingDependencies(Project project, Configuration configuration) {
+        List<ArtifactDependency> incomingDependencies = []
         configuration.incoming.each {
             for (DependencyResult dependency: it.resolutionResult.allDependencies) {
                 DefaultResolvedDependencyResult dependencyResult = dependency as DefaultResolvedDependencyResult
-                def dependencyName = dependencyResult.getSelected().getId().toString()
+                ModuleVersionIdentifier identifier = dependencyResult.getSelected().moduleVersion
+                String displayName = dependencyResult.getSelected().getId().displayName
+                ArtifactDependency artifactDependency = new ArtifactDependency(project, identifier, displayName)
                 project.logger.info("Requested dependency: ${dependencyResult.getRequested()} -> Selected: ${dependencyResult.getSelected()}")
-                if (isCoreDependency(dependencyName)) {
+                if (isCoreDependency(displayName)) {
                     continue
                 }
-                incomingDependencies.add(dependencyName)
+                incomingDependencies.add(artifactDependency)
             }
         }
-        return incomingDependencies.toList()
+        return incomingDependencies
     }
 
     static boolean isCoreDependency(String dependency) {

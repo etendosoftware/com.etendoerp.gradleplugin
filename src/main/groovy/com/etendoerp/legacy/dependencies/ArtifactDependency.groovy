@@ -5,8 +5,10 @@ import com.etendoerp.jars.PathUtils
 import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Dependency
+import org.gradle.api.artifacts.ModuleVersionIdentifier
 import org.gradle.api.artifacts.ResolvedArtifact
 import org.gradle.api.file.FileTree
+import org.gradle.api.internal.artifacts.DefaultModuleVersionIdentifier
 
 /**
  * This class process a ResolvedArtifact to define if is a Maven or Etendo (module o core) dependency.
@@ -35,6 +37,10 @@ class ArtifactDependency {
     String version
     String moduleName
 
+    // Gradle properties
+    ModuleVersionIdentifier moduleVersionIdentifier
+    String displayName
+
     // 'jar' or 'zip'
     String extension
 
@@ -45,7 +51,28 @@ class ArtifactDependency {
         process()
     }
 
+    ArtifactDependency(Project project, String group, String name, String version) {
+        this.project = project
+        loadModuleVersionIdentifier(group, name, version)
+    }
+
+    ArtifactDependency(Project project, ModuleVersionIdentifier moduleVersionIdentifier, String displayName) {
+        this.project = project
+        this.moduleVersionIdentifier = moduleVersionIdentifier
+
+        if (displayName.contains("SNAPSHOT:")) {
+            displayName = displayName.replace("SNAPSHOT:","")
+        }
+
+        this.displayName = displayName
+    }
+
+    void loadModuleVersionIdentifier(String group, String name, String version) {
+        this.moduleVersionIdentifier = DefaultModuleVersionIdentifier.newId(group, name, version)
+    }
+
     void loadFromArtifact() {
+        this.moduleVersionIdentifier = this.resolvedArtifact.moduleVersion.id
         this.locationFile = this.resolvedArtifact.file
         this.group        = this.resolvedArtifact.moduleVersion.id.group
         this.name         = this.resolvedArtifact.moduleVersion.id.name
