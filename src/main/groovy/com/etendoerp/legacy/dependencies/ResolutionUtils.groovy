@@ -86,7 +86,7 @@ class ResolutionUtils {
      * @return
      */
     static List<String> getIncomingDependencies(Project project, Configuration configuration) {
-        List<String> incomingDependencies = []
+        Set<String> incomingDependencies = []
         configuration.incoming.each {
             for (DependencyResult dependency: it.resolutionResult.allDependencies) {
                 DefaultResolvedDependencyResult dependencyResult = dependency as DefaultResolvedDependencyResult
@@ -98,7 +98,7 @@ class ResolutionUtils {
                 incomingDependencies.add(dependencyName)
             }
         }
-        return incomingDependencies
+        return incomingDependencies.toList()
     }
 
     static boolean isCoreDependency(String dependency) {
