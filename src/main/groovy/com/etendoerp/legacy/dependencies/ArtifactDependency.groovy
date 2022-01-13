@@ -102,6 +102,15 @@ class ArtifactDependency {
 
         project.logger.info("Extracting ZIP module '${this.moduleName}'.")
 
+        // Delete the JAR module if already exists.
+        File modulesJarLocation = new File("${project.buildDir.absolutePath}${File.separator}etendo${File.separator}${PublicationUtils.BASE_MODULE_DIR}")
+        File jarModule = new File(modulesJarLocation, this.moduleName)
+
+        if (jarModule && jarModule.exists()) {
+            project.logger.info("Deleting the JAR module '${jarModule.absolutePath}'")
+            jarModule.deleteDir()
+        }
+
         File tempDir = project.tasks.register("extractZip-${this.moduleName}-${System.currentTimeMillis()}").get().temporaryDir
         // Clean tmp dir
         project.delete(tempDir)
@@ -114,14 +123,19 @@ class ArtifactDependency {
             into (tempDir)
         }
 
+        def sourceModuleLocation = "${project.rootDir.absolutePath}${File.separator}${PublicationUtils.BASE_MODULE_DIR}${File.separator}${moduleName}"
+
         // Sync the files with the module directory
-        project.ant.sync(todir:"${PublicationUtils.BASE_MODULE_DIR}${File.separator}${moduleName}") {
+        project.ant.sync(todir: sourceModuleLocation) {
             ant.fileset(dir: "${tempDir.getAbsolutePath()}${File.separator}${moduleName}")
         }
 
-        // TODO: Delete the JAR module if exits
-
-        // TODO: Create metadata file
+        // Create metadata file
+        EtendoArtifactMetadata artifactMetadata = new EtendoArtifactMetadata(project, DependencyType.ETENDOZIPMODULE)
+        artifactMetadata.group = this.group
+        artifactMetadata.name = this.name
+        artifactMetadata.version = this.version
+        artifactMetadata.createMetadataFile(sourceModuleLocation)
 
         // Clean tmp dir
         project.delete(tempDir)

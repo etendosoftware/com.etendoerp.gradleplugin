@@ -2,6 +2,8 @@ package com.etendoerp.legacy.dependencies
 
 import org.gradle.api.Project
 
+import java.time.Instant
+
 /**
  * Class used to load or create the properties file of a Etendo Artifact.
  * The Etendo artifact could be a Etendo source module, the Etendo core JAR or Etendo core sources.
@@ -10,6 +12,9 @@ import org.gradle.api.Project
 class EtendoArtifactMetadata {
 
     final static String METADATA_FILE = "etendo.artifact.properties"
+
+    final static String ARTIFACT = "artifact"
+    final static String DATE     = "date"
 
     final static String GROUP_PROPERTY   = "artifact.group"
     final static String NAME_PROPERTY    = "artifact.name"
@@ -93,17 +98,26 @@ class EtendoArtifactMetadata {
             return false
         }
 
-        File propertiesFile = new File(locationFile, METADATA_FILE)
-        propertiesFile.text = ""
+        def template = Thread.currentThread().getContextClassLoader().getResource("${METADATA_FILE}.template")
+        if (!template) {
+            throw new IllegalArgumentException("The ${METADATA_FILE} template does not exists.")
+        }
 
-        propertiesFile << """
-        This file contains metadata information about the Etendo artifact to perform resolution conflicts.
+        def templateFile = File.createTempFile(METADATA_FILE,"template")
+        templateFile.text = template.text
 
-        ${GROUP_PROPERTY}=${this.group}
-        ${NAME_PROPERTY}=${this.name}
-        ${VERSION_PROPERTY}=${this.version}
-        ${TYPE_PROPERTY}=${this.type}
-        """
+        Map<String, Object> properties = new HashMap<>()
+        properties.put(ARTIFACT, this)
+        properties.put(DATE, Instant.now().toString())
+
+        project.copy {
+            from(templateFile.absolutePath)
+            into(locationFile)
+            rename { String filename ->
+                return METADATA_FILE
+            }
+            expand(properties)
+        }
 
         return true
     }
