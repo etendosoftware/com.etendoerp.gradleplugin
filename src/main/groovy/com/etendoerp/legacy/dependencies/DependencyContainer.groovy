@@ -75,18 +75,18 @@ class DependencyContainer {
         if (coreMetadata.coreType == CoreType.SOURCES ) {
             if (coreMetadata.supportJars) {
                 // Resolve and extract Etendo modules
-                loadDependenciesFiles(true, performResolutionConflicts)
+                loadDependenciesFiles(true, performResolutionConflicts, true)
                 etendoDependenciesFiles.addAll(collectDependenciesFiles(this.etendoDependenciesJarFiles, applyDependenciesToMainProject))
             } else {
                 // The core does not support Jars, ignore performing resolution conflicts.
-                loadDependenciesFiles(false, false)
+                loadDependenciesFiles(false, false, true)
             }
             mavenDependenciesFiles.addAll(collectDependenciesFiles(this.mavenDependenciesFiles, applyDependenciesToMainProject))
         }
 
         if (coreMetadata.coreType == CoreType.JAR) {
             // When the core is in JAR the Etendo core dependency will be already applied
-            loadDependenciesFiles(false, performResolutionConflicts)
+            loadDependenciesFiles(false, performResolutionConflicts, false)
 
             // Collect the core dependency
             etendoDependenciesFiles.add(collectCoreJarDependency())
@@ -101,10 +101,12 @@ class DependencyContainer {
         return dependencies
     }
 
-    void performResolutionConflict(Configuration container, boolean addCoreToResolution) {
+    Configuration performResolutionConflict(Configuration container, boolean addCoreToResolution) {
         // Create a temporal configuration container used to perform resolution conflicts
         def resolutionContainer = project.configurations.create(RESOLUTION_CONTAINER)
 
+        List<Configuration> configurationsToLoad = new ArrayList<>()
+        configurationsToLoad.add(container)
         // Add the core dependency when is in Sources and supports Jars
         if (addCoreToResolution) {
             def group = coreMetadata.coreGroup
@@ -118,12 +120,15 @@ class DependencyContainer {
 
         // Load source modules dependencies
         Configuration sourceModules = ResolutionUtils.loadSourceModulesDependenciesResolution(project)
+        configurationsToLoad.add(sourceModules)
 
         // Load all the dependencies from the container and sourceModules to the created resolutionContainer
-        DependencyUtils.loadDependenciesFromConfigurations([container, sourceModules], resolutionDependencySet)
+        DependencyUtils.loadDependenciesFromConfigurations(configurationsToLoad, resolutionDependencySet)
 
         // Perform the resolution conflict versions
-        ResolutionUtils.dependenciesResolutionConflict(project, resolutionContainer)
+        ResolutionUtils.dependenciesResolutionConflict(project, resolutionContainer, true)
+
+        return resolutionContainer
     }
 
     /**
@@ -132,13 +137,21 @@ class DependencyContainer {
      *
      * @param addCoreToResolution Adds the core dependency when the resolution version conflict is performed
      * @param performResolutionConflicts Perform the resolution version conflict
+     * @param filterCoreDependency filter the core dependency to prevent download a new version.(When core in SOURCES)
      */
-    void loadDependenciesFiles(boolean addCoreToResolution, boolean performResolutionConflicts) {
+    void loadDependenciesFiles(boolean addCoreToResolution, boolean performResolutionConflicts ,boolean filterCoreDependency) {
         // Load all project and subproject dependencies in a custom configuration container
         Configuration container = ResolverDependencyUtils.loadAllDependencies(project)
 
         if (performResolutionConflicts) {
-            performResolutionConflict(container, addCoreToResolution)
+            def configurations = performResolutionConflict(container, addCoreToResolution)
+
+            // Add the dependencies from the configurations used to perform the resolution
+            DependencyUtils.loadDependenciesFromConfigurations([configurations], container.dependencies)
+        }
+
+        if (filterCoreDependency) {
+            // TODO: Filter the core dependency from the container
         }
 
         // Filter maven and Etendo dependencies

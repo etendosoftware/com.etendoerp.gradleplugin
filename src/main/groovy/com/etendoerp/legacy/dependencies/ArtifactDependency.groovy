@@ -40,6 +40,7 @@ class ArtifactDependency {
     // Gradle properties
     ModuleVersionIdentifier moduleVersionIdentifier
     String displayName
+    boolean hasConflicts
 
     // 'jar' or 'zip'
     String extension
@@ -79,6 +80,7 @@ class ArtifactDependency {
         this.version      = this.resolvedArtifact.moduleVersion.id.version
         this.extension    = this.resolvedArtifact.extension
         this.moduleName   = "${this.group}.${this.name}"
+        this.displayName = "${this.group}:${this.name}:${this.version}"
     }
 
     void process() {

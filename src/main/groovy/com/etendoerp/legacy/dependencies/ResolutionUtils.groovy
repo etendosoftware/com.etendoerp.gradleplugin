@@ -28,12 +28,13 @@ class ResolutionUtils {
     ]
 
     /**
-     * Obtains the incoming dependencies and performs the resolution versions conflicts
+     * Obtains the incoming dependencies and performs the resolution versions conflicts.
      * Throws a Exception if the dependency is the core and the 'force' flag is set to false.
      * @param project
      * @param configuration
+     * @param ignoreCore Flag used to prevent adding the Core dependency to the returned Map
      */
-    static List<ArtifactDependency> dependenciesResolutionConflict(Project project, Configuration configuration) {
+    static Map<String, ArtifactDependency> dependenciesResolutionConflict(Project project, Configuration configuration, boolean ignoreCore) {
         def extension = project.extensions.findByType(EtendoPluginExtension)
 
         def forceParameter = project.findProperty("force")
@@ -43,17 +44,24 @@ class ResolutionUtils {
 
         project.logger.info("Performing the resolution conflicts of the configuration '${configuration.getName()}'.")
 
+        Map<String, Boolean> artifactsConflicts = new HashMap<>()
+
         configuration.incoming.afterResolve {
             resolutionResult.allComponents {
                 ComponentSelectionReasonInternal reason = selectionReason
                 ModuleVersionIdentifier module = moduleVersion
+                String artifactName = "${module.group}:${module.name}"
+                artifactsConflicts.put(artifactName, true)
                 if (reason.conflictResolution && module != null) {
+                    artifactsConflicts.put(artifactName, true)
                     handleResolutionConflict(project, configuration, reason, module, force)
+                } else {
+                    artifactsConflicts.put(artifactName, false)
                 }
             }
         }
         // Trigger the resolution
-        return getIncomingDependencies(project, configuration)
+        return getIncomingDependencies(project, configuration, ignoreCore, artifactsConflicts)
     }
 
     static void handleResolutionConflict(Project project, Configuration configuration, ComponentSelectionReasonInternal reason, ModuleVersionIdentifier module, boolean force) {
@@ -83,21 +91,30 @@ class ResolutionUtils {
      * Ex: requested: 'com.test:mymod:[1.0.0, 1.0.3]' -> selected: 'com.test:mymod:1.0.2'
      * @param project
      * @param configuration
+     * @param ignoreCore Flag used to prevent adding the Core dependency to the returned Map
+     * @param artifactConflicts Map used to add to the ArtifactDependency the 'hasConflict' flag.
      * @return
      */
-    static List<ArtifactDependency> getIncomingDependencies(Project project, Configuration configuration) {
-        List<ArtifactDependency> incomingDependencies = []
+    static Map<String, ArtifactDependency> getIncomingDependencies(Project project, Configuration configuration, boolean ignoreCore, Map<String, Boolean> artifactConflicts = null) {
+        Map<String, ArtifactDependency> incomingDependencies = [:]
         configuration.incoming.each {
             for (DependencyResult dependency: it.resolutionResult.allDependencies) {
                 DefaultResolvedDependencyResult dependencyResult = dependency as DefaultResolvedDependencyResult
                 ModuleVersionIdentifier identifier = dependencyResult.getSelected().moduleVersion
                 String displayName = dependencyResult.getSelected().getId().displayName
                 ArtifactDependency artifactDependency = new ArtifactDependency(project, identifier, displayName)
+                String artifactName = "${identifier.group}:${identifier.name}"
+
+                // Check if the artifact has conflicts
+                if (artifactConflicts && artifactConflicts.containsKey(artifactName)) {
+                    artifactDependency.hasConflicts = artifactConflicts.get(artifactName)
+                }
+
                 project.logger.info("Requested dependency: ${dependencyResult.getRequested()} -> Selected: ${dependencyResult.getSelected()}")
-                if (isCoreDependency(displayName)) {
+                if (ignoreCore && isCoreDependency(displayName)) {
                     continue
                 }
-                incomingDependencies.add(artifactDependency)
+                incomingDependencies.put(artifactName, artifactDependency)
             }
         }
         return incomingDependencies

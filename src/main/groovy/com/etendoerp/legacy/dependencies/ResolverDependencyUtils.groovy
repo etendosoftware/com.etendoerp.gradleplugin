@@ -93,4 +93,65 @@ class ResolverDependencyUtils {
         }
     }
 
+    /**
+     * Creates a custom Configuration loaded with the ArtifactDependencies and Configurations passed has parameter.
+     * @param project
+     * @param configurations
+     * @param artifactDependencyMap
+     * @return
+     */
+    static Configuration createConfigurationFromArtifacts(Project project, List<Configuration> configurations, Map<String, ArtifactDependency> artifactDependencyMap) {
+
+        def configurationContainer = project.configurations.create(UUID.randomUUID().toString().replace("-",""))
+        def configurationDependencySet = configurationContainer.dependencies
+
+        // Load the configurations
+        DependencyUtils.loadDependenciesFromConfigurations(configurations, configurationDependencySet)
+
+        // Load the Artifact dependencies
+        for (def entry : artifactDependencyMap.entrySet()) {
+            String displayName = entry.value.displayName
+            if (displayName) {
+                project.dependencies.add(configurationContainer.name, displayName)
+            }
+        }
+
+        return configurationContainer
+    }
+
+    /**
+     * Obtains the incoming dependencies from a Configuration.
+     * Updates the dependencies from the Configuration with the passed 'artifactDependencyMap'.
+     *
+     * This is used to prevent adding extra Dependencies to a Configuration,
+     * when the configuration should only contain defined user Dependencies.
+     *
+     * Ex: The 'moduleDeps' config is used to define dependencies to expand, the dependencies are defined by the user.
+     * The incoming dependencies from the 'moduleDeps' are those defined by the user and the transitives ones.
+     * If a user wants to obtain the correct version of a defined Dependency taking into account Etendo modules already installed,
+     * a resolution conflict should be performed, the result should be the correct versions.
+     *
+     * The 'artifactDependencyMap' contains the resolution version result of the dependencies ('moduleDeps', Defined source Etendo Modules, etc.).
+     *
+     * @param project
+     * @param configuration
+     * @param artifactDependencyMap
+     * @param ignoreCore
+     * @return
+     */
+    static Configuration updateConfigurationDependencies(Project project, Configuration configuration, Map<String, ArtifactDependency> artifactDependencyMap, boolean ignoreCore) {
+
+        // Obtain the incoming dependencies from the Configuration
+        def incomingDependencies = ResolutionUtils.getIncomingDependencies(project, configuration, ignoreCore)
+
+        // Update the dependencies
+        for (def entry : artifactDependencyMap.entrySet()) {
+            if (incomingDependencies.containsKey(entry.key)) {
+                incomingDependencies.put(entry.key, entry.value)
+            }
+        }
+
+       return createConfigurationFromArtifacts(project, [configuration], incomingDependencies)
+    }
+
 }
