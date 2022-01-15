@@ -32,9 +32,9 @@ class ResolutionUtils {
      * Throws a Exception if the dependency is the core and the 'force' flag is set to false.
      * @param project
      * @param configuration
-     * @param ignoreCore Flag used to prevent adding the Core dependency to the returned Map
+     * @param filterCoreDependency Flag used to prevent adding the Core dependency to the returned Map
      */
-    static Map<String, ArtifactDependency> dependenciesResolutionConflict(Project project, Configuration configuration, boolean ignoreCore) {
+    static Map<String, ArtifactDependency> dependenciesResolutionConflict(Project project, Configuration configuration, boolean filterCoreDependency) {
         def extension = project.extensions.findByType(EtendoPluginExtension)
 
         def forceParameter = project.findProperty("force")
@@ -61,7 +61,7 @@ class ResolutionUtils {
             }
         }
         // Trigger the resolution
-        return getIncomingDependencies(project, configuration, ignoreCore, artifactsConflicts)
+        return getIncomingDependencies(project, configuration, filterCoreDependency, artifactsConflicts)
     }
 
     static void handleResolutionConflict(Project project, Configuration configuration, ComponentSelectionReasonInternal reason, ModuleVersionIdentifier module, boolean force) {
@@ -91,11 +91,11 @@ class ResolutionUtils {
      * Ex: requested: 'com.test:mymod:[1.0.0, 1.0.3]' -> selected: 'com.test:mymod:1.0.2'
      * @param project
      * @param configuration
-     * @param ignoreCore Flag used to prevent adding the Core dependency to the returned Map
+     * @param filterCoreDependency Flag used to prevent adding the Core dependency to the returned Map
      * @param artifactConflicts Map used to add to the ArtifactDependency the 'hasConflict' flag.
      * @return
      */
-    static Map<String, ArtifactDependency> getIncomingDependencies(Project project, Configuration configuration, boolean ignoreCore, Map<String, Boolean> artifactConflicts = null) {
+    static Map<String, ArtifactDependency> getIncomingDependencies(Project project, Configuration configuration, boolean filterCoreDependency, Map<String, Boolean> artifactConflicts = null) {
         Map<String, ArtifactDependency> incomingDependencies = [:]
         configuration.incoming.each {
             for (DependencyResult dependency: it.resolutionResult.allDependencies) {
@@ -111,7 +111,7 @@ class ResolutionUtils {
                 }
 
                 project.logger.info("Requested dependency: ${dependencyResult.getRequested()} -> Selected: ${dependencyResult.getSelected()}")
-                if (ignoreCore && isCoreDependency(displayName)) {
+                if (filterCoreDependency && isCoreDependency(displayName)) {
                     continue
                 }
                 incomingDependencies.put(artifactName, artifactDependency)

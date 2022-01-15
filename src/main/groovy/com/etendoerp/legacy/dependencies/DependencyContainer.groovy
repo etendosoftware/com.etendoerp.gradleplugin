@@ -101,7 +101,7 @@ class DependencyContainer {
         return dependencies
     }
 
-    Configuration performResolutionConflict(Configuration container, boolean addCoreToResolution) {
+    Map<String, ArtifactDependency> performResolutionConflict(Configuration container, boolean addCoreToResolution, boolean filterCoreDependency) {
         // Create a temporal configuration container used to perform resolution conflicts
         def resolutionContainer = project.configurations.create(RESOLUTION_CONTAINER)
 
@@ -126,9 +126,7 @@ class DependencyContainer {
         DependencyUtils.loadDependenciesFromConfigurations(configurationsToLoad, resolutionDependencySet)
 
         // Perform the resolution conflict versions
-        ResolutionUtils.dependenciesResolutionConflict(project, resolutionContainer, true)
-
-        return resolutionContainer
+        return ResolutionUtils.dependenciesResolutionConflict(project, resolutionContainer, filterCoreDependency)
     }
 
     /**
@@ -144,14 +142,12 @@ class DependencyContainer {
         Configuration container = ResolverDependencyUtils.loadAllDependencies(project)
 
         if (performResolutionConflicts) {
-            def configurations = performResolutionConflict(container, addCoreToResolution)
-
-            // Add the dependencies from the configurations used to perform the resolution
-            DependencyUtils.loadDependenciesFromConfigurations([configurations], container.dependencies)
+            def artifactDependencies = performResolutionConflict(container, addCoreToResolution, filterCoreDependency)
+            container = ResolverDependencyUtils.updateConfigurationDependencies(project, container, artifactDependencies, filterCoreDependency, false)
         }
 
         if (filterCoreDependency) {
-            // TODO: Filter the core dependency from the container
+            ResolverDependencyUtils.excludeCoreDependencies(project, container)
         }
 
         // Filter maven and Etendo dependencies

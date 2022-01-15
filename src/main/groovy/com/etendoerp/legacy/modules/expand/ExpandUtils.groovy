@@ -9,8 +9,6 @@ import com.etendoerp.legacy.dependencies.ResolverDependencyUtils
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ResolvedArtifact
 
-import java.lang.module.Configuration
-
 class ExpandUtils {
 
     final static String SOURCE_MODULES_CONTAINER = "sourceModulesContainer"
@@ -22,10 +20,9 @@ class ExpandUtils {
         def extension = project.extensions.findByType(EtendoPluginExtension)
         def performResolutionConflicts = extension.performResolutionConflicts
 
-
         if (performResolutionConflicts) {
            def artifactDependencies = performExpandResolutionConflicts(project, coreMetadata, true, false)
-           configurationToExpand = ResolverDependencyUtils.updateConfigurationDependencies(project, configurationToExpand, artifactDependencies, true)
+           configurationToExpand = ResolverDependencyUtils.updateConfigurationDependencies(project, configurationToExpand, artifactDependencies, true, false)
         }
 
         project.logger.info("* Getting incoming dependencies from the '${configurationToExpand.name}' configuration.")

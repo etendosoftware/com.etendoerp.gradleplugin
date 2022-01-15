@@ -1,5 +1,6 @@
 package com.etendoerp.legacy.dependencies
 
+import com.etendoerp.core.CoreMetadata
 import com.etendoerp.jars.modules.metadata.DependencyUtils
 import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
@@ -136,22 +137,49 @@ class ResolverDependencyUtils {
      * @param project
      * @param configuration
      * @param artifactDependencyMap
-     * @param ignoreCore
+     * @param filterCoreDependency
+     * @param updateOnConflicts Prevent updating the dependency if has conflicts (Left the defined user version)
      * @return
      */
-    static Configuration updateConfigurationDependencies(Project project, Configuration configuration, Map<String, ArtifactDependency> artifactDependencyMap, boolean ignoreCore) {
+    static Configuration updateConfigurationDependencies(Project project, Configuration configuration, Map<String, ArtifactDependency> artifactDependencyMap, boolean filterCoreDependency, boolean updateOnConflicts) {
 
         // Obtain the incoming dependencies from the Configuration
-        def incomingDependencies = ResolutionUtils.getIncomingDependencies(project, configuration, ignoreCore)
+        def incomingDependencies = ResolutionUtils.getIncomingDependencies(project, configuration, filterCoreDependency)
 
         // Update the dependencies
         for (def entry : artifactDependencyMap.entrySet()) {
+            if (entry.value.hasConflicts && !updateOnConflicts) {
+                continue
+            }
+
             if (incomingDependencies.containsKey(entry.key)) {
                 incomingDependencies.put(entry.key, entry.value)
             }
         }
 
        return createConfigurationFromArtifacts(project, [configuration], incomingDependencies)
+    }
+
+    static void excludeDependencies(Project project, Configuration configuration, List<ArtifactDependency> dependenciesToExclude) {
+        for (ArtifactDependency dependency : dependenciesToExclude) {
+            String group = dependency.group
+            String name  = dependency.name
+            String artifactName = "${group}:${name}"
+
+            configuration.dependencies.removeIf({
+                String dependencyName = "${it.group}:${it.name}"
+                return dependencyName.contains(artifactName)
+            })
+
+            // Exclude transitives dependencies
+            configuration.exclude([group : "$group", module: "$name"])
+        }
+    }
+
+    static void excludeCoreDependencies(Project project, Configuration configuration) {
+        ArtifactDependency defaultCore = new ArtifactDependency(project, CoreMetadata.DEFAULT_ETENDO_CORE_GROUP, CoreMetadata.DEFAULT_ETENDO_CORE_NAME, "1.0.0")
+        ArtifactDependency classicCore = new ArtifactDependency(project, CoreMetadata.CLASSIC_ETENDO_CORE_GROUP, CoreMetadata.CLASSIC_ETENDO_CORE_NAME, "1.0.0")
+        excludeDependencies(project, configuration, [defaultCore, classicCore])
     }
 
 }
