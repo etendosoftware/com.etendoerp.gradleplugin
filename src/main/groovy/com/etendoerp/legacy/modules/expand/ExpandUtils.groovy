@@ -4,9 +4,14 @@ import com.etendoerp.EtendoPluginExtension
 import com.etendoerp.core.CoreMetadata
 import com.etendoerp.jars.modules.metadata.DependencyUtils
 import com.etendoerp.legacy.dependencies.ArtifactDependency
+import com.etendoerp.legacy.dependencies.DependencyContainer
+import com.etendoerp.legacy.dependencies.DependencyType
 import com.etendoerp.legacy.dependencies.ResolutionUtils
 import com.etendoerp.legacy.dependencies.ResolverDependencyUtils
+import com.etendoerp.publication.PublicationUtils
+import groovy.io.FileType
 import org.gradle.api.Project
+import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.ResolvedArtifact
 
 class ExpandUtils {
@@ -14,22 +19,34 @@ class ExpandUtils {
     final static String SOURCE_MODULES_CONTAINER = "sourceModulesContainer"
     final static String EXPAND_SOURCES_RESOLUTION_CONTAINER = "expandSourcesResolutionContainer"
 
-    static List<ArtifactDependency> getSourceModulesFiles(Project project, CoreMetadata coreMetadata) {
-        def configurationToExpand = project.configurations.getByName("moduleDeps")
+    static List<ArtifactDependency> getSourceModulesFiles(Project project, Configuration configuration, CoreMetadata coreMetadata) {
+        def configurationToExpand = ResolverDependencyUtils.createRandomConfiguration(project, configuration)
 
         def extension = project.extensions.findByType(EtendoPluginExtension)
         def performResolutionConflicts = extension.performResolutionConflicts
 
+        def supportJars = coreMetadata.supportJars
+
         if (performResolutionConflicts) {
-           def artifactDependencies = performExpandResolutionConflicts(project, coreMetadata, true, false)
+           def artifactDependencies = performExpandResolutionConflicts(project, coreMetadata, true, supportJars)
            configurationToExpand = ResolverDependencyUtils.updateConfigurationDependencies(project, configurationToExpand, artifactDependencies, true, false)
         }
 
-        project.logger.info("* Getting incoming dependencies from the '${configurationToExpand.name}' configuration.")
-        def incomingDependencies = ResolutionUtils.getIncomingDependencies(project, configurationToExpand, true)
+        // Filter core dependencies
+        ResolverDependencyUtils.excludeCoreDependencies(project, configurationToExpand)
 
-        return collectDependenciesFiles(project, incomingDependencies, "zip", true)
+        if (supportJars) {
+            DependencyContainer dependencyContainer = new DependencyContainer(project, coreMetadata)
+            ResolverDependencyUtils.filterDependenciesFiles(project, configurationToExpand, dependencyContainer)
+            return dependencyContainer.etendoDependenciesZipFiles.collect {it.value}
+        } else {
+            project.logger.info("* Getting incoming dependencies from the '${configurationToExpand.name}' configuration.")
+            def incomingDependencies = ResolutionUtils.getIncomingDependencies(project, configurationToExpand, true)
+            return collectDependenciesFiles(project, incomingDependencies, "zip", true)
+        }
+
     }
+
 
     /**
      * * Collect the defined extension of a dependency
@@ -131,6 +148,47 @@ class ExpandUtils {
         def group = parts[0]
         def name = parts[1]
         return "${group}.${name}"
+    }
+
+    /**
+     * Extracts the modules in ZIP format
+     * @param project
+     * @param coreMetadata
+     * @param artifactDependencies
+     */
+    static void expandModulesOnlySources(Project project, CoreMetadata coreMetadata, Configuration configuration, List<ArtifactDependency> artifactDependencies) {
+        def extension = project.extensions.findByType(EtendoPluginExtension)
+        def overwrite = extension.overwriteTransitiveExpandModules
+
+        def dependencyMap = ResolverDependencyUtils.loadDependenciesMap(project, configuration)
+        def sourceModulesMap = getSourceModules(project)
+
+        for (ArtifactDependency artifact in artifactDependencies) {
+
+            if (artifact.type != DependencyType.ETENDOZIPMODULE) {
+                continue
+            }
+
+            String moduleName = artifact.moduleName
+            // Prevent extracting transitive modules if the overwrite flag is set to false,
+            // the module is already in sources
+            // and the module was not defined by the user
+            if (!overwrite && sourceModulesMap.containsKey(moduleName) && !dependencyMap.containsKey(moduleName)) {
+                continue
+            }
+
+            artifact.extract()
+        }
+    }
+
+    static Map<String, File> getSourceModules(Project project) {
+        Map<String, File> sourceModules = new HashMap<>()
+        def modulesLocation = new File(project.rootDir, PublicationUtils.BASE_MODULE_DIR)
+        // Add the source modules
+        modulesLocation.traverse(type: FileType.DIRECTORIES, maxDepth: 0) {
+            sourceModules.put(it.name, it)
+        }
+        return sourceModules
     }
 
 }

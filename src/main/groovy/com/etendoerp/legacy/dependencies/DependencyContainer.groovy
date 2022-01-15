@@ -50,6 +50,9 @@ class DependencyContainer {
     DependencyContainer(Project project, CoreMetadata coreMetadata) {
         this.project = project
         this.coreMetadata = coreMetadata
+        this.mavenDependenciesFiles     = new HashMap<>()
+        this.etendoDependenciesJarFiles = new HashMap<>()
+        this.etendoDependenciesZipFiles = new HashMap<>()
     }
 
     /**

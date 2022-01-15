@@ -28,7 +28,7 @@ class ResolverDependencyUtils {
 
         // The configuration container allows to filter equals dependencies with different versions
         // The container will contain the last version of a dependency
-        def container = project.configurations.findByName(PublicationUtils.ETENDO_DEPENDENCY_CONTAINER)
+        def container = project.configurations.create(UUID.randomUUID().toString().replace("-",""))
 
         DependencySet containerSet = container.dependencies
 
@@ -144,6 +144,7 @@ class ResolverDependencyUtils {
     static Configuration updateConfigurationDependencies(Project project, Configuration configuration, Map<String, ArtifactDependency> artifactDependencyMap, boolean filterCoreDependency, boolean updateOnConflicts) {
 
         // Obtain the incoming dependencies from the Configuration
+        project.logger.info("* Getting incoming dependencies from the configuration '${configuration.name}' to be updated.")
         def incomingDependencies = ResolutionUtils.getIncomingDependencies(project, configuration, filterCoreDependency)
 
         // Update the dependencies
@@ -180,6 +181,21 @@ class ResolverDependencyUtils {
         ArtifactDependency defaultCore = new ArtifactDependency(project, CoreMetadata.DEFAULT_ETENDO_CORE_GROUP, CoreMetadata.DEFAULT_ETENDO_CORE_NAME, "1.0.0")
         ArtifactDependency classicCore = new ArtifactDependency(project, CoreMetadata.CLASSIC_ETENDO_CORE_GROUP, CoreMetadata.CLASSIC_ETENDO_CORE_NAME, "1.0.0")
         excludeDependencies(project, configuration, [defaultCore, classicCore])
+    }
+
+    /**
+     * Creates a random Configuration.
+     * If the 'configurationToAdd' is passed has a parameter, loads all the dependencies to the new configuration.
+     * @param project
+     * @param configurationToAdd
+     * @return
+     */
+    static Configuration createRandomConfiguration(Project project, Configuration configurationToAdd = null) {
+        def config = project.configurations.create(UUID.randomUUID().toString().replace("-",""))
+        if (configurationToAdd) {
+            DependencyUtils.loadDependenciesFromConfigurations([configurationToAdd], config.dependencies)
+        }
+        return config
     }
 
 }

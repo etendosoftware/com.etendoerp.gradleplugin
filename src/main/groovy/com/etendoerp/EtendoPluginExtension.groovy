@@ -20,6 +20,9 @@ class EtendoPluginExtension {
     // Flag used to apply the subproject dependencies to the main project
     boolean applyDependenciesToMainProject = true
 
+    // Flag used to prevent overwriting the transitive source modules when performing the expand
+    boolean overwriteTransitiveExpandModules = true
+
     String coreGroup = CoreMetadata.DEFAULT_ETENDO_CORE_GROUP
     String coreName = CoreMetadata.DEFAULT_ETENDO_CORE_NAME
 
