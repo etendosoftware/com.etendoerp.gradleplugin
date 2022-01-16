@@ -4,12 +4,10 @@ import com.etendoerp.EtendoPluginExtension
 import com.etendoerp.core.CoreMetadata
 import com.etendoerp.core.CoreType
 import com.etendoerp.dependencies.EtendoCoreDependencies
-import com.etendoerp.jars.ExtractResourcesOfJars
 import com.etendoerp.legacy.ant.AntLoader
 import com.etendoerp.legacy.utils.NexusUtils
 import org.gradle.api.Project
 import org.gradle.api.logging.LogLevel
-import org.gradle.api.tasks.ant.AntTarget
 
 class ResolverDependencyLoader {
 
@@ -44,8 +42,8 @@ class ResolverDependencyLoader {
                 EtendoCoreDependencies.loadCoreTestDependencies(project)
             }
 
-            DependencyContainer dependencyContainer = new DependencyContainer(project, coreMetadata)
-            List<File> jarFiles = dependencyContainer.processJarFiles()
+            DependencyProcessor dependencyProcessor = new DependencyProcessor(project, coreMetadata)
+            List<File> jarFiles = dependencyProcessor.processJarFiles()
 
             // Note: previously the antClassLoader was used to add classes to ant's classpath
             // but when the core is a complete jar (with libs) affecting the class loader can cause collisions

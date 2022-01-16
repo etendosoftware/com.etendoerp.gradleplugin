@@ -1,4 +1,4 @@
-package com.etendoerp.legacy.dependencies
+package com.etendoerp.legacy.dependencies.container
 
 enum DependencyType {
     MAVEN           ("MAVEN"),

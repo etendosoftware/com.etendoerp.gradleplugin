@@ -4,13 +4,16 @@ import com.etendoerp.EtendoPluginExtension
 import com.etendoerp.core.CoreMetadata
 import com.etendoerp.core.CoreType
 import com.etendoerp.jars.modules.metadata.DependencyUtils
+import com.etendoerp.legacy.dependencies.container.ArtifactDependency
+import com.etendoerp.legacy.dependencies.container.DependencyContainer
+import com.etendoerp.legacy.dependencies.container.DependencyType
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.Dependency
 import org.gradle.api.artifacts.DependencySet
 
 /**
- * Class used to contain the Maven and Etendo dependencies.
+ * Class used to contain and process the Maven and Etendo dependencies.
  * The dependencies are mapped to JARs files.
  * The JARs files could be used by Ant (added to the classpath) and copied to the WebContent dir.
  *
@@ -32,27 +35,18 @@ import org.gradle.api.artifacts.DependencySet
  *      Etendo core JAR will be extracted in case of new version.
  *
  */
-class DependencyContainer {
+class DependencyProcessor {
 
     final static String RESOLUTION_CONTAINER = "resolutionContainer"
 
     Project project
     CoreMetadata coreMetadata
+    DependencyContainer dependencyContainer
 
-    // Map containing has key the module name
-    Map<String, ArtifactDependency> mavenDependenciesFiles
-    Map<String, ArtifactDependency> etendoDependenciesJarFiles
-    Map<String, ArtifactDependency> etendoDependenciesZipFiles
-    Map<String, Dependency> dependenciesMap
-
-    ArtifactDependency etendoCoreDependencyFile
-
-    DependencyContainer(Project project, CoreMetadata coreMetadata) {
+    DependencyProcessor(Project project, CoreMetadata coreMetadata) {
         this.project = project
         this.coreMetadata = coreMetadata
-        this.mavenDependenciesFiles     = new HashMap<>()
-        this.etendoDependenciesJarFiles = new HashMap<>()
-        this.etendoDependenciesZipFiles = new HashMap<>()
+        this.dependencyContainer = new DependencyContainer(project, coreMetadata)
     }
 
     /**
@@ -65,11 +59,6 @@ class DependencyContainer {
         List<File> mavenDependenciesFiles = []
         List<File> etendoDependenciesFiles = []
 
-        this.mavenDependenciesFiles = new HashMap<>()
-        this.etendoDependenciesJarFiles = new HashMap<>()
-        this.etendoDependenciesZipFiles = new HashMap<>()
-        this.dependenciesMap = new HashMap<>()
-
         def extension = project.extensions.findByType(EtendoPluginExtension)
 
         def performResolutionConflicts = extension.performResolutionConflicts
@@ -79,12 +68,12 @@ class DependencyContainer {
             if (coreMetadata.supportJars) {
                 // Resolve and extract Etendo modules
                 loadDependenciesFiles(true, performResolutionConflicts, true)
-                etendoDependenciesFiles.addAll(collectDependenciesFiles(this.etendoDependenciesJarFiles, applyDependenciesToMainProject))
+                etendoDependenciesFiles.addAll(collectDependenciesFiles(this.dependencyContainer.etendoDependenciesZipFiles, applyDependenciesToMainProject))
             } else {
                 // The core does not support Jars, ignore performing resolution conflicts.
                 loadDependenciesFiles(false, false, true)
             }
-            mavenDependenciesFiles.addAll(collectDependenciesFiles(this.mavenDependenciesFiles, applyDependenciesToMainProject))
+            mavenDependenciesFiles.addAll(collectDependenciesFiles(this.dependencyContainer.mavenDependenciesFiles, applyDependenciesToMainProject))
         }
 
         if (coreMetadata.coreType == CoreType.JAR) {
@@ -95,8 +84,8 @@ class DependencyContainer {
             etendoDependenciesFiles.add(collectCoreJarDependency())
 
             // Collect module dependency
-            etendoDependenciesFiles.addAll(collectDependenciesFiles(this.etendoDependenciesJarFiles, applyDependenciesToMainProject))
-            mavenDependenciesFiles.addAll(collectDependenciesFiles(this.mavenDependenciesFiles, applyDependenciesToMainProject))
+            etendoDependenciesFiles.addAll(collectDependenciesFiles(this.dependencyContainer.etendoDependenciesJarFiles, applyDependenciesToMainProject))
+            mavenDependenciesFiles.addAll(collectDependenciesFiles(this.dependencyContainer.mavenDependenciesFiles, applyDependenciesToMainProject))
         }
 
         dependencies.addAll(mavenDependenciesFiles)
@@ -154,7 +143,8 @@ class DependencyContainer {
         }
 
         // Filter maven and Etendo dependencies
-        ResolverDependencyUtils.filterDependenciesFiles(project, container, this)
+        this.dependencyContainer.configuration = container
+        this.dependencyContainer.filterDependenciesFiles()
     }
 
     /**
@@ -225,6 +215,5 @@ class DependencyContainer {
             }
         }
     }
-
 
 }

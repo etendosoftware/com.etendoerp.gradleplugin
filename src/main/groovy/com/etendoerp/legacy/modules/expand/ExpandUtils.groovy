@@ -3,11 +3,11 @@ package com.etendoerp.legacy.modules.expand
 import com.etendoerp.EtendoPluginExtension
 import com.etendoerp.core.CoreMetadata
 import com.etendoerp.jars.modules.metadata.DependencyUtils
-import com.etendoerp.legacy.dependencies.ArtifactDependency
-import com.etendoerp.legacy.dependencies.DependencyContainer
-import com.etendoerp.legacy.dependencies.DependencyType
 import com.etendoerp.legacy.dependencies.ResolutionUtils
 import com.etendoerp.legacy.dependencies.ResolverDependencyUtils
+import com.etendoerp.legacy.dependencies.container.ArtifactDependency
+import com.etendoerp.legacy.dependencies.container.DependencyContainer
+import com.etendoerp.legacy.dependencies.container.DependencyType
 import com.etendoerp.publication.PublicationUtils
 import groovy.io.FileType
 import org.gradle.api.Project
@@ -37,7 +37,8 @@ class ExpandUtils {
 
         if (supportJars) {
             DependencyContainer dependencyContainer = new DependencyContainer(project, coreMetadata)
-            ResolverDependencyUtils.filterDependenciesFiles(project, configurationToExpand, dependencyContainer)
+            dependencyContainer.configuration = configurationToExpand
+            dependencyContainer.filterDependenciesFiles()
             return dependencyContainer.etendoDependenciesZipFiles.collect {it.value}
         } else {
             project.logger.info("* Getting incoming dependencies from the '${configurationToExpand.name}' configuration.")
@@ -93,7 +94,7 @@ class ExpandUtils {
 
             // The resolved artifact should be only one
             for (ResolvedArtifact artifact : resolvedArtifact) {
-                artifactDependency = new ArtifactDependency(project, artifact)
+                artifactDependency = DependencyContainer.getArtifactDependency(project, artifact)//new ArtifactDependency(project, artifact)
             }
 
             if (artifactDependency) {

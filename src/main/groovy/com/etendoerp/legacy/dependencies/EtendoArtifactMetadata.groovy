@@ -1,5 +1,6 @@
 package com.etendoerp.legacy.dependencies
 
+import com.etendoerp.legacy.dependencies.container.DependencyType
 import org.gradle.api.Project
 
 import java.time.Instant

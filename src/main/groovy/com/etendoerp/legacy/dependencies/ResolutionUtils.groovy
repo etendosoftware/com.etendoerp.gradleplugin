@@ -2,6 +2,8 @@ package com.etendoerp.legacy.dependencies
 
 import com.etendoerp.EtendoPluginExtension
 import com.etendoerp.core.CoreMetadata
+import com.etendoerp.legacy.dependencies.container.ArtifactDependency
+import com.etendoerp.legacy.dependencies.container.DependencyType
 import com.etendoerp.publication.PublicationUtils
 import groovy.io.FileType
 import org.gradle.api.Project

@@ -2,12 +2,11 @@ package com.etendoerp.legacy.dependencies
 
 import com.etendoerp.core.CoreMetadata
 import com.etendoerp.jars.modules.metadata.DependencyUtils
-import com.etendoerp.publication.PublicationUtils
+import com.etendoerp.legacy.dependencies.container.ArtifactDependency
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.Dependency
 import org.gradle.api.artifacts.DependencySet
-import org.gradle.api.artifacts.ResolvedArtifact
 
 class ResolverDependencyUtils {
 
@@ -54,45 +53,6 @@ class ResolverDependencyUtils {
         return dependenciesMap
     }
 
-    /**
-     * Filters the external dependencies by type:
-     *  - MAVEN
-     *  - ETENDOJARMODULE
-     *  - ETENDOZIPMODULE
-     *  - ETENDOCORE
-     * @param project
-     * @param containerToFilter The container with the dependencies to filter
-     * @param dependencyContainer The dependency container to load with the filtered dependencies.
-     */
-    static void filterDependenciesFiles(Project project, Configuration containerToFilter, DependencyContainer dependencyContainer) {
-        def dependenciesMap = loadDependenciesMap(project, containerToFilter)
-        dependencyContainer.dependenciesMap = dependenciesMap
-        def mavenDependenciesFiles = dependencyContainer.mavenDependenciesFiles
-        def etendoDependenciesJarFiles = dependencyContainer.etendoDependenciesJarFiles
-        def etendoDependenciesZipFiles = dependencyContainer.etendoDependenciesZipFiles
-
-        def resolvedArtifacts = containerToFilter.resolvedConfiguration.resolvedArtifacts
-
-        for (ResolvedArtifact resolvedArtifact : resolvedArtifacts) {
-            ArtifactDependency artifactDependency = new ArtifactDependency(project, resolvedArtifact)
-            // Get the 'Dependency' object
-            artifactDependency.dependency = dependenciesMap.get(artifactDependency.moduleName)
-            switch (artifactDependency.type) {
-                case DependencyType.ETENDOCORE:
-                    dependencyContainer.etendoCoreDependencyFile = artifactDependency
-                    break
-                case DependencyType.ETENDOJARMODULE:
-                    etendoDependenciesJarFiles.put(artifactDependency.moduleName, artifactDependency)
-                    break
-                case DependencyType.ETENDOZIPMODULE:
-                    etendoDependenciesZipFiles.put(artifactDependency.moduleName, artifactDependency)
-                    break
-                default:
-                    mavenDependenciesFiles.put(artifactDependency.moduleName, artifactDependency)
-                    break
-            }
-        }
-    }
 
     /**
      * Creates a custom Configuration loaded with the ArtifactDependencies and Configurations passed has parameter.

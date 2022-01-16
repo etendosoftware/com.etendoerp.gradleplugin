@@ -3,8 +3,8 @@ package com.etendoerp.core
 import com.etendoerp.EtendoPluginExtension
 import com.etendoerp.jars.JarCoreGenerator
 import com.etendoerp.jars.modules.metadata.DependencyUtils
-import com.etendoerp.legacy.dependencies.DependencyType
 import com.etendoerp.legacy.dependencies.EtendoArtifactMetadata
+import com.etendoerp.legacy.dependencies.container.DependencyType
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.Dependency
