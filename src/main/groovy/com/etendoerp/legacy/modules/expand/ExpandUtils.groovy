@@ -94,7 +94,7 @@ class ExpandUtils {
 
             // The resolved artifact should be only one
             for (ResolvedArtifact artifact : resolvedArtifact) {
-                artifactDependency = DependencyContainer.getArtifactDependency(project, artifact)//new ArtifactDependency(project, artifact)
+                artifactDependency = DependencyContainer.getArtifactDependency(project, artifact)
             }
 
             if (artifactDependency) {
