@@ -38,7 +38,6 @@ group 'com.etendoerp'
 version(pluginVersion)
 
 repositories {
-    jcenter()
     mavenCentral()
 }
 
