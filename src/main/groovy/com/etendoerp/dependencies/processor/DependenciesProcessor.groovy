@@ -121,6 +121,14 @@ class DependenciesProcessor {
         String resolvedArtifactsFileName = "${RESOLVED_ARTIFACTS_PREFIX}.${scope.toString()}.${RESOLVED_ARTIFACTS_SUFFIX}"
         def destinationFile = new File(destination, resolvedArtifactsFileName)
         List<DependencyArtifact> resolvedArtifacts = artifactsData["resolved"] as List<DependencyArtifact>
+
+        //
+
+        def generateList = project.findProperty("list")
+        if (generateList) {
+            generateDependenciesFileList(resolvedArtifacts, scope)
+        }
+
         destinationFile.text = ""
         destinationFile.withWriter {
             it.println "${DependenciesProcessorUtils.generateArtifactsInformation(artifactsData)}"
@@ -130,6 +138,29 @@ class DependenciesProcessor {
             it.println "${DependenciesProcessorUtils.generateDependenciesList(project, resolvedArtifacts, scope)}"
             it.println "}"
         }
+    }
+
+    void generateDependenciesFileList(List<DependencyArtifact> artifacts, JarScope scope) {
+        String resolvedArtifactsFileName = "artifacts.list.${scope.toString()}.gradle"
+        def destinationFile = new File(destination, resolvedArtifactsFileName)
+        destinationFile.text = ""
+        String dependenciesBlock = "[ \n"
+
+        for (DependencyArtifact artifact : artifacts) {
+            String id = "${artifact.groupId}:${artifact.artifactId}:${artifact.version}"
+            dependenciesBlock += "  '${id}', \n"
+        }
+
+        dependenciesBlock += "]"
+
+        final String variableListName = "dependenciesList${scope.toString()}"
+
+        String dependencies = "List<String> _${variableListName} = ${dependenciesBlock} \n"
+        destinationFile.text = "${dependencies} \n"
+
+        destinationFile.text += "ext { \n"
+        destinationFile.text += "   ${variableListName} = _${variableListName} \n"
+        destinationFile.text += "}\n"
     }
 
     void processUnresolvedArtifacts(Project project, Map artifactsData, JarScope scope) {
