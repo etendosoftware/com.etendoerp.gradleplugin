@@ -3,6 +3,35 @@ package com.etendoerp.dependencies.processor
 import com.etendoerp.dependencies.DependencyArtifact
 import org.gradle.api.Project
 
+/**
+ * Class used to filter in a 'location' JARs files.
+ *
+ * For each JAR file found, a verification is performed to see if is already in a Maven repository or needs to be uploaded to Nexus.
+ *
+ * Two files are generated depending of the status of the JAR.
+ *  Resolved: Found in a Maven repository
+ *  Unresolved: Needs to be uploaded to Nexus
+ *
+ * The resolved file contains the dependency of the JAR, using the 'implementation' configuration.
+ *
+ * The unresolved file contains the necessary tasks to publish the JARs files to a Nexus repository.
+ *
+ * Two scopes are supported, COMPILATION and TEST
+ *  COMPILATION: Contains the JARs files found in the 'locationToSearch' which NOT are under a 'test/' directory
+ *
+ *  TEST: Contains the JARs files found in the 'locationToSearch' which are under a 'test/' directory.
+ *
+ *  EX: /location
+ *       |---- lib
+ *              |---- runtime
+ *                        |---- catalina-ant.jar
+ *              |----- test
+ *                        |---- junit-4.12.jar
+ *
+ *  The COMPILATION filter will contain the 'catalina-ant.jar'
+ *  The TEST filter will contain the 'junit-4.12.jar'
+ *
+ */
 class DependenciesProcessor {
 
     Project project
