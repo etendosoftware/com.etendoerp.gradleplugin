@@ -10,6 +10,9 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 
+/**
+ * Class used to perform a search of a JAR file using sha1 checksums in the Maven and Nexus repositories.
+ */
 class RepositoryResolver {
 
     static String MAVEN_REPOSITORY = "https://search.maven.org/"
@@ -26,6 +29,12 @@ class RepositoryResolver {
 
     }
 
+    /**
+     * Tries to find a JAR file in the Maven repositories using SHA1 checksums.
+     * If found, the 'artifact' is completed with the 'group:name:version'
+     * @param artifact
+     * @return
+     */
     static boolean resolveMavenArtifact(DependencyArtifact artifact) {
         artifact.project.logger.info("Trying to resolve '${artifact.originalName}' using the maven repository ${MAVEN_REPOSITORY}")
         def searchUrl = "${MAVEN_REPOSITORY}solrsearch/select?q=1:${artifact.sha1sum}&rows=20&wt=json"
@@ -50,6 +59,13 @@ class RepositoryResolver {
         return artifact.resolved
     }
 
+    /**
+     * Tries to find a JAR file in the Nexus repositories using SHA1 checksums.
+     * If found, the 'artifact' is completed with the 'group:name:version'
+     * @param project
+     * @param artifact
+     * @return
+     */
     static boolean resolveNexusArtifact(Project project, DependencyArtifact artifact) {
         artifact.project.logger.info("Trying to resolve '${artifact.originalName}' using the NEXUS repository ${DependenciesLoader.REPOSITORY_TO_PUBLISH}")
         if (!nexusArtifacts) {
@@ -73,6 +89,12 @@ class RepositoryResolver {
         return artifact.resolved
     }
 
+    /**
+     * Obtains all the artifacts of a given Nexus repository
+     * @param project
+     * @param repository
+     * @return
+     */
     static Map<String, DependencyArtifact> getNexusArtifacts(Project project, String repository) {
 
         Map<String, DependencyArtifact> nexusArtifacts = new HashMap<>()
