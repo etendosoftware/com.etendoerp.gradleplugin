@@ -64,6 +64,9 @@ class ArtifactDependency {
 
     void loadModuleVersionIdentifier(String group, String name, String version) {
         this.moduleVersionIdentifier = DefaultModuleVersionIdentifier.newId(group, name, version)
+        this.group = group
+        this.name = name
+        this.version = version
     }
 
     void loadFromArtifact() {

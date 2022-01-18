@@ -103,6 +103,10 @@ class ResolverDependencyUtils {
      */
     static Configuration updateConfigurationDependencies(Project project, Configuration configuration, Map<String, ArtifactDependency> artifactDependencyMap, boolean filterCoreDependency, boolean updateOnConflicts) {
 
+        if (filterCoreDependency) {
+            excludeCoreDependencies(project, configuration)
+        }
+
         // Obtain the incoming dependencies from the Configuration
         project.logger.info("* Getting incoming dependencies from the configuration '${configuration.name}' to be updated.")
         def incomingDependencies = ResolutionUtils.getIncomingDependencies(project, configuration, filterCoreDependency)
@@ -118,7 +122,7 @@ class ResolverDependencyUtils {
             }
         }
 
-       return createConfigurationFromArtifacts(project, [configuration], incomingDependencies)
+        return createConfigurationFromArtifacts(project, [configuration], incomingDependencies)
     }
 
     static void excludeDependencies(Project project, Configuration configuration, List<ArtifactDependency> dependenciesToExclude) {
@@ -135,6 +139,7 @@ class ResolverDependencyUtils {
             // Exclude transitives dependencies
             configuration.exclude([group : "$group", module: "$name"])
         }
+
     }
 
     static void excludeCoreDependencies(Project project, Configuration configuration) {

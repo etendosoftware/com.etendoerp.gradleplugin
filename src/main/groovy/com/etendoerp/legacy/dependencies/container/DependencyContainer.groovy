@@ -21,6 +21,8 @@ class DependencyContainer {
     Map<String, ArtifactDependency> etendoDependenciesZipFiles
     Map<String, Dependency> dependenciesMap
 
+    ArtifactDependency etendoCoreDependencyFile
+
     DependencyContainer(Project project, CoreMetadata coreMetadata) {
         this.project = project
         this.coreMetadata = coreMetadata

@@ -12,6 +12,7 @@ import org.gradle.api.artifacts.ModuleVersionIdentifier
 import org.gradle.api.artifacts.result.DependencyResult
 import org.gradle.api.internal.artifacts.ivyservice.resolveengine.result.ComponentSelectionReasonInternal
 import org.gradle.api.internal.artifacts.result.DefaultResolvedDependencyResult
+import org.gradle.api.logging.LogLevel
 import org.gradle.api.tasks.diagnostics.DependencyInsightReportTask
 
 /**
@@ -78,7 +79,11 @@ class ResolutionUtils {
         reportTask.setConfiguration(configuration)
         reportTask.setDependencySpec("${group}:${name}")
         project.logger.info("****************** REPORT ******************")
-        reportTask.report()
+
+        def logLevel = project.gradle.startParameter.logLevel.name()
+        if (logLevel == "INFO" || logLevel == "DEBUG") {
+            reportTask.report()
+        }
 
         // Throw on core conflict
         if (isCoreDependency(module.toString()) && !force) {
