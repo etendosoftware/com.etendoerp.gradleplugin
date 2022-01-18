@@ -141,6 +141,13 @@ class NexusUtils {
             it.repositories.each {repo ->
                 // Currently only maven repositories are taking into account.
                 def repoCredentials = repo["credentials"] as PasswordCredentials
+
+                // Configures subproject repositories without credentials.
+                if (repoCredentials.getUsername() == null && repoCredentials.getPassword() == null && usernameCredential && passwordCredential) {
+                    repoCredentials.setUsername(usernameCredential)
+                    repoCredentials.setPassword(passwordCredential)
+                }
+
                 project.repositories {
                     maven {
                         url "${repo.properties.get("url")}"
@@ -155,7 +162,7 @@ class NexusUtils {
             }
         }
 
-        if (usernameCredential != null && passwordCredential != null) {
+        if (usernameCredential && passwordCredential) {
             project.repositories.configureEach {
                 def repoCredentials = it["credentials"] as PasswordCredentials
                 // Configures only the repositories without credentials.
