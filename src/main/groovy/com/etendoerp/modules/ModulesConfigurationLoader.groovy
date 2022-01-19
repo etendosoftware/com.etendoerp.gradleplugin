@@ -33,8 +33,10 @@ class ModulesConfigurationLoader {
         if (moduleProject != null) {
             moduleProject.subprojects.each {subproject ->
 
-                subproject.pluginManager.apply("java")
-                subproject.pluginManager.apply("maven-publish")
+                subproject.beforeEvaluate {
+                    subproject.pluginManager.apply("java")
+                    subproject.pluginManager.apply("maven-publish")
+                }
 
                 subproject.afterEvaluate {
 
