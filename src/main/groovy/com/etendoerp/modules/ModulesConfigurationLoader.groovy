@@ -32,6 +32,12 @@ class ModulesConfigurationLoader {
 
         if (moduleProject != null) {
             moduleProject.subprojects.each {subproject ->
+
+                subproject.beforeEvaluate {
+                    subproject.pluginManager.apply("java")
+                    subproject.pluginManager.apply("maven-publish")
+                }
+
                 subproject.afterEvaluate {
 
                     // Throw error when a module subproject does not have the java plugin

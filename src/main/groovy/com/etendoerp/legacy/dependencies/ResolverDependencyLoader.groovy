@@ -33,7 +33,7 @@ class ResolverDependencyLoader {
             boolean loadTestDependencies        = extension.loadTestDependencies
 
             // Load Etendo core compilation dependencies when the core is in jar
-            if (coreMetadata.coreType == CoreType.JAR || loadCompilationDependencies) {
+            if (loadCompilationDependencies) {
                 EtendoCoreDependencies.loadCoreCompilationDependencies(project)
             }
 

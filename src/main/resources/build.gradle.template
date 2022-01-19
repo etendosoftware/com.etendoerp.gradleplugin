@@ -6,11 +6,6 @@
 *
 */
 
-plugins {
-    id 'java'
-    id 'maven-publish'
-}
-
 group          = "${group}"
 version        = "${version}"
 description    = "${description}"
@@ -39,7 +34,6 @@ publishing {
 
 repositories {
     mavenCentral()
-    jcenter()
     maven {
         url "${repository}"
     }
