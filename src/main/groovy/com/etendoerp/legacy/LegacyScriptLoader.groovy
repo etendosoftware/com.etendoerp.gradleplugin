@@ -79,14 +79,20 @@ class LegacyScriptLoader {
         }
 
         project.sourceSets{
-            main{
-                java{
+            main {
+                java {
                     outputDir = project.file("${project.buildDir}/classes/")
                     srcDirs = ['build/javasqlc/src'] //clean the default sources directories.
                     srcDirs 'build/javasqlc/srcAD'
                     srcDirs 'src'
                     srcDirs 'src-gen'
                     srcDirs 'srcAD'
+
+                    // The core is in JARs
+                    srcDirs 'build/etendo/build/javasqlc/src'
+                    srcDirs 'build/etendo/build/javasqlc/srcAD'
+                    srcDirs 'build/etendo/src-gen'
+                    srcDirs 'build/etendo/srcAD'
                 }
             }
         }
