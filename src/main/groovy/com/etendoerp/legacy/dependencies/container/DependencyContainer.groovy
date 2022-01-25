@@ -50,10 +50,11 @@ class DependencyContainer {
 
         for (ResolvedArtifact resolvedArtifact : resolvedArtifacts) {
             ArtifactDependency artifactDependency = getArtifactDependency(project, resolvedArtifact)
+
             // Get the 'Dependency' object
             artifactDependency.dependency = this.dependenciesMap.get(artifactDependency.moduleName)
             switch (artifactDependency.type) {
-                case DependencyType.ETENDOCORE:
+                case DependencyType.ETENDOCOREJAR:
                     this.etendoCoreDependencyFile = artifactDependency
                     break
                 case DependencyType.ETENDOJARMODULE:
@@ -86,7 +87,7 @@ class DependencyContainer {
         if (etendoModulesTree && etendoModulesTree.size() >= 1) {
             // The jar is the Etendo core
             if (resolvedArtifact.file.name.contains(JarCoreGenerator.ETENDO_CORE)) {
-                return new EtendoCoreArtifact(project, resolvedArtifact)
+                return new EtendoCoreJarArtifact(project, resolvedArtifact)
             } else {
                 return new EtendoJarModuleArtifact(project, resolvedArtifact)
             }

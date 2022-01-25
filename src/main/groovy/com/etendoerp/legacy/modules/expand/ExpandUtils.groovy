@@ -13,17 +13,27 @@ import groovy.io.FileType
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.ResolvedArtifact
+import org.gradle.api.logging.LogLevel
 
 class ExpandUtils {
 
     final static String SOURCE_MODULES_CONTAINER = "sourceModulesContainer"
     final static String EXPAND_SOURCES_RESOLUTION_CONTAINER = "expandSourcesResolutionContainer"
 
+    final static List<String> MODULES_CLASSIC = [
+            'com.smf:smartclient.debugtools:[1.0.1,)@zip',
+            'com.smf:smartclient.boostedui:[1.0.0,)@zip',
+            'com.smf:securewebservices:[1.1.1,)@zip'
+    ]
+
     static List<ArtifactDependency> getSourceModulesFiles(Project project, Configuration configuration, CoreMetadata coreMetadata) {
-        def configurationToExpand = ResolverDependencyUtils.createRandomConfiguration(project, configuration)
+        def configurationToExpand = ResolverDependencyUtils.createRandomConfiguration(project,"expand", configuration)
 
         def extension = project.extensions.findByType(EtendoPluginExtension)
         def performResolutionConflicts = extension.performResolutionConflicts
+
+        // Adds the classic modules if the Core is an old version
+        addClassicModulesToCore(project, configurationToExpand, coreMetadata)
 
         def supportJars = coreMetadata.supportJars
 
@@ -33,7 +43,7 @@ class ExpandUtils {
         }
 
         // Filter core dependencies
-        ResolverDependencyUtils.excludeCoreDependencies(project, configurationToExpand)
+        ResolverDependencyUtils.excludeCoreDependencies(project, configurationToExpand, true)
 
         if (supportJars) {
             DependencyContainer dependencyContainer = new DependencyContainer(project, coreMetadata)
@@ -41,13 +51,20 @@ class ExpandUtils {
             dependencyContainer.filterDependenciesFiles()
             return dependencyContainer.etendoDependenciesZipFiles.collect {it.value}
         } else {
-            project.logger.info("* Getting incoming dependencies from the '${configurationToExpand.name}' configuration.")
-            def incomingDependencies = ResolutionUtils.getIncomingDependencies(project, configurationToExpand, true)
+            project.logger.info("*** Getting incoming dependencies from the '${configurationToExpand.name}' configuration.")
+            def incomingDependencies = ResolutionUtils.getIncomingDependencies(project, configurationToExpand, true, true, LogLevel.DEBUG)
             return collectDependenciesFiles(project, incomingDependencies, "zip", true)
         }
 
     }
 
+    static void addClassicModulesToCore(Project project, Configuration configuration, CoreMetadata coreMetadata) {
+        if (coreMetadata.coreGroup == CoreMetadata.CLASSIC_ETENDO_CORE_GROUP && coreMetadata.coreName == CoreMetadata.CLASSIC_ETENDO_CORE_NAME) {
+            MODULES_CLASSIC.each {
+                project.dependencies.add(configuration.name, it)
+            }
+        }
+    }
 
     /**
      * * Collect the defined extension of a dependency
@@ -59,11 +76,19 @@ class ExpandUtils {
      * @param ignoreCore Flag used to prevent downloading the Core when is already in sources.
      * @return
      */
-    static List<ArtifactDependency> collectDependenciesFiles(Project project, Map<String, ArtifactDependency> dependencies, String extension, boolean ignoreCore) {
+    static List<ArtifactDependency> collectDependenciesFiles(Project project, Map<String, List<ArtifactDependency>> dependencies, String extension, boolean ignoreCore) {
         List<ArtifactDependency> collection = new ArrayList<>()
 
         for (def entry : dependencies.entrySet()) {
-            String displayName = entry.value.displayName
+
+            // Verify that the artifact list exists and contains a value.
+            List<ArtifactDependency> artifactList = entry.value
+            if (!artifactList || !(artifactList.size() >= 1)) {
+                continue
+            }
+
+            // Get the 'selected' artifact version.
+            String displayName = artifactList.get(0).displayName
 
             if (ignoreCore && ResolutionUtils.isCoreDependency(displayName)) {
                 continue
@@ -81,6 +106,7 @@ class ExpandUtils {
         String dependency = "${displayName}@${extension}"
         ArtifactDependency artifactDependency = null
         try {
+            project.logger.info("")
             project.logger.info("* Trying to resolve the dependency: ${dependency}")
 
             // Create a custom configuration container
@@ -109,7 +135,7 @@ class ExpandUtils {
         return artifactDependency
     }
 
-    static Map<String , ArtifactDependency> performExpandResolutionConflicts(Project project, CoreMetadata coreMetadata, boolean addCoreDependency, boolean addProjectDependencies) {
+    static Map<String, List<ArtifactDependency>> performExpandResolutionConflicts(Project project, CoreMetadata coreMetadata, boolean addCoreDependency, boolean addProjectDependencies) {
         // Create custom configuration container
         def resolutionContainer = project.configurations.create(EXPAND_SOURCES_RESOLUTION_CONTAINER)
         def resolutionDependencySet = resolutionContainer.dependencies
@@ -141,7 +167,8 @@ class ExpandUtils {
         DependencyUtils.loadDependenciesFromConfigurations(configurationsToLoad, resolutionDependencySet)
 
         // Perform resolution
-        return ResolutionUtils.dependenciesResolutionConflict(project, resolutionContainer, true)
+        //return ResolutionUtils.dependenciesResolutionConflict(project, resolutionContainer, true)
+        return ResolutionUtils.performResolutionConflicts(project, resolutionContainer, true, true)
     }
 
     static String getModuleName(String dependency) {

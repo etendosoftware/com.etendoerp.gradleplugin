@@ -1,9 +1,7 @@
 package com.etendoerp.legacy.modules.expand
 
-import com.etendoerp.EtendoPluginExtension
 import com.etendoerp.core.CoreMetadata
 import com.etendoerp.core.CoreType
-import com.etendoerp.legacy.dependencies.*
 import com.etendoerp.legacy.utils.NexusUtils
 import org.gradle.api.Project
 
@@ -22,6 +20,10 @@ class ExpandModules {
 
                 NexusUtils.askNexusCredentials(project)
                 def moduleDepsConfig = project.configurations.getByName("moduleDeps")
+
+                project.logger.info("*****************************************************")
+                project.logger.info("* Starting expanding modules.")
+                project.logger.info("*****************************************************")
 
                 def sourceFiles = ExpandUtils.getSourceModulesFiles(project, moduleDepsConfig, coreMetadata)
                 ExpandUtils.expandModulesOnlySources(project, coreMetadata, moduleDepsConfig, sourceFiles)

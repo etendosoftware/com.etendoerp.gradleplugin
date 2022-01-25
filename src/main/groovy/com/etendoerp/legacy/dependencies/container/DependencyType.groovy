@@ -4,7 +4,8 @@ enum DependencyType {
     MAVEN           ("MAVEN"),
     ETENDOJARMODULE ("ETENDOJARMODULE"),
     ETENDOZIPMODULE ("ETENDOZIPMODULE"),
-    ETENDOCORE      ("ETENDOCORE")
+    ETENDOCOREJAR   ("ETENDOCOREJAR"),
+    ETENDOCOREZIP   ("ETENDOCOREZIP")
 
     private final String type
 

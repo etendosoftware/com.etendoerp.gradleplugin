@@ -7,6 +7,7 @@ import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.Dependency
 import org.gradle.api.artifacts.DependencySet
+import org.gradle.api.internal.artifacts.dependencies.AbstractModuleDependency
 
 class ResolverDependencyUtils {
 
@@ -61,23 +62,29 @@ class ResolverDependencyUtils {
      * @param artifactDependencyMap
      * @return
      */
-    static Configuration createConfigurationFromArtifacts(Project project, List<Configuration> configurations, Map<String, ArtifactDependency> artifactDependencyMap) {
+    static Configuration createConfigurationFromArtifacts(Project project, List<Configuration> configurations, Map<String, List<ArtifactDependency>> artifactDependencyMap) {
 
-        def configurationContainer = project.configurations.create(UUID.randomUUID().toString().replace("-",""))
+        def configurationContainer = createRandomConfiguration(project)
         def configurationDependencySet = configurationContainer.dependencies
 
         // Load the configurations
         DependencyUtils.loadDependenciesFromConfigurations(configurations, configurationDependencySet)
 
         // Load the Artifact dependencies
-        for (def entry : artifactDependencyMap.entrySet()) {
-            String displayName = entry.value.displayName
-            if (displayName) {
-                project.dependencies.add(configurationContainer.name, displayName)
-            }
-        }
+        loadConfigurationWithArtifacts(project, configurationContainer, artifactDependencyMap)
 
         return configurationContainer
+    }
+
+    static void loadConfigurationWithArtifacts(Project project, Configuration configuration, Map<String, List<ArtifactDependency>> artifacts) {
+        for (def entry : artifacts.entrySet()) {
+            for (ArtifactDependency artifactDependency : entry.value) {
+                String displayName = artifactDependency.displayName
+                if (displayName) {
+                    project.dependencies.add(configuration.name, displayName)
+                }
+            }
+        }
     }
 
     /**
@@ -101,51 +108,74 @@ class ResolverDependencyUtils {
      * @param updateOnConflicts Prevent updating the dependency if has conflicts (Left the defined user version)
      * @return
      */
-    static Configuration updateConfigurationDependencies(Project project, Configuration configuration, Map<String, ArtifactDependency> artifactDependencyMap, boolean filterCoreDependency, boolean updateOnConflicts) {
-
-        if (filterCoreDependency) {
-            excludeCoreDependencies(project, configuration)
-        }
-
-        // Obtain the incoming dependencies from the Configuration
+    static Configuration updateConfigurationDependencies(Project project, Configuration configuration, Map<String, List<ArtifactDependency>> artifactDependencyMap, boolean filterCoreDependency, boolean updateOnConflicts) {
+        // Obtain the incoming 'requested' dependencies from the Configuration
         project.logger.info("* Getting incoming dependencies from the configuration '${configuration.name}' to be updated.")
-        def incomingDependencies = ResolutionUtils.getIncomingDependencies(project, configuration, filterCoreDependency)
+        def incomingDependencies = ResolutionUtils.getIncomingDependenciesExcludingCore(project, configuration, filterCoreDependency, false)
 
-        // Update the dependencies
+        // Update the dependencies of the incomingDependencies
         for (def entry : artifactDependencyMap.entrySet()) {
-            if (entry.value.hasConflicts && !updateOnConflicts) {
+            String dependencyName = entry.key
+            List<ArtifactDependency> artifactList = entry.value
+
+            if (!incomingDependencies.containsKey(dependencyName)) {
                 continue
             }
 
-            if (incomingDependencies.containsKey(entry.key)) {
-                incomingDependencies.put(entry.key, entry.value)
+            // Get the selected dependency
+            ArtifactDependency selectedDependency = null
+
+            if (artifactList && artifactList.size() >= 1 ) {
+                selectedDependency = artifactList.get(0)
             }
+
+            if (!selectedDependency) {
+                continue
+            }
+
+            if (selectedDependency.hasConflicts && !updateOnConflicts) {
+                continue
+            }
+
+            // Update the dependencies list
+            incomingDependencies.put(dependencyName, artifactList)
         }
 
         return createConfigurationFromArtifacts(project, [configuration], incomingDependencies)
     }
 
-    static void excludeDependencies(Project project, Configuration configuration, List<ArtifactDependency> dependenciesToExclude) {
+    static void excludeDependencies(Project project, Configuration configuration, List<ArtifactDependency> dependenciesToExclude, boolean removeFromConfiguration) {
         for (ArtifactDependency dependency : dependenciesToExclude) {
             String group = dependency.group
             String name  = dependency.name
             String artifactName = "${group}:${name}"
 
-            configuration.dependencies.removeIf({
-                String dependencyName = "${it.group}:${it.name}"
-                return dependencyName.contains(artifactName)
-            })
+            if (removeFromConfiguration) {
+                configuration.dependencies.removeIf({
+                    String dependencyName = "${it.group}:${it.name}"
+                    return dependencyName.contains(artifactName)
+                })
+            }
 
             // Exclude transitives dependencies
             configuration.exclude([group : "$group", module: "$name"])
         }
-
     }
 
-    static void excludeCoreDependencies(Project project, Configuration configuration) {
+    static void excludeCoreDependencies(Project project, Configuration configuration, boolean removeFromConfiguration) {
         ArtifactDependency defaultCore = new ArtifactDependency(project, CoreMetadata.DEFAULT_ETENDO_CORE_GROUP, CoreMetadata.DEFAULT_ETENDO_CORE_NAME, "1.0.0")
         ArtifactDependency classicCore = new ArtifactDependency(project, CoreMetadata.CLASSIC_ETENDO_CORE_GROUP, CoreMetadata.CLASSIC_ETENDO_CORE_NAME, "1.0.0")
-        excludeDependencies(project, configuration, [defaultCore, classicCore])
+        excludeDependencies(project, configuration, [defaultCore, classicCore], removeFromConfiguration)
+    }
+
+    static void excludeCoreFromDependencies(Project project, Configuration configuration) {
+        configuration.dependencies.each {
+            if (it instanceof AbstractModuleDependency) {
+                AbstractModuleDependency dependency = it as AbstractModuleDependency
+                dependency.exclude(group: CoreMetadata.DEFAULT_ETENDO_CORE_GROUP, module: CoreMetadata.DEFAULT_ETENDO_CORE_NAME)
+                dependency.exclude(group: CoreMetadata.CLASSIC_ETENDO_CORE_GROUP, module: CoreMetadata.CLASSIC_ETENDO_CORE_NAME)
+            }
+        }
     }
 
     /**
@@ -155,12 +185,33 @@ class ResolverDependencyUtils {
      * @param configurationToAdd
      * @return
      */
-    static Configuration createRandomConfiguration(Project project, Configuration configurationToAdd = null) {
-        def config = project.configurations.create(UUID.randomUUID().toString().replace("-",""))
+    static Configuration createRandomConfiguration(Project project, String name = null, Configuration configurationToAdd = null) {
+        String configName = (name) ?: "internal"
+
+        def config = project.configurations.create("${configName}-configuration-" + UUID.randomUUID().toString().replace("-",""))
         if (configurationToAdd) {
             DependencyUtils.loadDependenciesFromConfigurations([configurationToAdd], config.dependencies)
         }
         return config
+    }
+
+    /**
+     * Obtains the Core dependency from the artifact list
+     * @param project
+     * @param name
+     * @param artifactList
+     * @return
+     */
+    static ArtifactDependency getCoreDependency(Project project, String name, Map<String, List<ArtifactDependency>> artifactListMap) {
+        ArtifactDependency coreArtifact = null
+
+        List<ArtifactDependency> artifactList = artifactListMap.get(name)
+
+        if (artifactList && artifactList.size() >= 1) {
+            coreArtifact = artifactList.get(0)
+        }
+
+        return coreArtifact
     }
 
 }

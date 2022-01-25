@@ -15,7 +15,8 @@ class EtendoZipModuleArtifact extends ArtifactDependency{
 
     @Override
     void extract() {
-        project.logger.info("Extracting ZIP module '${this.moduleName}'.")
+        project.logger.info("")
+        project.logger.info("Extracting ZIP module '${this.group}:${this.name}:${this.version}'.")
 
         // Delete the JAR module if already exists.
         File modulesJarLocation = new File("${project.buildDir.absolutePath}${File.separator}etendo${File.separator}${PublicationUtils.BASE_MODULE_DIR}")
@@ -26,7 +27,9 @@ class EtendoZipModuleArtifact extends ArtifactDependency{
             jarModule.deleteDir()
         }
 
-        File tempDir = project.tasks.register("extractZip-${this.moduleName}-${System.currentTimeMillis()}").get().temporaryDir
+        String taskName = "extractZip-${this.moduleName}" + UUID.randomUUID().toString().replace("-","")
+        File tempDir = project.tasks.register(taskName).get().temporaryDir
+
         // Clean tmp dir
         project.delete(tempDir)
 

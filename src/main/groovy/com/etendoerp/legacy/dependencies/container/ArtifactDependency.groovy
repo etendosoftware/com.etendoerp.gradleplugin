@@ -1,7 +1,6 @@
 package com.etendoerp.legacy.dependencies.container
 
 import com.etendoerp.jars.PathUtils
-import com.etendoerp.legacy.dependencies.container.DependencyType
 import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Dependency
@@ -51,15 +50,29 @@ class ArtifactDependency {
         loadModuleVersionIdentifier(group, name, version)
     }
 
+    ArtifactDependency(Project project, String displayName) {
+        this.project = project
+        this.displayName = replaceSnapshot(displayName)
+
+        def splitName = displayName.split(":")
+        if (splitName.size() >= 3) {
+            this.group   = splitName[0]
+            this.name    = splitName[1]
+            this.version = splitName[2]
+        }
+    }
+
     ArtifactDependency(Project project, ModuleVersionIdentifier moduleVersionIdentifier, String displayName) {
         this.project = project
         this.moduleVersionIdentifier = moduleVersionIdentifier
+        this.displayName = replaceSnapshot(displayName)
+    }
 
+    static String replaceSnapshot(String displayName) {
         if (displayName.contains("SNAPSHOT:")) {
             displayName = displayName.replace("SNAPSHOT:","")
         }
-
-        this.displayName = displayName
+        return displayName
     }
 
     void loadModuleVersionIdentifier(String group, String name, String version) {

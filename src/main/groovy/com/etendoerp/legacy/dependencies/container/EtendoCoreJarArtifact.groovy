@@ -5,17 +5,17 @@ import org.gradle.api.Project
 import org.gradle.api.artifacts.ResolvedArtifact
 import org.gradle.api.file.FileTree
 
-class EtendoCoreArtifact extends ArtifactDependency{
+class EtendoCoreJarArtifact extends ArtifactDependency{
 
-    EtendoCoreArtifact(Project project, ResolvedArtifact resolvedArtifact) {
+    EtendoCoreJarArtifact(Project project, ResolvedArtifact resolvedArtifact) {
         super(project, resolvedArtifact)
-        this.type = DependencyType.ETENDOCORE
+        this.type = DependencyType.ETENDOCOREJAR
     }
 
     @Override
     void extract() {
         // Prevent extracting if the Core JAR already exists and is the same version
-        EtendoArtifactMetadata coreMetadata = new EtendoArtifactMetadata(project, DependencyType.ETENDOCORE)
+        EtendoArtifactMetadata coreMetadata = new EtendoArtifactMetadata(project, DependencyType.ETENDOCOREJAR)
         final String coreJarLocation = "${project.buildDir.absolutePath}${File.separator}etendo"
 
         if (coreMetadata.loadMetadataFile(coreJarLocation)) {
@@ -49,7 +49,7 @@ class EtendoCoreArtifact extends ArtifactDependency{
         }
 
         // Create the Artifact metadata file
-        EtendoArtifactMetadata metadataToCopy = new EtendoArtifactMetadata(project, DependencyType.ETENDOCORE)
+        EtendoArtifactMetadata metadataToCopy = new EtendoArtifactMetadata(project, DependencyType.ETENDOCOREJAR)
         metadataToCopy.group = this.group
         metadataToCopy.name = this.name
         metadataToCopy.version = this.version
@@ -64,13 +64,16 @@ class EtendoCoreArtifact extends ArtifactDependency{
         def rootConfigLocation   = project.file("${project.rootDir}/config")
         project.logger.info("Copying 'etendo/config' file to the root project.")
 
-        project.delete(rootConfigLocation) {
-            include("**/*.template")
+        def configFileTree = project.fileTree(rootConfigLocation).matching {
+            include "**/*.template"
         }
+
+        project.logger.info("Deleting template files: ${configFileTree.files}")
+        project.delete(configFileTree)
 
         project.copy {
             from(etendoConfigLocation) {
-                include("**/*.template")
+                include "**/*.template"
             }
             into rootConfigLocation
         }

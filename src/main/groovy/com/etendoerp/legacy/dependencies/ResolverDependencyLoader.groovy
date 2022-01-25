@@ -2,7 +2,6 @@ package com.etendoerp.legacy.dependencies
 
 import com.etendoerp.EtendoPluginExtension
 import com.etendoerp.core.CoreMetadata
-import com.etendoerp.core.CoreType
 import com.etendoerp.dependencies.EtendoCoreDependencies
 import com.etendoerp.legacy.ant.AntLoader
 import com.etendoerp.legacy.utils.NexusUtils
@@ -22,8 +21,10 @@ class ResolverDependencyLoader {
          * This method gets all resolved dependencies by gradle and pass all resolved jars to ANT tasks
          */
 
-        project.gradle.projectsEvaluated {
+        project.afterEvaluate {
             project.logger.info("Running GRADLE projectsEvaluated.")
+
+            ResolverDependencyUtils.loadAllDependencies(project)
 
             NexusUtils.configureRepositories(project)
             CoreMetadata coreMetadata = new CoreMetadata(project)
@@ -92,7 +93,7 @@ class ResolverDependencyLoader {
             // Ant task build.local.context uses this to copy them to WebContent
             project.ant.filelist(id: 'gradle.libs', files: dependencies.join(','))
 
-            AntLoader.loadAntFile(project)
+            AntLoader.loadAntFile(project, coreMetadata)
 
             //
             project.ant.references.keySet().forEach {

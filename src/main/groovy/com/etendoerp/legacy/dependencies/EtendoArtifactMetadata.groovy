@@ -99,7 +99,8 @@ class EtendoArtifactMetadata {
             return false
         }
 
-        def template = Thread.currentThread().getContextClassLoader().getResource("${METADATA_FILE}.template")
+        def template = getClass().getClassLoader().getResourceAsStream("${METADATA_FILE}.template")
+
         if (!template) {
             throw new IllegalArgumentException("The ${METADATA_FILE} template does not exists.")
         }

@@ -1,7 +1,11 @@
 package com.etendoerp.modules
 
+import com.etendoerp.EtendoPluginExtension
+import com.etendoerp.jars.modules.metadata.DependencyUtils
+import com.etendoerp.legacy.dependencies.ResolverDependencyUtils
 import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
+import org.gradle.api.internal.file.UnionFileCollection
 import org.gradle.api.plugins.JavaPlugin
 
 /**
@@ -21,6 +25,9 @@ import org.gradle.api.plugins.JavaPlugin
  * The 'project.sourceSets.main.compileClasspath' uses the classpath set by dependencies
  * using 'implementation','compile',etc
  *
+ * At the end the clause 'evaluationDependsOn' is added to evaluate each subproject before the root project.
+ * This is done to obtain the Configurations And Dependencies from the subprojects when running the resolution conflicts. (ResolverDependencyLoader class)
+ *
  */
 class ModulesConfigurationLoader {
 
@@ -31,6 +38,9 @@ class ModulesConfigurationLoader {
         def moduleProject = project.findProject(":${PublicationUtils.BASE_MODULE_DIR}")
 
         if (moduleProject != null) {
+
+            def extension = project.extensions.findByType(EtendoPluginExtension)
+
             moduleProject.subprojects.each {subproject ->
 
                 subproject.beforeEvaluate {
@@ -44,6 +54,15 @@ class ModulesConfigurationLoader {
                     if (!subproject.getPluginManager().hasPlugin("java")) {
                         throw new IllegalArgumentException("WARNING: The subproject ${subproject} is missing the 'java' plugin. \n" +
                                 "*** ${ERROR_MISSING_PLUGIN}")
+                    }
+
+                    // Exclude the core dependency
+                    def excludeCoreDependency = extension.excludeCoreDependencyFromSubprojectConfigurations
+                    if (excludeCoreDependency) {
+                        def subprojectConfigurations = DependencyUtils.loadListOfConfigurations(subproject)
+                        subprojectConfigurations.each {
+                            ResolverDependencyUtils.excludeCoreDependencies(project, it, false)
+                        }
                     }
 
                     /**
@@ -60,7 +79,12 @@ class ModulesConfigurationLoader {
                     subproject.sourceSets.main.runtimeClasspath += project.sourceSets.main.output
                     subproject.sourceSets.main.compileClasspath += project.sourceSets.main.compileClasspath
                     subproject.sourceSets.main.runtimeClasspath += project.sourceSets.main.runtimeClasspath
+
                 }
+
+                // Each subproject should be evaluated before the root project
+                project.evaluationDependsOn(subproject.path)
+
             }
         }
     }

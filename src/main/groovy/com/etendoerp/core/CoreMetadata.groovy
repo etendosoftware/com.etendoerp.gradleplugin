@@ -46,6 +46,8 @@ class CoreMetadata {
     String coreVersion
     String coreId
 
+    Dependency coreDependency
+
     CoreMetadata(Project project) {
         this.project = project
         this.loadMetadata()
@@ -116,8 +118,8 @@ class CoreMetadata {
             }
             versionNumber = versionPrefix.toInteger()
         } catch (Exception e) {
-            project.logger.error("Error parsing the core version")
-            project.logger.error(e.getMessage())
+            project.logger.info("Error parsing the core version")
+            project.logger.info(e.getMessage())
         }
         return versionNumber
     }
@@ -137,7 +139,7 @@ class CoreMetadata {
     }
 
     void loadVersionProperties(File parent) {
-        EtendoArtifactMetadata etendoArtifactMetadata = new EtendoArtifactMetadata(project, DependencyType.ETENDOCORE)
+        EtendoArtifactMetadata etendoArtifactMetadata = new EtendoArtifactMetadata(project, DependencyType.ETENDOCOREJAR)
         etendoArtifactMetadata.loadMetadataFile(parent.absolutePath)
 
         this.coreVersion = etendoArtifactMetadata.version
@@ -198,6 +200,7 @@ class CoreMetadata {
             type = CoreType.SOURCES
         } else if (isCoreInJars()) {
             type = CoreType.JAR
+            this.coreDependency = getCoreDependency(this.project)
         } else {
             type = CoreType.UNDEFINED
         }
@@ -248,15 +251,24 @@ class CoreMetadata {
     }
 
     boolean containsCoreDependency() {
+        Dependency coreDependency = getCoreDependency(this.project)
+
+        return coreDependency != null
+    }
+
+
+    static Dependency getCoreDependency(Project project){
+        Dependency coreDependency = null
+
         def baseProjectConfigurations = DependencyUtils.loadListOfConfigurations(project)
         for (Configuration configuration : baseProjectConfigurations) {
             for (Dependency dependency : configuration.allDependencies) {
                 if (dependency.name == JarCoreGenerator.ETENDO_CORE) {
-                    return true
+                    coreDependency = dependency
                 }
             }
         }
-        return false
+        return coreDependency
     }
 
 }

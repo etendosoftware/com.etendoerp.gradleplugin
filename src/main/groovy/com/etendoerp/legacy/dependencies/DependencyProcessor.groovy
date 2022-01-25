@@ -11,6 +11,7 @@ import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.Dependency
 import org.gradle.api.artifacts.DependencySet
+import org.gradle.api.artifacts.result.DependencyResult
 
 /**
  * Class used to contain and process the Maven and Etendo dependencies.
@@ -65,18 +66,22 @@ class DependencyProcessor {
         def applyDependenciesToMainProject = extension.applyDependenciesToMainProject
 
         if (coreMetadata.coreType == CoreType.SOURCES ) {
+            // Exclude from the root project the Core JAR dependency (included also from transitivity)
+            def rootProjectConfigurations = DependencyUtils.loadListOfConfigurations(project)
+            rootProjectConfigurations.each {
+                ResolverDependencyUtils.excludeCoreDependencies(project, it, true)
+            }
+
             if (coreMetadata.supportJars) {
                 // Resolve and extract Etendo modules
                 loadDependenciesFiles(true, performResolutionConflicts, true)
-                etendoDependenciesFiles.addAll(collectDependenciesFiles(this.dependencyContainer.etendoDependenciesZipFiles, applyDependenciesToMainProject))
+                etendoDependenciesFiles.addAll(collectDependenciesFiles(this.dependencyContainer.etendoDependenciesJarFiles, applyDependenciesToMainProject))
             } else {
                 // The core does not support Jars, ignore performing resolution conflicts.
                 loadDependenciesFiles(false, false, true)
             }
             mavenDependenciesFiles.addAll(collectDependenciesFiles(this.dependencyContainer.mavenDependenciesFiles, applyDependenciesToMainProject))
-        }
-
-        if (coreMetadata.coreType == CoreType.JAR) {
+        } else if (coreMetadata.coreType == CoreType.JAR) {
             // When the core is in JAR the Etendo core dependency will be already applied
             loadDependenciesFiles(false, performResolutionConflicts, false)
 
@@ -93,7 +98,7 @@ class DependencyProcessor {
         return dependencies
     }
 
-    Map<String, ArtifactDependency> performResolutionConflict(Configuration container, boolean addCoreToResolution, boolean filterCoreDependency) {
+    Map<String, List<ArtifactDependency>> performResolutionConflict(Configuration container, boolean addCoreToResolution, boolean filterCoreDependency) {
         // Create a temporal configuration container used to perform resolution conflicts
         def resolutionContainer = project.configurations.create(RESOLUTION_CONTAINER)
 
@@ -118,7 +123,7 @@ class DependencyProcessor {
         DependencyUtils.loadDependenciesFromConfigurations(configurationsToLoad, resolutionDependencySet)
 
         // Perform the resolution conflict versions
-        return ResolutionUtils.dependenciesResolutionConflict(project, resolutionContainer, filterCoreDependency)
+        return ResolutionUtils.performResolutionConflicts(project, resolutionContainer, filterCoreDependency, true)
     }
 
     /**
@@ -129,23 +134,73 @@ class DependencyProcessor {
      * @param performResolutionConflicts Perform the resolution version conflict
      * @param filterCoreDependency filter the core dependency to prevent download a new version.(When core in SOURCES)
      */
-    void loadDependenciesFiles(boolean addCoreToResolution, boolean performResolutionConflicts ,boolean filterCoreDependency) {
+    void loadDependenciesFiles(boolean addCoreToResolution, boolean performResolutionConflicts , boolean filterCoreDependency) {
         // Load all project and subproject dependencies in a custom configuration container
         Configuration container = ResolverDependencyUtils.loadAllDependencies(project)
+        ArtifactDependency coreArtifactDependency = null
 
         if (performResolutionConflicts) {
-            def artifactDependencies = performResolutionConflict(container, addCoreToResolution, filterCoreDependency)
-            container = ResolverDependencyUtils.updateConfigurationDependencies(project, container, artifactDependencies, filterCoreDependency, false)
+            // The resolution conflict returns all the 'selected' dependencies (matched versions)
+            def artifactDependencies = performResolutionConflict(container, addCoreToResolution, false)
+
+            // Obtain the 'selected' Core version
+            String currentCoreDependency = "${this.coreMetadata.coreGroup}:${this.coreMetadata.coreName}"
+            coreArtifactDependency = ResolverDependencyUtils.getCoreDependency(project, currentCoreDependency ,artifactDependencies)
+
+            // Update the configuration container with the 'selected' dependencies
+            container = ResolverDependencyUtils.updateConfigurationDependencies(project, container, artifactDependencies, false, false)
         }
 
-        if (filterCoreDependency) {
-            ResolverDependencyUtils.excludeCoreDependencies(project, container)
+        if (this.coreMetadata.coreType == CoreType.SOURCES) {
+            updateContainerPreFilterCoreSources(container, coreArtifactDependency)
+        } else if (this.coreMetadata.coreType == CoreType.JAR) {
+            updateContainerPreFilterCoreJar(container, coreArtifactDependency)
         }
 
         // Filter maven and Etendo dependencies
         this.dependencyContainer.configuration = container
         this.dependencyContainer.filterDependenciesFiles()
     }
+
+    void updateContainerPreFilterCoreSources(Configuration container, ArtifactDependency coreArtifactDependency) {
+        // Exclude from the configuration the CORE dependency
+        ResolverDependencyUtils.excludeCoreDependencies(project, container, true)
+
+        // TODO: Add the Core dependencies (defined in the pom.xml of the core), if the core in Sources does not contain the sources JARs dependencies (user should provide a flag).
+
+    }
+
+    void updateContainerPreFilterCoreJar(Configuration container, ArtifactDependency coreArtifactDependency) {
+        // Exclude from each Dependency in the configuration the CORE dependency
+        ResolverDependencyUtils.excludeCoreFromDependencies(project, container)
+
+        // If the coreArtifactDependency is not defined (resolution not performed)
+        // or the Core dependency has conflicts
+        if (!coreArtifactDependency || (coreArtifactDependency && coreArtifactDependency.hasConflicts)) {
+            // Clear all the Core dependencies and left the one defined by the user.
+            container.dependencies.removeIf({
+                def dependencyName = "${it.group}:${it.name}"
+                return ResolutionUtils.isCoreDependency(dependencyName)
+            })
+
+            Dependency coreDependency = CoreMetadata.getCoreDependency(project)
+            project.logger.error("***********************************************")
+            project.logger.error("* The core dependency to resolve will be the one defined by the user")
+            project.logger.error("* Core dependency '${coreDependency.group}:${coreDependency.name}:${coreDependency.version}'")
+            project.logger.error("***********************************************")
+            if (coreDependency) {
+                container.dependencies.add(coreDependency)
+            }
+
+        } else {
+            // If the core does not have conflicts, update the Core dependency with the resolved 'selected' dependency
+            project.logger.error("***********************************************")
+            project.logger.error("* Core dependency resolved to use '${coreArtifactDependency.displayName}'")
+            project.logger.error("***********************************************")
+            project.dependencies.add(container.name, coreArtifactDependency.displayName)
+        }
+    }
+
 
     /**
      * Collect the files mapped to a dependency (JARs files).
@@ -154,26 +209,22 @@ class DependencyProcessor {
      * @param applyDependencyToMainProject
      * @return
      */
-    List<File> collectDependenciesFiles(Map<String, ArtifactDependency> dependenciesFiles, boolean applyDependencyToMainProject) {
+    List<File> collectDependenciesFiles(Map<String, ArtifactDependency> dependenciesFiles, boolean applyDepToMainProject) {
         List<File> collection = []
-        List<Dependency> dependencies = []
 
         dependenciesFiles.each {
             ArtifactDependency artifactDependency = it.value
             collection.add(artifactDependency.locationFile)
-            Dependency dependency = artifactDependency.dependency
-            if (dependency) {
-                dependencies.add(dependency)
-            }
 
             // Extract Etendo dependency
             if (artifactDependency.type == DependencyType.ETENDOJARMODULE) {
                 artifactDependency.extract()
             }
-        }
 
-        if (applyDependencyToMainProject) {
-            applyDependenciesToMainProject(dependencies)
+            // The 'dependenciesFiles' should contain all the declared artifacts (transitive ones included)
+            if (applyDepToMainProject) {
+                this.applyDependencyToMainProject(artifactDependency, false)
+            }
         }
 
         return collection
@@ -184,12 +235,18 @@ class DependencyProcessor {
      * @return
      */
     File collectCoreJarDependency() {
-        if (!this.etendoCoreDependencyFile) {
+
+        ArtifactDependency coreArtifact = this.dependencyContainer.etendoCoreDependencyFile
+
+        if (!coreArtifact) {
             throw new IllegalArgumentException("Error collecting the Etendo core JAR file")
         }
 
-        this.etendoCoreDependencyFile.extract()
-        return this.etendoCoreDependencyFile.locationFile
+        coreArtifact.extract()
+
+        applyDependencyToMainProject(coreArtifact, true)
+
+        return coreArtifact.locationFile
     }
 
     /**
@@ -212,6 +269,14 @@ class DependencyProcessor {
                 project.dependencies {
                     implementation(dependency)
                 }
+            }
+        }
+    }
+
+    void applyDependencyToMainProject(ArtifactDependency artifactDependency, boolean transitivity) {
+        project.dependencies {
+            implementation (artifactDependency.displayName) {
+                transitive = transitivity
             }
         }
     }

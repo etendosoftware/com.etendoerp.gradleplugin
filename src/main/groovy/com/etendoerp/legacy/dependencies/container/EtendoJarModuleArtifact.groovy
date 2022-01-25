@@ -1,6 +1,7 @@
 package com.etendoerp.legacy.dependencies.container
 
 import com.etendoerp.jars.PathUtils
+import com.etendoerp.legacy.dependencies.EtendoArtifactMetadata
 import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ResolvedArtifact
@@ -24,7 +25,8 @@ class EtendoJarModuleArtifact extends ArtifactDependency{
             return
         }
 
-        project.logger.info("Extracting the Etendo module JAR '${this.moduleName}'")
+        project.logger.info("")
+        project.logger.info("Extracting the Etendo module JAR '${this.group}:${this.name}:${this.version}'")
 
         final String etendoModulesLocation = PathUtils.createPath(
                 project.buildDir.absolutePath,
@@ -62,6 +64,13 @@ class EtendoJarModuleArtifact extends ArtifactDependency{
             into "${etendoModulesLocation}${this.moduleName}/src"
             includeEmptyDirs = false
         }
+
+        // Create the Artifact metadata file
+        EtendoArtifactMetadata metadataToCopy = new EtendoArtifactMetadata(project, DependencyType.ETENDOJARMODULE)
+        metadataToCopy.group = this.group
+        metadataToCopy.name = this.name
+        metadataToCopy.version = this.version
+        metadataToCopy.createMetadataFile("${etendoModulesLocation}${this.moduleName}")
     }
 
 }

@@ -1,5 +1,8 @@
 package com.etendoerp.legacy.ant
 
+import com.etendoerp.core.CoreMetadata
+import com.etendoerp.core.CoreStatus
+import com.etendoerp.core.CoreType
 import com.etendoerp.jars.JarCoreGenerator
 import com.etendoerp.jars.modules.metadata.DependencyUtils
 import org.gradle.api.GradleException
@@ -75,17 +78,30 @@ class AntLoader {
         return true
     }
 
-    static void loadAntFile(Project project) {
-        def buildFile = new File(project.projectDir.getAbsolutePath() + File.separator + 'build' + File.separator + 'etendo' + File.separator + 'build.xml')
-        def isSourceJar = false
-        if (!buildFile.exists()) {
-            // TODO: instead based on the file, this condition should be available globally
-            //       based on the declared dependency
-            isSourceJar = true
-            buildFile = new File('build.xml')
+    static void loadAntFile(Project project, CoreMetadata coreMetadata) {
+        File buildFile = null
+        def coreInSources = false
+
+        if (coreMetadata.coreType == CoreType.UNDEFINED) {
+            project.logger.info("The ant file 'build.xml' could not be loaded because the Etendo core is not defined.")
+            return
         }
 
-        project.ant.properties['is.source.jar'] = isSourceJar
+        if (coreMetadata.coreType == CoreType.SOURCES) {
+            buildFile = new File(project.rootDir, 'build.xml')
+            project.logger.info("*********************************************")
+            project.logger.info("* Core in SOURCES - Reading 'build.xml' from '${buildFile.absolutePath}'")
+            project.logger.info("*********************************************")
+            coreInSources = true
+        } else if (coreMetadata.coreType == CoreType.JAR) {
+            buildFile = new File(project.buildDir, "etendo" + File.separator + "build.xml")
+            project.logger.info("*********************************************")
+            project.logger.info("* Core in JARs - Reading 'build.xml' from ${buildFile.absolutePath}")
+            project.logger.info("*********************************************")
+            coreInSources = false
+        }
+
+        project.ant.properties['is.source.jar'] = coreInSources
 
         /** map from ant tasks to gradle **/
         project.ant.importBuild(buildFile) { String oldTargetName ->
@@ -113,10 +129,10 @@ class AntLoader {
          */
         project.tasks.findByName("core.lib")?.mustRunAfter("cleanSubfolders")
 
-        project.ant.properties['is.source.jar'] = isSourceJar
+        project.ant.properties['is.source.jar'] = coreInSources
 
         project.tasks.withType(AntTarget) { t ->
-            if (!isSourceJar) {
+            if (!coreInSources) {
                 t.baseDir = project.file(buildFile.parent)
             }
         }
