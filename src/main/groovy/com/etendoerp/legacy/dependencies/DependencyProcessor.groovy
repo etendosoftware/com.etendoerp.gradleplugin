@@ -184,19 +184,23 @@ class DependencyProcessor {
             })
 
             Dependency coreDependency = CoreMetadata.getCoreDependency(project)
-            project.logger.error("***********************************************")
-            project.logger.error("* The core dependency to resolve will be the one defined by the user")
-            project.logger.error("* Core dependency '${coreDependency.group}:${coreDependency.name}:${coreDependency.version}'")
-            project.logger.error("***********************************************")
             if (coreDependency) {
+                project.logger.info("***********************************************")
+                project.logger.info("* The core dependency to resolve will be the one defined by the user")
+                project.logger.info("* Core dependency '${coreDependency.group}:${coreDependency.name}:${coreDependency.version}'")
+                project.logger.info("***********************************************")
                 container.dependencies.add(coreDependency)
+            } else {
+                project.logger.info("***********************************************")
+                project.logger.info("* The core dependency is not defined.")
+                project.logger.info("***********************************************")
             }
 
         } else {
             // If the core does not have conflicts, update the Core dependency with the resolved 'selected' dependency
-            project.logger.error("***********************************************")
-            project.logger.error("* Core dependency resolved to use '${coreArtifactDependency.displayName}'")
-            project.logger.error("***********************************************")
+            project.logger.info("***********************************************")
+            project.logger.info("* Core dependency resolved to use '${coreArtifactDependency.displayName}'")
+            project.logger.info("***********************************************")
             project.dependencies.add(container.name, coreArtifactDependency.displayName)
         }
     }
