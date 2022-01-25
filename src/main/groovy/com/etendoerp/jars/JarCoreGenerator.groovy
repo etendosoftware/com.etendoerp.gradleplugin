@@ -1,6 +1,6 @@
 package com.etendoerp.jars
 
-
+import com.etendoerp.dependencies.DependenciesLoader
 import org.gradle.api.Project
 import org.gradle.api.file.FileTreeElement
 import org.gradle.api.tasks.Copy
@@ -56,20 +56,30 @@ class JarCoreGenerator {
                 // Workaround for issue: https://issues.apache.org/jira/browse/LOG4J2-673
                 jarTask.exclude "**/Log4j2Plugins.dat"
 
-                // Create a "fat" jar
-                jarTask.from{
-                    project.configurations.compileClasspath.collect {
-                        def absolutePath = it.getAbsolutePath()
-                        if (absolutePath.contains("ob-rhino-1.6R7.jar") || absolutePath.contains("lib" + File.separator + "test")) {
-                            project.logger.info("Excluding '${absolutePath}' from the core jar.")
-                            return null
-                        }
-                        if (it.isDirectory()) {
-                            it
-                        } else {
-                            project.zipTree(it)
-                        }
+                List includedJarsLocation = [
+                        "src-db/database/lib/dbsourcemanager.jar",
+                        "src-db/database/lib/dbmanager.jar",
+                        "src-wad/lib/openbravo-wad.jar",
+                        "src-trl/lib/openbravo-trl.jar",
+                        "src-core/lib/openbravo-core.jar"
+                ]
+
+                List<File> jarFiles = []
+
+                includedJarsLocation.each {
+                    def jarFile = new File(project.rootDir, it)
+                    if (jarFile.exists()) {
+                        jarFiles.add(jarFile)
                     }
+                }
+
+                def jarFilesFileTree = jarFiles.collect {
+                    project.zipTree(it)
+                }
+
+                // Create a "fat" jar
+                jarTask.from {
+                    jarFilesFileTree
                 }
 
                 jarTask.from(RESOURCES_DIR) {
@@ -191,6 +201,7 @@ class JarCoreGenerator {
 
         project.tasks.register("copyConfig", Copy) {
             from ("${project.projectDir}/config")
+            include ("**/*.template")
             exclude 'Format.xml'
             exclude 'Openbravo.properties'
             exclude 'checksums'

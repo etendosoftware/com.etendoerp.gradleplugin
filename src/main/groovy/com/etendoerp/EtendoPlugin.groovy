@@ -1,5 +1,6 @@
 package com.etendoerp
 
+import com.etendoerp.dependencies.DependenciesLoader
 import com.etendoerp.jandex.JandexConfigLoader
 import com.etendoerp.jars.JarLoader
 import com.etendoerp.legacy.EtendoLegacy
@@ -31,6 +32,7 @@ class EtendoPlugin implements Plugin<Project> {
         JarLoader.load(project)
         PublicationLoader.load(project)
         ModulesConfigurationLoader.load(project)
+        DependenciesLoader.load(project)
         JandexConfigLoader.load(project)
     }
 }

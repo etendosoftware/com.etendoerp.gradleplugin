@@ -1,5 +1,7 @@
 package com.etendoerp.legacy.dependencies
 
+import com.etendoerp.EtendoPluginExtension
+import com.etendoerp.dependencies.EtendoCoreDependencies
 import com.etendoerp.jars.ExtractResourcesOfJars
 import com.etendoerp.legacy.ant.AntLoader
 import com.etendoerp.legacy.utils.NexusUtils
@@ -24,6 +26,21 @@ class ResolverDependencyLoader {
             project.logger.info("Running GRADLE projectsEvaluated.")
 
             NexusUtils.configureRepositories(project)
+
+            def extension = project.extensions.findByType(EtendoPluginExtension)
+
+            boolean loadCompilationDependencies = extension.loadCompilationDependencies
+            boolean loadTestDependencies        = extension.loadTestDependencies
+
+            // Load Etendo core compilation dependencies when the core is in jar
+            if (loadCompilationDependencies) {
+                EtendoCoreDependencies.loadCoreCompilationDependencies(project)
+            }
+
+            // Load Etendo core test dependencies
+            if (loadTestDependencies) {
+                EtendoCoreDependencies.loadCoreTestDependencies(project)
+            }
 
             List<File> jarFiles = ResolverDependencyUtils.getJarFiles(project)
 

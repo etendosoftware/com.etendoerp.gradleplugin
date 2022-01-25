@@ -11,8 +11,29 @@ abstract class EtendoCoreJarSpecificationTest extends EtendoSpecification {
 
     public final static String CORE = "${ETENDO_CORE_GROUP}:${ETENDO_CORE_NAME}:${ETENDO_CORE_VERSION}"
 
+    public final static String ETENDO_22q1_VERSION = "[22.1.+, 22.2.0)"
+
+    String getCore() {
+        return "${getCoreGroup()}:${getCoreName()}:${getCoreVersion()}"
+    }
+
+    String getCoreGroup() {
+        return ETENDO_CORE_GROUP
+    }
+
+    String getCoreName() {
+        return ETENDO_CORE_NAME
+    }
+
+    String getCoreVersion() {
+        return ETENDO_CORE_VERSION
+    }
+
     def setup() {
-        buildFile << JarsUtils.generateDependenciesBlock([CORE])
+
+        String core = getCore()
+
+        buildFile << JarsUtils.generateDependenciesBlock([core])
 
         buildFile << """
         repositories {

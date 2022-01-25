@@ -51,6 +51,26 @@ class LegacyScriptLoader {
                 'org.openbravo.advpaymentmngt',
                 'org.openbravo.v3'
         ]
+        def whiteSyncCoreList = [
+                'legal/**',
+                'lib/**',
+                'modules_core/**',
+                'referencedata/**',
+                'src/**',
+                'src-db/**',
+                'src-test/**',
+                'src-core/**',
+                'src-jmh/**',
+                'src-trl/**',
+                'src-util/**',
+                'src-wad/**',
+                'web/**',
+                '*.template',
+                'config/*.template',
+                'gradlew',
+                'gradle.bat',
+                'build.xml'
+        ]
 
         project.ext {
             nexusUser = null
@@ -59,14 +79,20 @@ class LegacyScriptLoader {
         }
 
         project.sourceSets{
-            main{
-                java{
+            main {
+                java {
                     outputDir = project.file("${project.buildDir}/classes/")
                     srcDirs = ['build/javasqlc/src'] //clean the default sources directories.
                     srcDirs 'build/javasqlc/srcAD'
                     srcDirs 'src'
                     srcDirs 'src-gen'
                     srcDirs 'srcAD'
+
+                    // The core is in JARs
+                    srcDirs 'build/etendo/build/javasqlc/src'
+                    srcDirs 'build/etendo/build/javasqlc/srcAD'
+                    srcDirs 'build/etendo/src-gen'
+                    srcDirs 'build/etendo/srcAD'
                 }
             }
         }
@@ -100,7 +126,6 @@ class LegacyScriptLoader {
          */
 
         project.repositories {
-            jcenter()
             maven {
                 url "https://repo.futit.cloud/repository/maven-releases"
             }
@@ -123,7 +148,7 @@ class LegacyScriptLoader {
             def extractDir =  getTemporaryDir()
             project.afterEvaluate {
                 def etendo = project.getExtensions().getByName("etendo")
-                project.dependencies.add("coreDep", 'com.smf.classic.core:ob:' + etendo.coreVersion + '@zip')
+                project.dependencies.add("coreDep", 'com.etendoerp.platform:etendo-core:' + etendo.coreVersion + '@zip')
                 if (extractDir.exists()) {
                     project.delete(extractDir.getPath())
                 }
@@ -163,19 +188,8 @@ class LegacyScriptLoader {
             into "${project.projectDir}"
             // Preserve files that are allowed to be modified by the user, and those not included in the Core zip
             preserve {
-                include 'attachments'
-                include 'gradle.properties'
-                include 'modules/'
-                include 'settings.gradle'
-                include 'gradlew.bat'
-                include 'gradlew'
-                include 'build.gradle'
-                include 'gradle/'
-                include 'config/Openbravo.properties'
-                include 'config/log4j2-web.xml'
-                include 'config/log4j2.xml'
-                include 'config/Format.xml'
-                include 'config/redisson-config.yaml'
+                include '**'
+                exclude(whiteSyncCoreList)
             }
         }
 

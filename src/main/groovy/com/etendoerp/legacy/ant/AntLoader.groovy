@@ -1,8 +1,11 @@
 package com.etendoerp.legacy.ant
 
+import com.etendoerp.jars.JarCoreGenerator
+import com.etendoerp.jars.modules.metadata.DependencyUtils
 import org.gradle.api.GradleException
 import org.gradle.api.Project
-import org.gradle.api.logging.LogLevel
+import org.gradle.api.artifacts.Configuration
+import org.gradle.api.artifacts.Dependency
 import org.gradle.api.tasks.ant.AntTarget
 
 class AntLoader {
@@ -44,6 +47,32 @@ class AntLoader {
         project.task("loadAntBuild") {
         }
 
+    }
+
+    /**
+     * The core is in sources if 'etendo-core' dependency does not exists..
+     * @param project
+     * @return
+     */
+    static boolean isCoreInSources(Project project) {
+        def modulesCoreLocation = project.file("modules_core")
+        def srcCoreLocation = project.file("src-core")
+
+        if (modulesCoreLocation.exists() && srcCoreLocation.exists()) {
+            return true
+        }
+
+        // Search if the core is in JARs using the dependencies
+        def baseProjectConfigurations = DependencyUtils.loadListOfConfigurations(project)
+        for (Configuration configuration : baseProjectConfigurations) {
+            for (Dependency dependency : configuration.allDependencies) {
+                if (dependency.name == JarCoreGenerator.ETENDO_CORE) {
+                    return false
+                }
+            }
+        }
+
+        return true
     }
 
     static void loadAntFile(Project project) {
