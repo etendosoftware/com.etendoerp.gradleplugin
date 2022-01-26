@@ -26,7 +26,16 @@ pipeline {
         }
         stage('Checkout') {
             environment {
-                NEXUS = credentials('nexus-admin')
+                // variable for gradle.properties
+                CONTEXT_NAME    = 'etendo_plugin'
+                BBDD_SID        = 'etendo_plugin'
+                BBDD_PORT       = '5432'
+                BBDD_SYSTEMUSER = 'postgres'
+                BBDD_SYSTEMPASS = 'syspass'
+                BBDD_USER       = 'tad'
+                BBDD_PASSWOR    = 'tad'
+                NEXUS_USER      =  credentials('nexus-admin-user')
+                NEXUS_PASSWORD  =  credentials('nexus-admin-passwd')
             }
             steps { //Checking out the repo
                 script{
@@ -35,6 +44,20 @@ pipeline {
                         sh 'chmod a+x ./pipelines/build-update.sh'
                         sh "./pipelines/build-update.sh etendo_gradle_plugin INPROGRESS 'Starting build'"
                         sh './gradlew --version --info' //run a gradle task
+                        sh """
+                        echo -e "mavenUser=${NEXUS_USER}\n
+                        mavenPassword=${NEXUS_PASSWORD}\n
+                        nexusUser=${NEXUS_USER}\n
+                        nexusPassword=${NEXUS_PASSWORD}\n
+                        test.bbdd.url=localhost
+                        test.bbdd.sid=${BBDD_SID}\n
+                        test.bbdd.systemUser=${BBDD_SYSTEMUSER}\n
+                        test.bbdd.systemPassword=${BBDD_SYSTEMPASS}\n
+                        test.bbdd.user=${BBDD_USER}\n
+                        test.bbdd.password=${BBDD_PASSWOR}\n
+                        org.gradle.daemon=false
+                        org.gradle.jvmargs=-Xmx2g -XX:MaxPermSize=1024m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8" > ./gradle.properties
+                        """
                         sh './gradlew test --info --no-daemon' //run a gradle task
                         withCredentials([sshUserPrivateKey(credentialsId: 'my-credentials', keyFileVariable: 'keyfile')]) {
                             sh """
