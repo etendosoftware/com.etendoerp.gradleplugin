@@ -1,0 +1,78 @@
+pipeline {
+
+    agent any
+
+
+    stages {
+        stage('Only en master') {
+            when {
+                expression { BRANCH_NAME ==~ /master/ }
+            }
+            steps {
+                script {
+                    sh 'echo "Only in master"'
+                }
+            }
+        }
+        stage('Only en develop') {
+            when {
+                expression { BRANCH_NAME ==~ /develop/ }
+            }
+            steps {
+                script {
+                    sh 'echo "Only in develop"'
+                }
+            }
+        }
+        stage('Checkout') {
+            environment {
+                NEXUS = credentials('nexus-admin')
+            }
+            steps { //Checking out the repo
+                script{
+                    try{
+                        sh 'printenv'
+                        sh 'chmod a+x ./pipelines/build-update.sh'
+                        sh "./pipelines/build-update.sh etendo_gradle_plugin INPROGRESS 'Starting build'"
+                        sh './gradlew --version --info' //run a gradle task
+                        sh './gradlew test --info --no-daemon' //run a gradle task
+                        withCredentials([sshUserPrivateKey(credentialsId: 'my-credentials', keyFileVariable: 'keyfile')]) {
+                            sh """
+                            git config user.name "koodu_bot"
+                            git config user.email "koodu_bot"
+                            """
+                            sh "echo version.ts=\$(date +\"%s\") > version.properties"
+                            sh "git tag \"v\$(grep version.ts version.properties|cut -c 11-)\" -m \"Release SNAPSHOT \$(grep version.tag version.properties|cut -c 13-)\""
+                            // Push changes to repo
+                            sh "GIT_SSH_COMMAND=\"ssh -i ${keyfile}\" git push $GIT_URL \"v\$(grep version.ts version.properties|cut -c 11-)\""
+                        }
+                        sh "./pipelines/build-update.sh etendo_gradle_plugin SUCCESSFUL 'Build successful'"
+
+                        publishHTML([
+                            allowMissing: true,
+                            alwaysLinkToLastBuild: false,
+                            keepAll: true,
+                            reportDir: 'build/spock-reports/',
+                            reportFiles: '*.html',
+                            reportName: 'TESTS REPORT',
+                            reportTitles: ''
+                        ])
+
+                    } catch (Exception e) {
+                       echo 'Exception occurred: ' + e.toString()
+                       sh "./pipelines/build-update.sh etendo_gradle_plugin FAILED 'Build failed'"
+                       publishHTML([
+                           allowMissing: false,
+                           alwaysLinkToLastBuild: false,
+                           keepAll: true,
+                           reportDir: 'build/spock-reports/',
+                           reportFiles: '*.html',
+                           reportName: 'TESTS REPORT',
+                           reportTitles: ''
+                       ])
+                    }
+                }
+            }
+        }
+    }
+}
