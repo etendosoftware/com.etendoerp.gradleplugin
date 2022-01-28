@@ -58,7 +58,7 @@ pipeline {
                         org.gradle.daemon=false\n
                         org.gradle.jvmargs=-Xmx2g -XX:MaxPermSize=1024m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8" > ./gradle.properties
                         """
-                        sh './gradlew test --info --no-daemon' //run a gradle task
+                        sh './gradlew test --tests "com.etendoerp.gradle.jars.core.coreinjars.JarCoreModulesInstallTest" --info --no-daemon' //run a gradle task
                         withCredentials([sshUserPrivateKey(credentialsId: 'my-credentials', keyFileVariable: 'keyfile')]) {
                             sh """
                             git config user.name "koodu_bot"
