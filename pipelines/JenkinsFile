@@ -2,6 +2,18 @@ pipeline {
 
     agent any
 
+    environment {
+        CONTEXT_NAME    = 'etendo'
+        BBDD_SID        = 'etendo'
+        BBDD_PORT       = '5432'
+        BBDD_SYSTEMUSER = 'postgres'
+        BBDD_SYSTEMPASS = 'syspass'
+        BBDD_USER       = 'tad'
+        BBDD_PASSWOR    = 'tad'
+        NEXUS_USER      =  credentials('nexus-admin-user')
+        NEXUS_PASSWORD  =  credentials('nexus-admin-passwd')
+        JAVA_HOME       = '/usr/lib/jvm/java-11-openjdk-amd64'
+    }
 
     stages {
         stage('Only en master') {
@@ -25,18 +37,6 @@ pipeline {
             }
         }
         stage('Checkout') {
-            environment {
-                // variable for gradle.properties
-                CONTEXT_NAME    = 'etendo'
-                BBDD_SID        = 'etendo'
-                BBDD_PORT       = '5432'
-                BBDD_SYSTEMUSER = 'postgres'
-                BBDD_SYSTEMPASS = 'syspass'
-                BBDD_USER       = 'tad'
-                BBDD_PASSWOR    = 'tad'
-                NEXUS_USER      =  credentials('nexus-admin-user')
-                NEXUS_PASSWORD  =  credentials('nexus-admin-passwd')
-            }
             steps { //Checking out the repo
                 script{
                     try{
@@ -96,6 +96,12 @@ pipeline {
                     }
                 }
             }
+        }
+    }
+
+    post{
+        always {
+            cleanWs deleteDirs: true
         }
     }
 }
