@@ -64,7 +64,6 @@ pipeline {
                     } catch (Exception e) {
                        echo 'Exception occurred: ' + e.toString()
                        sh "./pipelines/build-update.sh etendo_gradle_plugin FAILED 'Build failed'"
-                       echo 'Exception occurred: ' + e.toString()
                        echo '....FAILED TESTS....'
                        currentBuild.result = 'UNSTABLE'
                        unstable('Failed Plugin Tests')
