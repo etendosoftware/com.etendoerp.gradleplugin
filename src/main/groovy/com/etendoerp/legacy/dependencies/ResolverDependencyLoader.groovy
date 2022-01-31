@@ -24,8 +24,6 @@ class ResolverDependencyLoader {
         project.afterEvaluate {
             project.logger.info("Running GRADLE projectsEvaluated.")
 
-            ResolverDependencyUtils.loadAllDependencies(project)
-
             NexusUtils.configureRepositories(project)
             CoreMetadata coreMetadata = new CoreMetadata(project)
 
