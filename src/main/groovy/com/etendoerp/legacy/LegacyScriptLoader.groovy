@@ -126,11 +126,15 @@ class LegacyScriptLoader {
          */
 
         project.repositories {
+            mavenCentral()
             maven {
                 url "https://repo.futit.cloud/repository/maven-releases"
             }
             maven {
                 url "https://repo.futit.cloud/repository/maven-public-jars"
+            }
+            maven {
+                url 'https://repo.futit.cloud/repository/etendo-public-jars'
             }
         }
 

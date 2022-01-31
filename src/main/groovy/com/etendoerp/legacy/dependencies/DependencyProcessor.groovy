@@ -7,6 +7,8 @@ import com.etendoerp.jars.modules.metadata.DependencyUtils
 import com.etendoerp.legacy.dependencies.container.ArtifactDependency
 import com.etendoerp.legacy.dependencies.container.DependencyContainer
 import com.etendoerp.legacy.dependencies.container.DependencyType
+import com.etendoerp.legacy.dependencies.container.EtendoJarModuleArtifact
+import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.Dependency
@@ -151,6 +153,8 @@ class DependencyProcessor {
             container = ResolverDependencyUtils.updateConfigurationDependencies(project, container, artifactDependencies, false, false)
         }
 
+        // TODO: Improvement - Filter the dependencies in the root 'modules' dir to prevent downloading it
+
         if (this.coreMetadata.coreType == CoreType.SOURCES) {
             updateContainerPreFilterCoreSources(container, coreArtifactDependency)
         } else if (this.coreMetadata.coreType == CoreType.JAR) {
@@ -166,7 +170,9 @@ class DependencyProcessor {
         // Exclude from the configuration the CORE dependency
         ResolverDependencyUtils.excludeCoreDependencies(project, container, true)
 
-        // TODO: Add the Core dependencies (defined in the pom.xml of the core), if the core in Sources does not contain the sources JARs dependencies (user should provide a flag).
+        // TODO: Improvement
+        //  Add the Core dependencies (defined in the pom.xml of the core),
+        //  if the core in Sources does not contain the sources JARs dependencies (user should provide a flag).
 
     }
 
@@ -221,8 +227,11 @@ class DependencyProcessor {
             collection.add(artifactDependency.locationFile)
 
             // Extract Etendo dependency
-            if (artifactDependency.type == DependencyType.ETENDOJARMODULE) {
+            if (artifactDependency.type == DependencyType.ETENDOJARMODULE && artifactDependency instanceof EtendoJarModuleArtifact) {
                 artifactDependency.extract()
+
+                // Only apply the JAR dependency if the module was extracted
+                applyDepToMainProject = artifactDependency.extracted
             }
 
             // The 'dependenciesFiles' should contain all the declared artifacts (transitive ones included)
@@ -246,8 +255,18 @@ class DependencyProcessor {
             throw new IllegalArgumentException("Error collecting the Etendo core JAR file")
         }
 
+        // TODO: Depending on the core version to extract, and the one installed
+        // a verification should be done to see if the version is MINOR or MAJOR that the current installed,
+        // If the version is MAJOR, a WARNING should be showed to the user to UPDATE the core.
+        // If the version is MINOR, the core should not be extracted (the user can use a force flag)
+        // If the core is not extracted, a Exception should be thrown with the problem and how to fix it
+        // (because the user can run a clean and the 'build.xml' will never be loaded)
+
+
         coreArtifact.extract()
 
+
+        // TODO: Check if the core dependency should be applied if the version is MAJOR or MINOR
         applyDependencyToMainProject(coreArtifact, true)
 
         return coreArtifact.locationFile
@@ -279,7 +298,7 @@ class DependencyProcessor {
 
     void applyDependencyToMainProject(ArtifactDependency artifactDependency, boolean transitivity) {
         project.dependencies {
-            implementation (artifactDependency.displayName) {
+            implementation("${artifactDependency.displayName}") {
                 transitive = transitivity
             }
         }

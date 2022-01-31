@@ -26,6 +26,9 @@ class EtendoPluginExtension {
     // Flag used to exclude the Core dependency from each subproject to all the configurations.
     boolean excludeCoreDependencyFromSubprojectConfigurations = true
 
+    // Flag used to indicate that the current Core version support jars (default true)
+    boolean supportJars = true
+
     String coreGroup = CoreMetadata.DEFAULT_ETENDO_CORE_GROUP
     String coreName = CoreMetadata.DEFAULT_ETENDO_CORE_NAME
 

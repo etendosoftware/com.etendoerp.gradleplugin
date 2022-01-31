@@ -35,6 +35,14 @@ class EtendoArtifactMetadata {
         this.type = type
     }
 
+    EtendoArtifactMetadata(Project project, DependencyType type, String group, String name, String version) {
+        this(project, type)
+        this.group = group
+        this.name = name
+        this.version = version
+    }
+
+
     boolean loadMetadataFile(String locationPath) {
 
         if (!locationPath) {
@@ -50,7 +58,7 @@ class EtendoArtifactMetadata {
         }
 
         if (!propertiesLocation || !propertiesLocation.exists()) {
-            project.logger.info("The Etendo Artifact Properties '${propertiesLocation.absolutePath}' does not exists. Type: ${this.type.toString()}")
+            project.logger.info("The Etendo Artifact Properties in '${locationPath}' does not exists. Type: ${this.type.toString()}")
             return false
         }
 
@@ -95,14 +103,15 @@ class EtendoArtifactMetadata {
         File locationFile = new File(locationPath)
 
         if (!locationFile.exists()) {
-            project.logger.error("The location '${locationFile}' does not exists. Type: ${this.type.toString()}")
+            project.logger.error("The location '${locationPath}' does not exists. Type: ${this.type.toString()}")
             return false
         }
 
         def template = getClass().getClassLoader().getResourceAsStream("${METADATA_FILE}.template")
 
         if (!template) {
-            throw new IllegalArgumentException("The ${METADATA_FILE} template does not exists.")
+            project.logger.error("The ${METADATA_FILE} template does not exists.")
+            return
         }
 
         def templateFile = File.createTempFile(METADATA_FILE,"template")

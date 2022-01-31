@@ -51,7 +51,7 @@ class ExpandUtils {
             dependencyContainer.filterDependenciesFiles()
             return dependencyContainer.etendoDependenciesZipFiles.collect {it.value}
         } else {
-            project.logger.info("*** Getting incoming dependencies from the '${configurationToExpand.name}' configuration.")
+            project.logger.info("* Getting incoming dependencies from the '${configurationToExpand.name}' configuration.")
             def incomingDependencies = ResolutionUtils.getIncomingDependencies(project, configurationToExpand, true, true, LogLevel.DEBUG)
             return collectDependenciesFiles(project, incomingDependencies, "zip", true)
         }
@@ -167,7 +167,6 @@ class ExpandUtils {
         DependencyUtils.loadDependenciesFromConfigurations(configurationsToLoad, resolutionDependencySet)
 
         // Perform resolution
-        //return ResolutionUtils.dependenciesResolutionConflict(project, resolutionContainer, true)
         return ResolutionUtils.performResolutionConflicts(project, resolutionContainer, true, true)
     }
 
@@ -212,6 +211,11 @@ class ExpandUtils {
     static Map<String, File> getSourceModules(Project project) {
         Map<String, File> sourceModules = new HashMap<>()
         def modulesLocation = new File(project.rootDir, PublicationUtils.BASE_MODULE_DIR)
+
+        if (!modulesLocation.exists()) {
+            return sourceModules
+        }
+
         // Add the source modules
         modulesLocation.traverse(type: FileType.DIRECTORIES, maxDepth: 0) {
             sourceModules.put(it.name, it)

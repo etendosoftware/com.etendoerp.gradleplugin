@@ -27,6 +27,9 @@ class ResolutionUtils {
 
     final static String RESOLUTION_REPORT_TASK = "resolutionReportTask"
 
+    final static String CORE_CONFLICTS_ERROR_MESSAGE = "Cannot have a conflict with the core dependency "
+    final static String CONFLICT_WARNING_MESSAGE     = "Found a conflict resolution with:"
+
     static List<String> CORE_DEPENDENCIES = [
             "${CoreMetadata.CLASSIC_ETENDO_CORE_GROUP}:${CoreMetadata.CLASSIC_ETENDO_CORE_NAME}",
             "${CoreMetadata.DEFAULT_ETENDO_CORE_GROUP}:${CoreMetadata.DEFAULT_ETENDO_CORE_NAME}"
@@ -72,7 +75,7 @@ class ResolutionUtils {
     static void handleResolutionConflict(Project project, Configuration configuration, ComponentSelectionReasonInternal reason, ModuleVersionIdentifier module, boolean force) {
         project.logger.info("")
         project.logger.info("********************************************")
-        project.logger.info("* Found a conflict resolution with: ${module}")
+        project.logger.info("* ${CONFLICT_WARNING_MESSAGE} ${module}")
         project.logger.info("* Description: ${reason.descriptions}")
         def group = module.group
         def name = module.name
@@ -93,7 +96,7 @@ class ResolutionUtils {
 
         // Throw on core conflict
         if (isCoreDependency(module.toString()) && !force) {
-            throw new IllegalArgumentException("Cannot have a conflict with the core dependency - ${module}")
+            throw new IllegalArgumentException("${CORE_CONFLICTS_ERROR_MESSAGE} - ${module}")
         }
     }
 
@@ -143,14 +146,17 @@ class ResolutionUtils {
 
                     }
 
+                    String conflicts = ""
+
                     // Check if the artifact has conflicts
                     if (artifactConflicts && artifactConflicts.containsKey(artifactName)) {
                         artifactDependency.hasConflicts = artifactConflicts.get(artifactName)
+                        conflicts = "- Conflicts: ${artifactDependency.hasConflicts}"
                     }
 
                     String displayName = artifactDependency.displayName
 
-                    project.logger.log(logLevel, "Requested dependency: ${dependencyResult.getRequested()} -> Selected: ${dependencyResult.getSelected()}")
+                    project.logger.log(logLevel, "Requested dependency: ${dependencyResult.getRequested()} -> Selected: ${dependencyResult.getSelected()} ${conflicts}")
                     if (filterCoreDependency && isCoreDependency(displayName)) {
                         continue
                     }
@@ -209,9 +215,14 @@ class ResolutionUtils {
             sourcesModulesContainer = project.configurations.create(configName)
         }
 
+        def modulesLocation = new File(project.rootDir, PublicationUtils.BASE_MODULE_DIR)
+
+        if (!modulesLocation.exists()) {
+            return
+        }
+        
         project.logger.info("Loading source modules dependencies from 'modules/'.")
 
-        def modulesLocation = new File(project.rootDir, PublicationUtils.BASE_MODULE_DIR)
         List<File> sourceModules = new ArrayList<>()
         // Add the source modules
         modulesLocation.traverse(type: FileType.DIRECTORIES, maxDepth: 0) {
@@ -237,7 +248,7 @@ class ResolutionUtils {
 
         // Obtain all the incoming 'requested' dependencies (Core dependencies will be not included)
         def requestedDependencies = getIncomingDependenciesExcludingCore(project, configToPerformResolution, filterCoreDependency, false)
-
+        
         // Create a new configuration container (using the 'configuration' passed has parameter to restore the Core dependency)
         def configurationContainer = ResolverDependencyUtils.createRandomConfiguration(project,"resolution", configToPerformResolution)
 

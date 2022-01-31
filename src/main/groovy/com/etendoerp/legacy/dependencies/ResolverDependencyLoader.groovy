@@ -99,7 +99,7 @@ class ResolverDependencyLoader {
             project.ant.references.keySet().forEach {
                 if(it.contains("path")) {
                     newPath.forEach { pth ->
-                        project.logger.log(LogLevel.INFO, "GRADLE - ant reference " + it + " add to classpath " + pth)
+                        project.logger.log(LogLevel.DEBUG, "GRADLE - ant reference " + it + " add to classpath " + pth)
                         project.ant.references[it].add(pth)
                     }
                 }

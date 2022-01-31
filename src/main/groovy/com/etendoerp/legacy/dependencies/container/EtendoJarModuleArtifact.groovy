@@ -14,6 +14,8 @@ class EtendoJarModuleArtifact extends ArtifactDependency{
         this.type = DependencyType.ETENDOJARMODULE
     }
 
+    boolean extracted = false
+
     @Override
     void extract() {
         // Extract only the Etendo jar file if the module is not already in sources - 'modules/' dir
@@ -21,7 +23,8 @@ class EtendoJarModuleArtifact extends ArtifactDependency{
         File sourceModule = new File(modulesLocation, this.moduleName)
 
         if (sourceModule && sourceModule.exists()) {
-            project.logger.info("The JAR module '${moduleName}' already exists in the 'modules/' directory. Skipping extraction.")
+            this.extracted = false
+            project.logger.info("The JAR module '${moduleName}' already exists in the 'modules/' directory. Skipping extraction. Artifact '${this.group}:${this.name}:${this.version}" )
             return
         }
 
@@ -64,6 +67,8 @@ class EtendoJarModuleArtifact extends ArtifactDependency{
             into "${etendoModulesLocation}${this.moduleName}/src"
             includeEmptyDirs = false
         }
+
+        this.extracted = true
 
         // Create the Artifact metadata file
         EtendoArtifactMetadata metadataToCopy = new EtendoArtifactMetadata(project, DependencyType.ETENDOJARMODULE)

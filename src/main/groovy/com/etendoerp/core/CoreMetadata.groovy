@@ -94,6 +94,8 @@ class CoreMetadata {
                 supportJars = true
             }
 
+            def extension = project.extensions.findByType(EtendoPluginExtension)
+            supportJars = extension.supportJars
         }
 
         this.supportJars = supportJars
@@ -143,7 +145,9 @@ class CoreMetadata {
         etendoArtifactMetadata.loadMetadataFile(parent.absolutePath)
 
         this.coreVersion = etendoArtifactMetadata.version
-        project.logger.info("Defined core version: ${this.coreVersion}")
+        if (this.coreVersion) {
+            project.logger.info("Defined core version: ${this.coreVersion}")
+        }
     }
 
     String getResolvedSourcesCoreId() {
