@@ -9,8 +9,7 @@ class ExpandModules {
 
     static void load (Project project) {
 
-        // TODO: Change the task name
-        project.tasks.register("expandModulesRefactor") {
+        project.tasks.register("expandModules") {
             doLast {
                 CoreMetadata coreMetadata = new CoreMetadata(project)
 
