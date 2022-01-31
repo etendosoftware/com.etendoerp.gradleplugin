@@ -29,6 +29,10 @@ abstract class EtendoCoreJarSpecificationTest extends EtendoSpecification {
         return ETENDO_CORE_VERSION
     }
 
+    String getCoreRepo() {
+        return ETENDO_CORE_REPO
+    }
+
     def setup() {
 
         String core = getCore()
@@ -38,7 +42,7 @@ abstract class EtendoCoreJarSpecificationTest extends EtendoSpecification {
         buildFile << """
         repositories {
             maven {
-                url "${ETENDO_CORE_REPO}"
+                url "${getCoreRepo()}"
             }
         }
         """

@@ -196,5 +196,54 @@ abstract class EtendoSpecification extends Specification implements EtendoSpecif
                 .build()
     }
 
+    String changeExtensionPluginVariables(Map variables=[:]) {
+
+        String buildFileText = buildFile.text
+        String auxBuildFile = ""
+
+        // Clean the 'etendo' plugin block
+        boolean cleanFlag = false
+        buildFileText.eachLine {
+            if (it.trim().contains("etendo {") || it.trim().contains("etendo{")) {
+                cleanFlag = true
+            }
+
+            if (cleanFlag) {
+                String aux = it
+                it = it.replaceAll(".","")
+                if (aux.trim() == "}") {
+                    cleanFlag = false
+                }
+            }
+
+            auxBuildFile += "${it} \n"
+        }
+
+        // Add a new 'etendo' plugin block with the variables map
+        String pluginBlock = "etendo {\n"
+
+        variables.each {
+            pluginBlock  += "   ${it.key} = ${it.value} \n"
+        }
+
+        pluginBlock += "}\n"
+        auxBuildFile += pluginBlock
+
+        buildFile.text = auxBuildFile
+    }
+
+    void addRepositoryToBuildFile(String repository) {
+        buildFile << """
+        repositories {
+            maven {
+                url "${repository}"
+                credentials {
+                    username "${args.get("nexusUser")}"
+                    password "${args.get("nexusPassword")}"
+                }
+            }
+        }
+        """
+    }
 
 }

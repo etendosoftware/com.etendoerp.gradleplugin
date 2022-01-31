@@ -11,7 +11,31 @@ abstract class EtendoCoreSourcesSpecificationTest extends EtendoSpecification {
 
     public final static String CORE = "${ETENDO_CORE_GROUP}:${ETENDO_CORE_NAME}:${ETENDO_CORE_VERSION}"
 
+    String getCore() {
+        return "${getCoreGroup()}:${getCoreName()}:${getCoreVersion()}"
+    }
+
+    String getCoreGroup() {
+        return ETENDO_CORE_GROUP
+    }
+
+    String getCoreName() {
+        return ETENDO_CORE_NAME
+    }
+
+    String getCoreVersion() {
+        return ETENDO_CORE_VERSION
+    }
+
+    String getCoreRepo() {
+        return ETENDO_CORE_REPO
+    }
+
+
     def expandMock() {
+
+        String core = getCore()
+
         buildFile << """
         
         configurations {
@@ -19,7 +43,7 @@ abstract class EtendoCoreSourcesSpecificationTest extends EtendoSpecification {
         }
         
         dependencies {
-           coreDepMock '${CORE}'
+           coreDepMock '${core}'
         }
        
         project.tasks.register("unpackCoreToTempMock", Copy) {
@@ -60,7 +84,7 @@ abstract class EtendoCoreSourcesSpecificationTest extends EtendoSpecification {
         buildFile << """
         repositories {
             maven {
-                url "${ETENDO_CORE_REPO}"
+                url "${getCoreRepo()}"
                 credentials {
                     username "${args.get("nexusUser")}"
                     password "${args.get("nexusPassword")}"
