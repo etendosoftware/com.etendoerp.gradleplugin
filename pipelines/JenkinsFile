@@ -16,27 +16,7 @@ pipeline {
     }
 
     stages {
-        stage('Only en master') {
-            when {
-                expression { BRANCH_NAME ==~ /master/ }
-            }
-            steps {
-                script {
-                    sh 'echo "Only in master"'
-                }
-            }
-        }
-        stage('Only en develop') {
-            when {
-                expression { BRANCH_NAME ==~ /develop/ }
-            }
-            steps {
-                script {
-                    sh 'echo "Only in develop"'
-                }
-            }
-        }
-        stage('Checkout') {
+        stage('Run Tests') {
             steps { //Checking out the repo
                 script{
                     try{
