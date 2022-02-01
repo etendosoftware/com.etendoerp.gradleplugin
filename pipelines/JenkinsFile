@@ -1,6 +1,8 @@
 pipeline {
 
-    agent any
+    agent {
+        label 'etendo_core' //The id of the slave/agent where the build should be executed, if it doesn't matter use "agent any" instead.
+    }
 
     environment {
         CONTEXT_NAME    = 'etendo'
