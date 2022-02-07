@@ -21,6 +21,27 @@ import org.gradle.api.publish.maven.MavenPublication
  */
 class LegacyScriptLoader {
 
+    static List whiteSyncCoreList = [
+            'legal/**',
+            'lib/**',
+            'modules_core/**',
+            'referencedata/**',
+            'src/**',
+            'src-db/**',
+            'src-test/**',
+            'src-core/**',
+            'src-jmh/**',
+            'src-trl/**',
+            'src-util/**',
+            'src-wad/**',
+            'web/**',
+            '*.template',
+            'config/*.template',
+            'gradlew',
+            'gradle.bat',
+            'build.xml'
+    ]
+
     static load(Project project) {
 
         def defaultModules = [
@@ -50,26 +71,6 @@ class LegacyScriptLoader {
                 'org.openbravo.reports.ordersawaitingdelivery',
                 'org.openbravo.advpaymentmngt',
                 'org.openbravo.v3'
-        ]
-        def whiteSyncCoreList = [
-                'legal/**',
-                'lib/**',
-                'modules_core/**',
-                'referencedata/**',
-                'src/**',
-                'src-db/**',
-                'src-test/**',
-                'src-core/**',
-                'src-jmh/**',
-                'src-trl/**',
-                'src-util/**',
-                'src-wad/**',
-                'web/**',
-                '*.template',
-                'config/*.template',
-                'gradlew',
-                'gradle.bat',
-                'build.xml'
         ]
 
         project.ext {
@@ -113,6 +114,7 @@ class LegacyScriptLoader {
             coreDep
             moduleDeps
             dockerDeps
+            moduleDepsLegacy
         }
 
         // TODO: Check if this works
@@ -139,6 +141,23 @@ class LegacyScriptLoader {
         }
 
         /**
+         * DEPENDENCIES
+         */
+        project.dependencies {
+            project.dependencies {
+                moduleDepsLegacy ('com.smf:smartclient.debugtools:[1.0.1,)@zip') {
+                    transitive = true
+                }
+                moduleDepsLegacy ('com.smf:smartclient.boostedui:[1.0.0,)@zip') {
+                    transitive = true
+                }
+                moduleDepsLegacy ('com.smf:securewebservices:[1.1.1,)@zip') {
+                    transitive = true
+                }
+            }
+        }
+
+        /**
          * BUILD TASKS
          */
 
@@ -147,7 +166,7 @@ class LegacyScriptLoader {
             from 'WebContent'
         }
 
-        /** Unpacks the Core dependency to a temporary folder. Used by expandCore **/
+        /** Unpacks the Core dependency to a temporary folder. Used by expandCoreLegacy **/
         project.task("unpackCoreToTemp", type: Copy) {
             def extractDir =  getTemporaryDir()
             project.afterEvaluate {
@@ -169,10 +188,10 @@ class LegacyScriptLoader {
         /** Unpacks module dependencies to a temporary folder. Used by expandModules **/
         project.task("unpackModulesToTemp", type: Copy) {
             def extractDir = getTemporaryDir()
-            dependsOn project.configurations.moduleDeps
+            dependsOn project.configurations.moduleDepsLegacy
             from {
                 NexusUtils.askNexusCredentials(project)
-                project.configurations.moduleDeps.findResults {
+                project.configurations.moduleDepsLegacy.findResults {
                     // Avoid extracting the core dependency inside the modules folder
                     it.getCanonicalPath().contains('com.smf.classic.core') ? null : project.zipTree(it)
                 }
@@ -186,7 +205,7 @@ class LegacyScriptLoader {
 
 
         /** Expand the Core dependency */
-        project.task("expandCore", type: Sync) {
+        project.task("expandCoreLegacy", type: Sync) {
             dependsOn project.tasks.findByName("unpackCoreToTemp")
             from project.tasks.findByName("unpackCoreToTemp").getTemporaryDir()
             into "${project.projectDir}"
@@ -205,7 +224,7 @@ class LegacyScriptLoader {
             File newModulesDir = project.tasks.findByName("unpackModulesToTemp").getTemporaryDir()
             def localDependencies = modulesDir.exists() ? modulesDir.list().toList() : []
             def modules = []
-            project.configurations.moduleDeps.allDependencies.each {
+            project.configurations.moduleDepsLegacy.allDependencies.each {
                 modules.add "${it.getGroup()}.${it.getName()}"
             }
 
@@ -325,12 +344,22 @@ class LegacyScriptLoader {
         }
 
         /** Expand core and modules from the dependencies */
-        project.task("expand") {
-            dependsOn project.tasks.findByName("expandCore")
+        project.task("expandLegacy") {
+            dependsOn project.tasks.findByName("expandCoreLegacy")
             dependsOn project.tasks.findByName("expandModulesLegacy")
-            project.tasks.findByName('expandModulesLegacy').mustRunAfter 'expandCore'
+            project.tasks.findByName('expandModulesLegacy').mustRunAfter 'expandCoreLegacy'
         }
 
+        project.task("expand") {
+            doLast {
+                def errorMsg = ""
+                errorMsg += "*********************************************************************************************\n"
+                errorMsg += "* This task has been deprecated. To expand the core use the new 'expandCore' task.                \n"
+                errorMsg += "* You could still access to the old tasks with 'expandCoreLegacy' and 'expandModulesLegacy'. \n"
+                errorMsg += "*********************************************************************************************\n"
+                throw new IllegalArgumentException(errorMsg)
+            }
+        }
 
         /**
          * Basic configuration of repositories used later on publish tasks.

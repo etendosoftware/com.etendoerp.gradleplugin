@@ -38,7 +38,7 @@ class ExpandUtils {
         def supportJars = coreMetadata.supportJars
 
         if (performResolutionConflicts) {
-           def artifactDependencies = performExpandResolutionConflicts(project, coreMetadata, true, supportJars)
+           def artifactDependencies = performExpandResolutionConflicts(project, coreMetadata, true, supportJars, true, true)
            configurationToExpand = ResolverDependencyUtils.updateConfigurationDependencies(project, configurationToExpand, artifactDependencies, true, false)
         }
 
@@ -135,7 +135,7 @@ class ExpandUtils {
         return artifactDependency
     }
 
-    static Map<String, List<ArtifactDependency>> performExpandResolutionConflicts(Project project, CoreMetadata coreMetadata, boolean addCoreDependency, boolean addProjectDependencies) {
+    static Map<String, List<ArtifactDependency>> performExpandResolutionConflicts(Project project, CoreMetadata coreMetadata, boolean addCoreDependency, boolean addProjectDependencies, boolean filterCoreDependency, boolean getSelected) {
         // Create custom configuration container
         def resolutionContainer = project.configurations.create(EXPAND_SOURCES_RESOLUTION_CONTAINER)
         def resolutionDependencySet = resolutionContainer.dependencies
@@ -167,7 +167,7 @@ class ExpandUtils {
         DependencyUtils.loadDependenciesFromConfigurations(configurationsToLoad, resolutionDependencySet)
 
         // Perform resolution
-        return ResolutionUtils.performResolutionConflicts(project, resolutionContainer, true, true)
+        return ResolutionUtils.performResolutionConflicts(project, resolutionContainer, filterCoreDependency, getSelected)
     }
 
     static String getModuleName(String dependency) {

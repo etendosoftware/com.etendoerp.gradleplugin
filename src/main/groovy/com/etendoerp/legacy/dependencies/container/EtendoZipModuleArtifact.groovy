@@ -49,10 +49,7 @@ class EtendoZipModuleArtifact extends ArtifactDependency{
         }
 
         // Create metadata file
-        EtendoArtifactMetadata artifactMetadata = new EtendoArtifactMetadata(project, DependencyType.ETENDOZIPMODULE)
-        artifactMetadata.group = this.group
-        artifactMetadata.name = this.name
-        artifactMetadata.version = this.version
+        EtendoArtifactMetadata artifactMetadata = new EtendoArtifactMetadata(project, DependencyType.ETENDOZIPMODULE, this.group, this.name, this.version)
         artifactMetadata.createMetadataFile(sourceModuleLocation)
 
         // Clean tmp dir

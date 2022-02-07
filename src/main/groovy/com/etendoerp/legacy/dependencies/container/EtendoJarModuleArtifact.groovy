@@ -71,10 +71,7 @@ class EtendoJarModuleArtifact extends ArtifactDependency{
         this.extracted = true
 
         // Create the Artifact metadata file
-        EtendoArtifactMetadata metadataToCopy = new EtendoArtifactMetadata(project, DependencyType.ETENDOJARMODULE)
-        metadataToCopy.group = this.group
-        metadataToCopy.name = this.name
-        metadataToCopy.version = this.version
+        EtendoArtifactMetadata metadataToCopy = new EtendoArtifactMetadata(project, DependencyType.ETENDOJARMODULE, this.group, this.name, this.version)
         metadataToCopy.createMetadataFile("${etendoModulesLocation}${this.moduleName}")
     }
 

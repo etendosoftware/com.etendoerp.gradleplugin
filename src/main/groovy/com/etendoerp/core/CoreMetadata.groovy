@@ -53,6 +53,10 @@ class CoreMetadata {
         this.loadMetadata()
     }
 
+    CoreMetadata(Project project, boolean load) {
+        this.project
+    }
+
     void loadMetadata() {
         // Resolve core type
         resolveCoreType()
@@ -79,21 +83,51 @@ class CoreMetadata {
         project.logger.info("*****************************************************")
     }
 
+    boolean loadMetadataFromPropertiesFile(String parentLocation) {
+        EtendoArtifactMetadata etendoArtifactMetadata = new EtendoArtifactMetadata(project, DependencyType.ETENDOCOREJAR)
+        def status = etendoArtifactMetadata.loadMetadataFile(parentLocation)
+
+        if (!status) {
+            project.logger.info("The core metadata information could not be loaded from the '${EtendoArtifactMetadata.METADATA_FILE}' file")
+            return false
+        }
+
+        this.coreGroup = etendoArtifactMetadata.group
+        this.coreName = etendoArtifactMetadata.name
+        this.coreVersion = etendoArtifactMetadata.version
+
+        loadCoreMetadataId()
+        return true
+    }
+
+    void loadMetadataFromExtension() {
+        def extension = project.extensions.findByType(EtendoPluginExtension)
+        this.coreGroup = extension.coreGroup
+        this.coreName = extension.coreName
+        this.coreVersion = extension.coreVersion
+        loadCoreMetadataId()
+    }
+
+    // Used when the core is in JARs and the 'artifact.properties' file does not exists
+    void loadMetadataFromCoreDependency() {
+        if (this.coreDependency) {
+            this.coreGroup = this.coreDependency.group
+            this.coreName = this.coreDependency.name
+            this.coreVersion = this.coreDependency.version
+            loadCoreMetadataId()
+        }
+    }
+
+    void loadCoreMetadataId() {
+        this.coreId = "${this.coreGroup}:${this.coreName}:${this.coreVersion}"
+    }
+
     boolean resolveCoreSupportJars() {
         boolean supportJars = false
 
         if (this.coreType == CoreType.JAR) {
             supportJars = true
         } else if (this.coreType == CoreType.SOURCES && this.coreStatus == CoreStatus.RESOLVED) {
-            int versionNumber = parseCoreVersion(this.coreVersion)
-            if (versionNumber >= 22) {
-                supportJars = true
-            }
-            // The core support jars if is the new Etendo group and name
-            if (this.coreGroup == DEFAULT_ETENDO_CORE_GROUP && this.coreName == DEFAULT_ETENDO_CORE_NAME) {
-                supportJars = true
-            }
-
             def extension = project.extensions.findByType(EtendoPluginExtension)
             supportJars = extension.supportJars
         }
@@ -140,60 +174,41 @@ class CoreMetadata {
         }
     }
 
-    void loadVersionProperties(File parent) {
-        EtendoArtifactMetadata etendoArtifactMetadata = new EtendoArtifactMetadata(project, DependencyType.ETENDOCOREJAR)
-        etendoArtifactMetadata.loadMetadataFile(parent.absolutePath)
-
-        this.coreVersion = etendoArtifactMetadata.version
-        if (this.coreVersion) {
-            project.logger.info("Defined core version: ${this.coreVersion}")
-        }
-    }
-
     String getResolvedSourcesCoreId() {
         File root = project.rootDir
-        // Get the core version from the 'version.properties' file
-        loadVersionProperties(root)
+        // Try to load the metadata from the artifact.properties file
+        def loaded = loadMetadataFromPropertiesFile(root.absolutePath)
 
-        def extension = project.extensions.findByType(EtendoPluginExtension)
-        this.coreGroup = extension.coreGroup
-        this.coreName = extension.coreName
-
-        // If the version is not defined, use the one defined in the plugin extension
-        if (!this.coreVersion) {
-            this.coreVersion = extension.coreVersion
+        // Load the metadata from the plugin extension
+        if (!loaded) {
+            loadMetadataFromExtension()
         }
 
-        this.coreId = "${this.coreGroup}:${this.coreName}:${this.coreVersion}"
         return this.coreId
     }
 
     String getResolvedJarCoreId() {
         File root = new File(project.buildDir, "etendo")
-        loadVersionProperties(root)
-        this.coreGroup = DEFAULT_ETENDO_CORE_GROUP
-        this.coreName = DEFAULT_ETENDO_CORE_NAME
-        this.coreId = "${this.coreGroup}:${this.coreName}:${this.coreVersion}"
+        // Try to load the metadata from the artifact.properties file
+        def loaded = loadMetadataFromPropertiesFile(root.absolutePath)
+
+        // Load the metadata from the core Dependency
+        if (!loaded) {
+            loadMetadataFromCoreDependency()
+        }
+
         return this.coreId
     }
 
     // Use the plugin extension
     String getUnresolvedSourcesCoreId() {
-        def extension = project.extensions.findByType(EtendoPluginExtension)
-        this.coreGroup = extension.coreGroup
-        this.coreName = extension.coreName
-        this.coreVersion = extension.coreVersion
-        this.coreId = "${this.coreGroup}:${this.coreName}:${this.coreVersion}"
+        loadMetadataFromExtension()
         return this.coreId
     }
 
     // Use the plugin extension or defined version
     String getUnresolvedJarCoreId() {
-        def extension = project.extensions.findByType(EtendoPluginExtension)
-        this.coreGroup = DEFAULT_ETENDO_CORE_GROUP
-        this.coreName = DEFAULT_ETENDO_CORE_NAME
-        // TODO: obtain version
-        this.coreId = "${this.coreGroup}:${this.coreName}:${this.coreVersion}"
+        loadMetadataFromCoreDependency()
         return this.coreId
     }
 
