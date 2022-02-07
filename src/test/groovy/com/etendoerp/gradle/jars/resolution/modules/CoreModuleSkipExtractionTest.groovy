@@ -38,32 +38,12 @@ class CoreModuleSkipExtractionTest extends EtendoCoreResolutionSpecificationTest
 
     def "Skipping extraction of a JAR module already in sources"() {
         given: "A Etendo core '#coreType'"
-        addRepositoryToBuildFile(getCoreRepo())
-        if (coreType.equalsIgnoreCase("sources")) {
-            // Add the Core version to expand
-            changeExtensionPluginVariables([coreVersion: "'${getCoreVersion()}'"])
-        } else if (coreType.equalsIgnoreCase("jar")) {
-            // Add the Core 'implementation' to resolve
-            buildFile << """
-                dependencies {
-                    implementation("${getCoreGroup()}:${getCoreName()}:${getCoreVersion()}")
-                }
-            """
-        }
+
+        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", supportJars: supportJars]
+        loadCore([coreType : "${coreType}", pluginVariables: pluginVariables])
 
         and: "The user resolves the core"
-
-        if (coreType.equalsIgnoreCase("sources")) {
-            def expandTaskResult = runTask(":expandCore","-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
-            expandTaskResult.task(":expandCore").outcome == TaskOutcome.SUCCESS
-            File modulesCore = new File(testProjectDir, "modules_core")
-            assert modulesCore.exists()
-        } else if (coreType.equalsIgnoreCase("jar")) {
-            def dependenciesTaskResult = runTask(":dependencies","--refresh-dependencies", "-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
-            dependenciesTaskResult.task(":dependencies").outcome == TaskOutcome.SUCCESS
-            File modules = new File(testProjectDir, "build/etendo/modules")
-            assert modules.exists()
-        }
+        resolveCore([coreType : "${coreType}", testProjectDir: testProjectDir])
 
         and: "The user specifies a source module to be expanded (B:1.0.0)"
         buildFile << """
