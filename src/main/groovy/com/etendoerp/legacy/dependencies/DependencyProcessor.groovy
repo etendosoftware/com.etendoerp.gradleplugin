@@ -149,6 +149,8 @@ class DependencyProcessor {
             String currentCoreDependency = "${this.coreMetadata.coreGroup}:${this.coreMetadata.coreName}"
             coreArtifactDependency = ResolverDependencyUtils.getCoreDependency(project, currentCoreDependency ,artifactDependencies)
 
+            // TODO: Improvement - Filter the modules already in sources (using a exclude in the configuration)
+
             // Update the configuration container with the 'selected' dependencies
             container = ResolverDependencyUtils.updateConfigurationDependencies(project, container, artifactDependencies, false, false)
         }
@@ -222,22 +224,26 @@ class DependencyProcessor {
     List<File> collectDependenciesFiles(Map<String, ArtifactDependency> dependenciesFiles, boolean applyDepToMainProject) {
         List<File> collection = []
 
-        dependenciesFiles.each {
-            ArtifactDependency artifactDependency = it.value
-            collection.add(artifactDependency.locationFile)
+        for (def entry in dependenciesFiles) {
+            ArtifactDependency artifactDependency = entry.value
+            def auxApply = applyDepToMainProject
 
             // Extract Etendo dependency
             if (artifactDependency.type == DependencyType.ETENDOJARMODULE && artifactDependency instanceof EtendoJarModuleArtifact) {
                 artifactDependency.extract()
 
-                // Only apply the JAR dependency if the module was extracted
-                applyDepToMainProject = artifactDependency.extracted
+                // Prevent adding the JAR file to the WebContent
+                if (!artifactDependency.extracted) {
+                    continue
+                }
             }
 
             // The 'dependenciesFiles' should contain all the declared artifacts (transitive ones included)
-            if (applyDepToMainProject) {
+            if (auxApply) {
                 this.applyDependencyToMainProject(artifactDependency, false)
             }
+
+            collection.add(artifactDependency.locationFile)
         }
 
         return collection
