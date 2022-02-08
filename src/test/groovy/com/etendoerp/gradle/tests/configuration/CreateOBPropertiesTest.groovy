@@ -16,10 +16,12 @@ class CreateOBPropertiesTest extends EtendoSpecification {
 
     def "Creation of the 'Openbravo properties' file."() {
         given: "A expanded project"
-        def expandResult = runTask(":expand")
+        addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
+
+        def expandResult = runTask(":expandCore")
 
         and: "The expand task finalizes successfully"
-        expandResult.task(":expand").outcome == TaskOutcome.SUCCESS
+        expandResult.task(":expandCore").outcome == TaskOutcome.SUCCESS
 
         when: "The users run the 'createOBProperties' task"
         def obResult = runTask(":createOBProperties")

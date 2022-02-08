@@ -2,6 +2,7 @@ package com.etendoerp.gradle.jars.modules.buildfile
 
 import com.etendoerp.gradle.jars.modules.ModuleToJarSpecificationTest
 import com.etendoerp.modules.ModulesConfigurationLoader
+import org.gradle.testkit.runner.TaskOutcome
 import spock.lang.TempDir
 import spock.lang.Title
 
@@ -14,7 +15,7 @@ class BuildFileTest extends ModuleToJarSpecificationTest {
         testProjectDir
     }
 
-    def "Creation of a 'build gradle' file in a module without the java plugin fails"() {
+    def "Creation of a 'build gradle' file "() {
         given: "A module where the build gradle file will be created"
         def module = "com.test.module0"
 
@@ -26,14 +27,11 @@ class BuildFileTest extends ModuleToJarSpecificationTest {
         moduleLocation.createNewFile()
         assert moduleLocation.exists()
 
-        and: "The users runs the javaCompile task"
-        def compilationResult = runTaskAndFail(":${BASE_MODULE}:${module}:javaCompile")
+        and: "The users runs the compileJava task"
+        def compilationResult = runTask(":${BASE_MODULE}:${module}:compileJava")
 
-        // The project fails in the configuration phase.
-        then: "The task will fail and the output will show the error of missing the java plugin"
-        compilationResult.output.contains("java.lang.IllegalArgumentException")
-        compilationResult.output.contains(ModulesConfigurationLoader.ERROR_MISSING_PLUGIN)
-
+        then: "The task will NOT fail"
+        compilationResult.task(":${BASE_MODULE}:${module}:compileJava").outcome == TaskOutcome.SUCCESS || TaskOutcome.NO_SOURCE
     }
 
 }

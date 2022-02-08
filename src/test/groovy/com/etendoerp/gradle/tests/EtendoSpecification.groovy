@@ -21,6 +21,8 @@ abstract class EtendoSpecification extends Specification implements EtendoSpecif
     public static String REPO = PublicationUtils.REPOSITORY_NAME_PROP
     public static String PKG  = PublicationUtils.MODULE_NAME_PROP
 
+    public static String SNAPSHOT_REPOSITORY_URL = "https://repo.futit.cloud/repository/maven-snapshots/"
+
     /**
      * Override this method to return the directory where the gradle project will be created, to run the tests
      * It is recommended to use the @TempDir annotation. See the Spock documentation.
@@ -232,6 +234,10 @@ abstract class EtendoSpecification extends Specification implements EtendoSpecif
         buildFile.text = auxBuildFile
     }
 
+    /**
+     * Adds a repository to the build file.
+     * @param repository
+     */
     void addRepositoryToBuildFile(String repository) {
         buildFile << """
         repositories {
@@ -243,6 +249,34 @@ abstract class EtendoSpecification extends Specification implements EtendoSpecif
                 }
             }
         }
+        """
+    }
+
+    void addRepositoryToBuildFileFirst(String repository) {
+        addRepositoryToBuildFile(repository)
+
+        def varName = "first${UUID.randomUUID().toString().replace("-","")}"
+
+        buildFile << """
+
+        project.afterEvaluate {
+            def ${varName};
+            project.repositories.each {
+                if (it.displayName.contains("${repository}")) {
+                    ${varName} = it
+                    return
+                }
+            }
+            
+            // Remove the repository because is not allowed to have repeated with the same name
+            project.repositories.removeIf({
+                it.name == ${varName}.name
+            })
+            
+            // Add the repository first in the list to search
+            project.repositories.addFirst(${varName})
+        }
+        
         """
     }
 

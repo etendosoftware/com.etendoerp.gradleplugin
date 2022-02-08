@@ -13,7 +13,7 @@ plugins {
 System.setProperty("user.dir", projectDir.absolutePath)
 
 etendo {
-    coreVersion = "[20.2.1,20.2.2)"
+    coreVersion = "[20.2.1,22.2.0)"
 }
 
 dependencies {

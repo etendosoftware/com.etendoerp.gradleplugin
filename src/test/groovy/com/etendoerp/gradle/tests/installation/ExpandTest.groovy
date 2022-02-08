@@ -39,15 +39,17 @@ class ExpandTest extends EtendoSpecification {
     }
 
     def "Expand task does not fail"() {
-        when: "running ./gradlew expand"
-        def result = runTask("expand")
+        when: "running ./gradlew expandCore"
+        addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
+
+        def result = runTask("expandCore")
 
         then: "the expand task does not result in an error"
-        isExpanded(result.task(":expand").outcome)
+        isExpanded(result.task(":expandCore").outcome)
     }
 
     def "Expand task has downloaded core files"() {
-        when: "listing the project dir files (after expand)"
+        when: "listing the project dir files (after expandCore)"
         expanded
         def projectFileNames = getProjectDir().list()
 
@@ -70,9 +72,9 @@ class ExpandTest extends EtendoSpecification {
     }
 
     def "Expand task has downloaded default module files"() {
-        when: "listing the project module files (after expand)"
+        when: "listing the project module files (after expandCore)"
         expanded
-        def modulesPath = getProjectDir().toPath().resolve("modules")
+        def modulesPath = getProjectDir().toPath().resolve("modules_core")
         def modules = modulesPath.toFile().list()
 
         then: "all main folders from the modules dependencies should exist"
@@ -97,7 +99,7 @@ class ExpandTest extends EtendoSpecification {
         }
         """
 
-        when: "listing the project module files (after expand)"
+        when: "listing the project module files (after expandCore)"
         buildFile.text.contains("com.openbravo:gps.idl.stock")
         def result = runTask("expandModules")
         def modulesPath = getProjectDir().toPath().resolve("modules")
@@ -138,7 +140,7 @@ class ExpandTest extends EtendoSpecification {
             gradleTestKitDir.deleteDir()
         }
 
-        when: "running ./gradlew expand (without authentication)"
+        when: "running ./gradlew expandCore (without authentication)"
         // Save properties to restore them later in the cleanup spec
         nexusUser = System.getProperty("nexusUser")
         nexusPassword = System.getProperty("nexusPassword")
@@ -161,13 +163,13 @@ class ExpandTest extends EtendoSpecification {
         // use try/catch mechanic because runTaskAndFail does not throw
         // but also does not contain task outcomes due to the failure being capture dependency
         try {
-            result = runTask("expand")
+            result = runTask("expandCore")
         } catch (UnexpectedBuildFailure ignored) {
             success = false
         }
 
         then: "the expand task results in an error"
-        (result?.task(":expand")?.outcome == TaskOutcome.FAILED) || !success
+        (result?.task(":expandCore")?.outcome == TaskOutcome.FAILED) || !success
 
         where:
         credentials     | _

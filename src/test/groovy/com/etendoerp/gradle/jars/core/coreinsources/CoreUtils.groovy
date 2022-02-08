@@ -5,6 +5,23 @@ import groovy.sql.Sql
 
 class CoreUtils {
 
+    static Map<String, GroovyRowResult> getMapOfModules(Object connection) {
+        Map<String, GroovyRowResult> map = new HashMap<>()
+        String qry = "select * from ad_module"
+        def rowResult = executeQuery(qry, connection)
+
+        if (rowResult) {
+            for (GroovyRowResult row : rowResult) {
+                def javaPackage = row.javapackage as String
+                if (javaPackage) {
+                    map.put(javaPackage, row)
+                }
+            }
+        }
+
+        return map
+    }
+
     static Boolean containsModule(String moduleName, Object connection) {
         List<GroovyRowResult> queryResult = null
 

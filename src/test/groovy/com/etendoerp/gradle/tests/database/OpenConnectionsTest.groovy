@@ -32,7 +32,8 @@ class OpenConnectionsTest extends EtendoSpecification {
         def queryCount = queryResult?.queryCount
 
         when: "executing a failing gradle task, that uses the database"
-        def expandResult = getOutcome("expand")
+        addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
+        def expandResult = getOutcome("expandCore")
         def setupResult = getOutcome("setup")
 
         BuildResult installOutcome
