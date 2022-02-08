@@ -354,7 +354,7 @@ class LegacyScriptLoader {
             doLast {
                 def errorMsg = ""
                 errorMsg += "*********************************************************************************************\n"
-                errorMsg += "* This task has been deprecated. To expand the core use the new 'expandCore' task.                \n"
+                errorMsg += "* This task has been deprecated. To expand the core use the new 'expandCore' task.           \n"
                 errorMsg += "* You could still access to the old tasks with 'expandCoreLegacy' and 'expandModulesLegacy'. \n"
                 errorMsg += "*********************************************************************************************\n"
                 throw new IllegalArgumentException(errorMsg)
