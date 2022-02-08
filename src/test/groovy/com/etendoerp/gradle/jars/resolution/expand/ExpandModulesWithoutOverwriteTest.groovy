@@ -2,6 +2,7 @@ package com.etendoerp.gradle.jars.resolution.expand
 
 import com.etendoerp.gradle.jars.resolution.EtendoCoreResolutionSpecificationTest
 import org.gradle.testkit.runner.TaskOutcome
+import spock.lang.Issue
 import spock.lang.Narrative
 import spock.lang.TempDir
 import spock.lang.Title
@@ -16,6 +17,7 @@ which depends on A, by default A would be overwritten. The user can specify a fl
 in the plugin extension to prevent this behavior.
 
 """)
+@Issue("EPL-104")
 class ExpandModulesWithoutOverwriteTest extends EtendoCoreResolutionSpecificationTest {
 
     @TempDir File testProjectDir

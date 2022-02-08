@@ -3,6 +3,7 @@ package com.etendoerp.gradle.jars.resolution.modules
 import com.etendoerp.gradle.jars.resolution.EtendoCoreResolutionSpecificationTest
 import com.etendoerp.legacy.dependencies.EtendoArtifactMetadata
 import org.gradle.testkit.runner.TaskOutcome
+import spock.lang.Issue
 import spock.lang.Narrative
 import spock.lang.TempDir
 import spock.lang.Title
@@ -19,6 +20,7 @@ import spock.lang.Title
          
    The module B with version 1.0.1 should be resolved.
 """)
+@Issue("EPL-104")
 class CoreTransitiveJarModulesResolutionTest extends EtendoCoreResolutionSpecificationTest {
 
     @TempDir File testProjectDir

@@ -4,6 +4,7 @@ import com.etendoerp.gradle.jars.resolution.EtendoCoreResolutionSpecificationTes
 import com.etendoerp.legacy.dependencies.ResolutionUtils
 import org.gradle.testkit.runner.TaskOutcome
 import org.gradle.testkit.runner.UnexpectedBuildFailure
+import spock.lang.Issue
 import spock.lang.Narrative
 import spock.lang.TempDir
 import spock.lang.Title
@@ -30,6 +31,7 @@ where:
  then will select the major version ‘1.0.1’. A:1.0.1 depends on CORE:22, but the users specifies the CORE:21.4. 
  A conflict between the CORE dependencies will occur, then, a error should be throw to alert the user.
 """)
+@Issue("EPL-104")
 class CoreConflictsTest extends EtendoCoreResolutionSpecificationTest{
 
     @TempDir File testProjectDir

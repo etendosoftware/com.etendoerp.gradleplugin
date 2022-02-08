@@ -2,6 +2,7 @@ package com.etendoerp.gradle.jars.resolution.webcontentexclusion
 
 import com.etendoerp.gradle.jars.resolution.EtendoCoreResolutionSpecificationTest
 import org.gradle.testkit.runner.TaskOutcome
+import spock.lang.Issue
 import spock.lang.Narrative
 import spock.lang.TempDir
 import spock.lang.Title
@@ -11,6 +12,7 @@ import spock.lang.Title
 When a transitive dependency is already in SOURCES, the JAR should not be extracted and
 added to the WebContent directory after running a smartbuild.
 """)
+@Issue("EPL-104")
 class CoreInstallSkipJarToWebContentTest extends EtendoCoreResolutionSpecificationTest {
     @TempDir File testProjectDir
 

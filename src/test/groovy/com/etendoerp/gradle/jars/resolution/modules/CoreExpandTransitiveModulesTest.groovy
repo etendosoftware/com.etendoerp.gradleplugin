@@ -3,6 +3,7 @@ package com.etendoerp.gradle.jars.resolution.modules
 import com.etendoerp.gradle.jars.resolution.EtendoCoreResolutionSpecificationTest
 import com.etendoerp.legacy.dependencies.EtendoArtifactMetadata
 import org.gradle.testkit.runner.TaskOutcome
+import spock.lang.Issue
 import spock.lang.Narrative
 import spock.lang.TempDir
 import spock.lang.Title
@@ -21,6 +22,7 @@ Given the next graph of dependencies
    in Sources or JAR depending on if the core support jars.
 
 """)
+@Issue("EPL-104")
 class CoreExpandTransitiveModulesTest extends EtendoCoreResolutionSpecificationTest {
     @TempDir File testProjectDir
 

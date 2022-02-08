@@ -3,6 +3,7 @@ package com.etendoerp.gradle.jars.resolution.automaticupdate
 import com.etendoerp.gradle.jars.resolution.EtendoCoreResolutionSpecificationTest
 import com.etendoerp.legacy.dependencies.EtendoArtifactMetadata
 import org.gradle.testkit.runner.TaskOutcome
+import spock.lang.Issue
 import spock.lang.Narrative
 import spock.lang.TempDir
 import spock.lang.Title
@@ -14,6 +15,7 @@ The core in JAR should be updated automatically.
 
 The new dependency should also be updated.
 """)
+@Issue("EPL-104")
 class CoreJarAutomaticUpdate extends EtendoCoreResolutionSpecificationTest{
     @TempDir File testProjectDir
 

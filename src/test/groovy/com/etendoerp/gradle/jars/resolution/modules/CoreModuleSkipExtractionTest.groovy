@@ -2,6 +2,7 @@ package com.etendoerp.gradle.jars.resolution.modules
 
 import com.etendoerp.gradle.jars.resolution.EtendoCoreResolutionSpecificationTest
 import org.gradle.testkit.runner.TaskOutcome
+import spock.lang.Issue
 import spock.lang.Narrative
 import spock.lang.TempDir
 import spock.lang.Title
@@ -23,6 +24,7 @@ import spock.lang.Title
        |--- B:[1.0.0, 1.0.1]
     
 """)
+@Issue("EPL-104")
 class CoreModuleSkipExtractionTest extends EtendoCoreResolutionSpecificationTest{
     @TempDir File testProjectDir
 

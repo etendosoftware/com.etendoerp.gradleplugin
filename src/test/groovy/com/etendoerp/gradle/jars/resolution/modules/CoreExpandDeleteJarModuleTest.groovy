@@ -2,6 +2,7 @@ package com.etendoerp.gradle.jars.resolution.modules
 
 import com.etendoerp.gradle.jars.resolution.EtendoCoreResolutionSpecificationTest
 import org.gradle.testkit.runner.TaskOutcome
+import spock.lang.Issue
 import spock.lang.Narrative
 import spock.lang.TempDir
 import spock.lang.Title
@@ -10,6 +11,7 @@ import spock.lang.Title
 @Narrative("""
 Expanding a source modules should delete the JAR version in the 'build/etendo/modules' dir
 """)
+@Issue("EPL-104")
 class CoreExpandDeleteJarModuleTest extends EtendoCoreResolutionSpecificationTest{
 
     @TempDir File testProjectDir
