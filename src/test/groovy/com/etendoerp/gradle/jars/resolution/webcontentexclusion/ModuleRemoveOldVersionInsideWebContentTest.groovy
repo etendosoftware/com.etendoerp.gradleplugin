@@ -22,8 +22,6 @@ class ModuleRemoveOldVersionInsideWebContentTest extends EtendoCoreResolutionSpe
         return SNAPSHOT_REPOSITORY_URL
     }
 
-
-
     def "Removing old version of a Module when updates version" () {
         given: "A Etendo core '#coreType'"
         addRepositoryToBuildFileFirst(getCoreRepo())
@@ -59,9 +57,21 @@ class ModuleRemoveOldVersionInsideWebContentTest extends EtendoCoreResolutionSpe
         smartbuildResult.task(":smartbuild").outcome  == TaskOutcome.SUCCESS
 
         def webContentLibs = new File(testProjectDir, "WebContent/WEB-INF/lib")
-        def moduleBeforeUpdate = new File(webContentLibs, "${moduleToUpdate}-${oldModuleVersion}.jar")
-        assert  moduleBeforeUpdate.exists()
+        def containsModuleOldVersion = false
+        def containsModuleNewVersion = false
 
+        webContentLibs.listFiles().each {
+            if (it.name.contains("${moduleToUpdate}-${oldModuleVersion}")) {
+                containsModuleOldVersion = true
+            }
+            if (it.name.contains("${moduleToUpdate}-${newModuleVersion}")) {
+                containsModuleNewVersion = true
+            }
+        }
+
+        // The WebContent should ONLY contain the OLD version
+        assert containsModuleOldVersion
+        assert !containsModuleNewVersion
 
         when: "The users updates the MODULE with a new version "
         buildFile << """
@@ -75,17 +85,27 @@ class ModuleRemoveOldVersionInsideWebContentTest extends EtendoCoreResolutionSpe
         reSmartbuildResult.task(":smartbuild").outcome  == TaskOutcome.SUCCESS
 
         then: "The MODULE dependency will be updated in the WebContent, the old one should be deleted"
-        def moduleAfterUpdate = new File(webContentLibs, "${moduleToUpdate}-${newModuleVersion}.jar")
+        def _webContentLibs = new File(testProjectDir, "WebContent/WEB-INF/lib")
+        def _containsModuleOldVersion = false
+        def _containsModuleNewVersion = false
 
-        assert !moduleBeforeUpdate.exists()
-        assert moduleAfterUpdate.exists()
+        _webContentLibs.listFiles().each {
+            if (it.name.contains("${moduleToUpdate}-${oldModuleVersion}")) {
+                _containsModuleOldVersion = true
+            }
+            if (it.name.contains("${moduleToUpdate}-${newModuleVersion}")) {
+                _containsModuleNewVersion = true
+            }
+        }
 
+        // The WebContent should ONLY contain the NEW version
+        assert !_containsModuleOldVersion
+        assert _containsModuleNewVersion
 
         where:
         coreType  | _
         "sources" | _
         "jar"     | _
-
     }
 
 }
