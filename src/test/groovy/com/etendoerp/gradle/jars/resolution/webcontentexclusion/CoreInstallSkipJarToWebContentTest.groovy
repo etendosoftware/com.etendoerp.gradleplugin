@@ -26,7 +26,7 @@ class CoreInstallSkipJarToWebContentTest extends EtendoCoreResolutionSpecificati
 
     @Override
     String getCoreVersion() {
-        return "22.1.1-SNAPSHOT"
+        return ETENDO_21q1_SNAPSHOT
     }
 
     def "running smartbuild with a transitive dependency already in sources"() {
