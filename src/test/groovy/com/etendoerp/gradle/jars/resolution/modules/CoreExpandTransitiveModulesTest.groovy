@@ -3,6 +3,7 @@ package com.etendoerp.gradle.jars.resolution.modules
 import com.etendoerp.gradle.jars.resolution.EtendoCoreResolutionSpecificationTest
 import com.etendoerp.legacy.dependencies.EtendoArtifactMetadata
 import org.gradle.testkit.runner.TaskOutcome
+import spock.lang.Issue
 import spock.lang.Narrative
 import spock.lang.TempDir
 import spock.lang.Title
@@ -21,6 +22,7 @@ Given the next graph of dependencies
    in Sources or JAR depending on if the core support jars.
 
 """)
+@Issue("EPL-104")
 class CoreExpandTransitiveModulesTest extends EtendoCoreResolutionSpecificationTest {
     @TempDir File testProjectDir
 
@@ -36,32 +38,12 @@ class CoreExpandTransitiveModulesTest extends EtendoCoreResolutionSpecificationT
 
     def "Expanding transitive modules extract the correct version"() {
         given: "A Etendo core '#coreType'"
-        addRepositoryToBuildFile(getCoreRepo())
-        if (coreType.equalsIgnoreCase("sources")) {
-            // Add the Core version to expand
-            changeExtensionPluginVariables([coreVersion: "'${getCoreVersion()}'", supportJars: supportJars])
-        } else if (coreType.equalsIgnoreCase("jar")) {
-            // Add the Core 'implementation' to resolve
-            buildFile << """
-                dependencies {
-                    implementation("${getCoreGroup()}:${getCoreName()}:${getCoreVersion()}")
-                }
-            """
-        }
+
+        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", supportJars: supportJars]
+        loadCore([coreType : "${coreType}", pluginVariables: pluginVariables])
 
         and: "The user resolves the core"
-
-        if (coreType.equalsIgnoreCase("sources")) {
-            def expandTaskResult = runTask(":expandCore","-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
-            expandTaskResult.task(":expandCore").outcome == TaskOutcome.SUCCESS
-            File modulesCore = new File(testProjectDir, "modules_core")
-            assert modulesCore.exists()
-        } else if (coreType.equalsIgnoreCase("jar")) {
-            def dependenciesTaskResult = runTask(":dependencies","--refresh-dependencies", "-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
-            dependenciesTaskResult.task(":dependencies").outcome == TaskOutcome.SUCCESS
-            File modules = new File(testProjectDir, "build/etendo/modules")
-            assert modules.exists()
-        }
+        resolveCore([coreType : "${coreType}", testProjectDir: testProjectDir])
 
         when: "The user adds two dependencies (A and C) to be expanded depending of different versions of (B)"
         buildFile << """

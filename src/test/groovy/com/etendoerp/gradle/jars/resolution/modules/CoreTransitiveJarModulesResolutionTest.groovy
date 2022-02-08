@@ -3,6 +3,7 @@ package com.etendoerp.gradle.jars.resolution.modules
 import com.etendoerp.gradle.jars.resolution.EtendoCoreResolutionSpecificationTest
 import com.etendoerp.legacy.dependencies.EtendoArtifactMetadata
 import org.gradle.testkit.runner.TaskOutcome
+import spock.lang.Issue
 import spock.lang.Narrative
 import spock.lang.TempDir
 import spock.lang.Title
@@ -19,6 +20,7 @@ import spock.lang.Title
          
    The module B with version 1.0.1 should be resolved.
 """)
+@Issue("EPL-104")
 class CoreTransitiveJarModulesResolutionTest extends EtendoCoreResolutionSpecificationTest {
 
     @TempDir File testProjectDir
@@ -35,32 +37,12 @@ class CoreTransitiveJarModulesResolutionTest extends EtendoCoreResolutionSpecifi
 
     def "Resolving the correct version of a transitive module"() {
         given: "A Etendo core '#coreType'"
-        addRepositoryToBuildFile(getCoreRepo())
-        if (coreType.equalsIgnoreCase("sources")) {
-            // Add the Core version to expand
-            changeExtensionPluginVariables([coreVersion: "'${getCoreVersion()}'"])
-        } else if (coreType.equalsIgnoreCase("jar")) {
-            // Add the Core 'implementation' to resolve
-            buildFile << """
-                dependencies {
-                    implementation("${getCoreGroup()}:${getCoreName()}:${getCoreVersion()}")
-                }
-            """
-        }
+
+        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'"]
+        loadCore([coreType : "${coreType}", pluginVariables: pluginVariables])
 
         and: "The user resolves the core"
-
-        if (coreType.equalsIgnoreCase("sources")) {
-            def expandTaskResult = runTask(":expandCore","-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
-            expandTaskResult.task(":expandCore").outcome == TaskOutcome.SUCCESS
-            File modulesCore = new File(testProjectDir, "modules_core")
-            assert modulesCore.exists()
-        } else if (coreType.equalsIgnoreCase("jar")) {
-            def dependenciesTaskResult = runTask(":dependencies","--refresh-dependencies", "-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
-            dependenciesTaskResult.task(":dependencies").outcome == TaskOutcome.SUCCESS
-            File modules = new File(testProjectDir, "build/etendo/modules")
-            assert modules.exists()
-        }
+        resolveCore([coreType : "${coreType}", testProjectDir: testProjectDir])
 
         when: "The user adds two dependencies (A and C) depending of different versions of (B)"
         buildFile << """

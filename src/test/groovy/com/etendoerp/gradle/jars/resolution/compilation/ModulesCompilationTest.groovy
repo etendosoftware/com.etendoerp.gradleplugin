@@ -4,6 +4,7 @@ import com.etendoerp.gradle.jars.resolution.EtendoCoreResolutionSpecificationTes
 import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.TaskOutcome
 import org.gradle.testkit.runner.UnexpectedBuildFailure
+import spock.lang.Issue
 import spock.lang.Narrative
 import spock.lang.TempDir
 import spock.lang.Title
@@ -20,6 +21,7 @@ C:1.0.0
     |---- A:[1.0.1]
 
 """)
+@Issue("EPL-104")
 class ModulesCompilationTest extends EtendoCoreResolutionSpecificationTest{
 
     @TempDir File testProjectDir
