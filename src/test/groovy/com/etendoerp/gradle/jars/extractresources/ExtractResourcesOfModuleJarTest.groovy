@@ -26,6 +26,10 @@ class ExtractResourcesOfModuleJarTest extends EtendoSpecification {
         given: "A module to be convented to a gradle subproject"
         def module = moduleName
 
+        // Simulate CORE in Sources
+        new File(testProjectDir, "modules_core").mkdir()
+        new File(testProjectDir, "src-core").mkdir()
+
         and: "The module contains the 'AD_MODULE' file"
         def moduleLocation = "${testProjectDir.absolutePath}/modules/$module/"
         ModuleToJarUtils.createADModuleFile([baseLocation: moduleLocation, moduleProperties: moduleProperties])

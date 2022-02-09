@@ -50,7 +50,12 @@ class OpenConnectionsTest extends EtendoSpecification {
 
         then: "the same number of connections exists"
         expandResult == TaskOutcome.SUCCESS
-        installOutcome.task(executedTask).outcome == expectedResult
+        if (expectedResult == TaskOutcome.UP_TO_DATE) {
+            installOutcome.task(executedTask).outcome == expectedResult || TaskOutcome.SUCCESS
+        } else {
+            installOutcome.task(executedTask).outcome == expectedResult
+        }
+
         setupResult == TaskOutcome.UP_TO_DATE
 
         Sql.withInstance(getDBConnection()) {

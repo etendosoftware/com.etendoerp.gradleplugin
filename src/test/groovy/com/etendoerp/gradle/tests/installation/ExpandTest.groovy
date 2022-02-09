@@ -147,6 +147,16 @@ class ExpandTest extends EtendoSpecification {
         mavenUser = System.getProperty("mavenUser")
         mavenPassword = System.getProperty("mavenPassword")
 
+        def nexusUser = System.getProperty("nexusUser")
+        def mavenUser = System.getProperty("mavenUser")
+
+        if (nexusUser) {
+            buildFile.text = buildFile.text.replace(nexusUser, "")
+        }
+        if (mavenUser) {
+            buildFile.text = buildFile.text.replace(mavenUser, "")
+        }
+
         if (credentials != null) {
             System.setProperty("nexusUser", credentials)
             System.setProperty("nexusPassword", credentials)
