@@ -32,7 +32,7 @@ class DependenciesToAntForCopyTest extends EtendoSpecification {
         when: "running ant directly"
         def success = true
         def exception = null
-        def exitCore
+        def exitCode
         try {
             def antProcess = "ant init".execute()
             exitCode = antProcess.waitFor()

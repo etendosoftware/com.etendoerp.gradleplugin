@@ -2,6 +2,7 @@ package com.etendoerp.gradle.tests.configuration
 
 import com.etendoerp.gradle.tests.EtendoSpecification
 import org.gradle.testkit.runner.TaskOutcome
+import org.junit.Ignore
 import spock.lang.TempDir
 
 class CompileFilesCheckTest extends EtendoSpecification {
@@ -79,6 +80,7 @@ class CompileFilesCheckTest extends EtendoSpecification {
         "config/log4j2-web.xml"         | 'export.database'
     }
 
+    @Ignore
     def "compilation succeeds (#task) when #file is not missing"() {
         given: "an installed project"
         addRepositoryToBuildFile(SNAPSHOT_REPOSITORY_URL)
@@ -126,5 +128,34 @@ class CompileFilesCheckTest extends EtendoSpecification {
         "config/log4j2-web.xml"         | 'compile.complete.deploy'
         "config/log4j2-web.xml"         | 'update.database'
         "config/log4j2-web.xml"         | 'export.database'
+    }
+
+    def "compilation succeeds when #file is not missing"() {
+        given: "an installed project"
+        addRepositoryToBuildFile(SNAPSHOT_REPOSITORY_URL)
+
+        def expandResult = runTask("expandCore")
+        expandResult.task(":expandCore").outcome == TaskOutcome.SUCCESS
+
+        def setup = runTask("setup")
+        setup.task(":setup").outcome == TaskOutcome.UP_TO_DATE
+
+        assert new File(testProjectDir, "${file}").exists()
+
+        expect: "compilation succeeds (#task)"
+        def compilationResult = runTask(task)
+        compilationResult.task(":${task}").outcome == TaskOutcome.SUCCESS
+
+        where:
+        file                            | task
+        "gradle.properties"             | 'compileFilesCheck'
+
+        "config/Openbravo.properties"   | 'compileFilesCheck'
+
+        "config/Format.xml"             | 'compileFilesCheck'
+
+        "config/log4j2.xml"             | 'compileFilesCheck'
+
+        "config/log4j2-web.xml"         | 'compileFilesCheck'
     }
 }
