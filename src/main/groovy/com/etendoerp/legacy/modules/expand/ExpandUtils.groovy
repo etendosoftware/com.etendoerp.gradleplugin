@@ -135,7 +135,7 @@ class ExpandUtils {
         return artifactDependency
     }
 
-    static Map<String, List<ArtifactDependency>> performExpandResolutionConflicts(Project project, CoreMetadata coreMetadata, boolean addCoreDependency, boolean addProjectDependencies, boolean filterCoreDependency, boolean getSelected) {
+    static Map<String, List<ArtifactDependency>> performExpandResolutionConflicts(Project project, CoreMetadata coreMetadata, boolean addCoreDependency, boolean addProjectDependencies, boolean filterCoreDependency, boolean obtainSelectedArtifacts) {
         // Create custom configuration container
         def resolutionContainer = project.configurations.create(EXPAND_SOURCES_RESOLUTION_CONTAINER)
         def resolutionDependencySet = resolutionContainer.dependencies
@@ -167,7 +167,7 @@ class ExpandUtils {
         DependencyUtils.loadDependenciesFromConfigurations(configurationsToLoad, resolutionDependencySet)
 
         // Perform resolution
-        return ResolutionUtils.performResolutionConflicts(project, resolutionContainer, filterCoreDependency, getSelected)
+        return ResolutionUtils.performResolutionConflicts(project, resolutionContainer, filterCoreDependency, obtainSelectedArtifacts)
     }
 
     static String getModuleName(String dependency) {
