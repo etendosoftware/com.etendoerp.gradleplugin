@@ -91,7 +91,6 @@ pipeline {
                         sh "echo version.ts=\$(date +\"%s\") > version.properties"
                         sh "./gradlew publish --info"
                         sh "git tag \"v\$(grep version.ts version.properties|cut -c 11-)\" -m \"Release SNAPSHOT \$(grep version.tag version.properties|cut -c 13-)\""
-                        // Push changes to repo
                         sh "GIT_SSH_COMMAND=\"ssh -i ${keyfile}\" git push $GIT_URL \"v\$(grep version.ts version.properties|cut -c 11-)\""
                     }
                 }
