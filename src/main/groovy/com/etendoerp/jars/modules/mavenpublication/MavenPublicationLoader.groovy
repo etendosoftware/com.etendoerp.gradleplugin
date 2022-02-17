@@ -1,5 +1,7 @@
 package com.etendoerp.jars.modules.mavenpublication
 
+import com.etendoerp.legacy.dependencies.EtendoArtifactMetadata
+import com.etendoerp.legacy.dependencies.container.DependencyType
 import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
 
@@ -12,11 +14,13 @@ class MavenPublicationLoader {
         project.tasks.register("publishMavenJar") {
             // Passing a 'closure' to the dependsOn will delay the execution
             // to when the task is called.
+            def moduleName = null
+            def moduleProject = null
             dependsOn({
                 // Throw on task called without command line parameter
                 // Or project module not found
-                def moduleName = PublicationUtils.loadModuleName(project)
-                def moduleProject = project.findProject(":${PublicationUtils.BASE_MODULE_DIR}:$moduleName")
+                moduleName = PublicationUtils.loadModuleName(project)
+                moduleProject = project.findProject(":${PublicationUtils.BASE_MODULE_DIR}:$moduleName")
 
                 if (!moduleProject) {
                     throw new IllegalArgumentException("The gradle project :$moduleName does not exists. \n" +
@@ -33,6 +37,20 @@ class MavenPublicationLoader {
                 }
                 return mavenTask
             })
+            doLast {
+                if (moduleName && moduleProject) {
+
+                    def group = moduleProject.group as String
+                    def name = moduleProject.artifact as String
+                    def version = moduleProject.version as String
+
+                    if (group && name && version) {
+                        EtendoArtifactMetadata metadata = new EtendoArtifactMetadata(project, DependencyType.ETENDOZIPMODULE, group, name, version)
+                        def location = "${project.rootDir}${File.separator}${PublicationUtils.BASE_MODULE_DIR}${File.separator}${moduleName}"
+                        metadata.createMetadataFile(location)
+                    }
+                }
+            }
         }
 
         // Config the subproject JAR task

@@ -136,6 +136,9 @@ class LegacyScriptLoader {
             maven {
                 url 'https://repo.futit.cloud/repository/etendo-public-jars'
             }
+            maven {
+                url 'https://repo.futit.cloud/repository/etendo-public-jars'
+            }
         }
 
         /**
@@ -199,7 +202,7 @@ class LegacyScriptLoader {
 
 
         /** Expand modules from the dependencies */
-        project.task("expandModules", type: Sync) {
+        project.task("expandModulesLegacy", type: Sync) {
             dependsOn project.tasks.findByName("unpackModulesToTemp")
             File modulesDir = new File("${project.projectDir}/modules")
             File newModulesDir = project.tasks.findByName("unpackModulesToTemp").getTemporaryDir()
@@ -327,8 +330,8 @@ class LegacyScriptLoader {
         /** Expand core and modules from the dependencies */
         project.task("expand") {
             dependsOn project.tasks.findByName("expandCore")
-            dependsOn project.tasks.findByName("expandModules")
-            project.tasks.findByName('expandModules').mustRunAfter 'expandCore'
+            dependsOn project.tasks.findByName("expandModulesLegacy")
+            project.tasks.findByName('expandModulesLegacy').mustRunAfter 'expandCore'
         }
 
 

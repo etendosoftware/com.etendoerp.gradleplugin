@@ -1,4 +1,4 @@
-package com.etendoerp.legacy.modules
+package com.etendoerp.legacy.modules.expand
 
 import com.etendoerp.jars.PathUtils
 import com.etendoerp.legacy.utils.NexusUtils
@@ -7,7 +7,7 @@ import org.gradle.api.Project
 import org.gradle.api.file.FileTree
 import org.gradle.api.tasks.Delete
 
-class ExpandModules {
+class ExpandCustomModule {
 
     static void load(Project project) {
 
@@ -72,4 +72,5 @@ class ExpandModules {
         }
 
     }
+
 }

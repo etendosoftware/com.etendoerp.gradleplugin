@@ -21,6 +21,8 @@ abstract class EtendoSpecification extends Specification implements EtendoSpecif
     public static String REPO = PublicationUtils.REPOSITORY_NAME_PROP
     public static String PKG  = PublicationUtils.MODULE_NAME_PROP
 
+    public static String SNAPSHOT_REPOSITORY_URL = "https://repo.futit.cloud/repository/maven-snapshots/"
+
     /**
      * Override this method to return the directory where the gradle project will be created, to run the tests
      * It is recommended to use the @TempDir annotation. See the Spock documentation.
@@ -196,5 +198,86 @@ abstract class EtendoSpecification extends Specification implements EtendoSpecif
                 .build()
     }
 
+    String changeExtensionPluginVariables(Map variables=[:]) {
+
+        String buildFileText = buildFile.text
+        String auxBuildFile = ""
+
+        // Clean the 'etendo' plugin block
+        boolean cleanFlag = false
+        buildFileText.eachLine {
+            if (it.trim().contains("etendo {") || it.trim().contains("etendo{")) {
+                cleanFlag = true
+            }
+
+            if (cleanFlag) {
+                String aux = it
+                it = it.replaceAll(".","")
+                if (aux.trim() == "}") {
+                    cleanFlag = false
+                }
+            }
+
+            auxBuildFile += "${it} \n"
+        }
+
+        // Add a new 'etendo' plugin block with the variables map
+        String pluginBlock = "etendo {\n"
+
+        variables.each {
+            pluginBlock  += "   ${it.key} = ${it.value} \n"
+        }
+
+        pluginBlock += "}\n"
+        auxBuildFile += pluginBlock
+
+        buildFile.text = auxBuildFile
+    }
+
+    /**
+     * Adds a repository to the build file.
+     * @param repository
+     */
+    void addRepositoryToBuildFile(String repository) {
+        buildFile << """
+        repositories {
+            maven {
+                url "${repository}"
+                credentials {
+                    username "${args.get("nexusUser")}"
+                    password "${args.get("nexusPassword")}"
+                }
+            }
+        }
+        """
+    }
+
+    void addRepositoryToBuildFileFirst(String repository) {
+        addRepositoryToBuildFile(repository)
+
+        def varName = "first${UUID.randomUUID().toString().replace("-","")}"
+
+        buildFile << """
+
+        project.afterEvaluate {
+            def ${varName};
+            project.repositories.each {
+                if (it.displayName.contains("${repository}")) {
+                    ${varName} = it
+                    return
+                }
+            }
+            
+            // Remove the repository because is not allowed to have repeated with the same name
+            project.repositories.removeIf({
+                it.name == ${varName}.name
+            })
+            
+            // Add the repository first in the list to search
+            project.repositories.addFirst(${varName})
+        }
+        
+        """
+    }
 
 }

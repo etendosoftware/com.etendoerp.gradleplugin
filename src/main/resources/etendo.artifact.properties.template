@@ -1,0 +1,7 @@
+# This file contains metadata information about the Etendo artifact to perform resolution conflicts.
+# Created at: ${date}.
+
+artifact.group=${artifact.group}
+artifact.name=${artifact.name}
+artifact.version=${artifact.version}
+artifact.type=${artifact.type}
