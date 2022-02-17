@@ -190,17 +190,17 @@ class ExpandUtils {
         def dependencyMap = ResolverDependencyUtils.loadDependenciesMap(project, configuration)
         def sourceModulesMap = getSourceModules(project)
 
-        artifactDependencies.stream().filter(artifact ->
+        artifactDependencies.stream().filter({artifact ->
                 artifact.type == DependencyType.ETENDOZIPMODULE
-        ).filter(artifact -> {
+        }).filter({artifact ->
             String moduleName = artifact.moduleName
             // Prevent extracting transitive modules if the overwrite flag is set to false,
             // the module is already in sources
             // and the module was not defined by the user
             return (overwrite || !sourceModulesMap.containsKey(moduleName) || dependencyMap.containsKey(moduleName))
-        }).forEach(artifact ->
-                artifact.extract()
-        )
+        }).forEach({artifact ->
+            artifact.extract()
+        })
 
     }
 
