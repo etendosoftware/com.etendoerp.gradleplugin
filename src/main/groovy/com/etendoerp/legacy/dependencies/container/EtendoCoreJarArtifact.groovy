@@ -1,6 +1,8 @@
 package com.etendoerp.legacy.dependencies.container
 
+import com.etendoerp.consistency.EtendoArtifactsConsistencyContainer
 import com.etendoerp.legacy.dependencies.EtendoArtifactMetadata
+import com.etendoerp.legacy.dependencies.ResolverDependencyLoader
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ResolvedArtifact
 import org.gradle.api.file.FileTree
@@ -12,8 +14,25 @@ class EtendoCoreJarArtifact extends ArtifactDependency{
         this.type = DependencyType.ETENDOCOREJAR
     }
 
+    boolean extracted = false
+
     @Override
     void extract() {
+        // Obtain the XML version to perform the version consistency
+        File ADModuleFile = getADModuleFile(this.project, this.locationFile)
+
+        if (ADModuleFile) {
+            EtendoArtifactMetadata metadata = new EtendoArtifactMetadata(project, this.type)
+            if (metadata.loadMetadataFromXML(ADModuleFile.absolutePath)) {
+                this.versionParser = metadata.version
+            }
+        }
+
+        // Run version consistency verification
+        // Validate that the module is allowed to be extracted
+        EtendoArtifactsConsistencyContainer consistencyContainer = project.ext.get(ResolverDependencyLoader.CONSISTENCY_CONTAINER)
+        consistencyContainer.validateArtifact(this)
+
         // Prevent extracting if the Core JAR already exists and is the same version
         EtendoArtifactMetadata coreMetadata = new EtendoArtifactMetadata(project, DependencyType.ETENDOCOREJAR)
         final String coreJarLocation = "${project.buildDir.absolutePath}${File.separator}etendo"
@@ -23,6 +42,7 @@ class EtendoCoreJarArtifact extends ArtifactDependency{
 
             if (currentCoreJarVersion && currentCoreJarVersion == this.version) {
                 project.logger.info("Etendo core Jar version '${this.version}' already extracted.")
+                this.extracted = true
                 return
             }
         }
@@ -30,7 +50,6 @@ class EtendoCoreJarArtifact extends ArtifactDependency{
         project.logger.info("Extracting the Etendo core JAR - ${this.group}:${this.name}:${this.version}")
 
         // TODO: Check if is necessary to preserve 'srcAD' and 'src-gen'.
-
         FileTree coreFileTree = project.zipTree(this.locationFile)
 
         def metainfFilter = coreFileTree.matching {
@@ -47,6 +66,8 @@ class EtendoCoreJarArtifact extends ArtifactDependency{
             }
             includeEmptyDirs = false
         }
+
+        this.extracted = true
 
         // Create the Artifact metadata file
         EtendoArtifactMetadata metadataToCopy = new EtendoArtifactMetadata(project, DependencyType.ETENDOCOREJAR, this.group, this.name, this.version)

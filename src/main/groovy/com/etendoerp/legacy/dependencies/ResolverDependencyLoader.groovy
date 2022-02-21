@@ -1,14 +1,20 @@
 package com.etendoerp.legacy.dependencies
 
 import com.etendoerp.EtendoPluginExtension
+import com.etendoerp.connections.DatabaseConnection
+import com.etendoerp.consistency.EtendoArtifactsComparator
+import com.etendoerp.consistency.EtendoArtifactsConsistencyContainer
 import com.etendoerp.core.CoreMetadata
 import com.etendoerp.dependencies.EtendoCoreDependencies
 import com.etendoerp.legacy.ant.AntLoader
+import com.etendoerp.legacy.dependencies.container.ArtifactDependency
 import com.etendoerp.legacy.utils.NexusUtils
 import org.gradle.api.Project
 import org.gradle.api.logging.LogLevel
 
 class ResolverDependencyLoader {
+
+    final static String CONSISTENCY_CONTAINER = "CONSISTENCY_CONTAINER"
 
     static load(Project project) {
 
@@ -27,6 +33,13 @@ class ResolverDependencyLoader {
             NexusUtils.configureRepositories(project)
             CoreMetadata coreMetadata = new CoreMetadata(project)
 
+            EtendoArtifactsConsistencyContainer consistencyContainer = new EtendoArtifactsConsistencyContainer(project, coreMetadata)
+            consistencyContainer.loadInstalledArtifacts()
+
+            // Save the consistency container in the project
+            project.ext.set(CONSISTENCY_CONTAINER, consistencyContainer)
+
+
             def extension = project.extensions.findByType(EtendoPluginExtension)
             boolean loadCompilationDependencies = extension.loadCompilationDependencies
             boolean loadTestDependencies        = extension.loadTestDependencies
@@ -43,6 +56,10 @@ class ResolverDependencyLoader {
 
             DependencyProcessor dependencyProcessor = new DependencyProcessor(project, coreMetadata)
             List<File> jarFiles = dependencyProcessor.processJarFiles()
+
+            // Run verifications
+            consistencyContainer.runArtifactConsistency()
+            consistencyContainer.verifyConsistency(LogLevel.INFO)
 
             // Note: previously the antClassLoader was used to add classes to ant's classpath
             // but when the core is a complete jar (with libs) affecting the class loader can cause collisions

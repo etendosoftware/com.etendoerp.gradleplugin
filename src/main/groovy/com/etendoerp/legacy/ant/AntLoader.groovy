@@ -14,6 +14,9 @@ import org.gradle.api.tasks.ant.AntTarget
 class AntLoader {
 
     static load(Project project) {
+
+        ConsistencyVerification.load(project)
+
         /***
          * Task to check  that all configuration files exist
          * */
@@ -101,6 +104,11 @@ class AntLoader {
             coreInSources = false
         }
 
+        if (!buildFile || !buildFile.exists()) {
+            project.logger.error("* The 'build.xml' file does not exists.")
+            return
+        }
+
         project.ant.properties['is.source.jar'] = coreInSources
 
         /** map from ant tasks to gradle **/
@@ -143,6 +151,15 @@ class AntLoader {
                 task.dependsOn(project.tasks.findByName("compileFilesCheck"))
             }
         }
+
+        // Consistency verification
+        ['smartbuild', 'compile.complete', 'compile.complete.deploy'].each {
+            def task = project.tasks.findByName(it)
+            if (task != null) {
+                task.dependsOn(project.tasks.findByName(ConsistencyVerification.CONSISTENCY_VERIFICATION_TASK))
+            }
+        }
+
 
         /** Call ant setup to prepare environment */
         project.task("setup") {

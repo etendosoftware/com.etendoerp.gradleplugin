@@ -1,7 +1,9 @@
 package com.etendoerp.legacy.dependencies.container
 
+import com.etendoerp.consistency.EtendoArtifactsConsistencyContainer
 import com.etendoerp.jars.PathUtils
 import com.etendoerp.legacy.dependencies.EtendoArtifactMetadata
+import com.etendoerp.legacy.dependencies.ResolverDependencyLoader
 import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ResolvedArtifact
@@ -18,6 +20,8 @@ class EtendoJarModuleArtifact extends ArtifactDependency{
 
     @Override
     void extract() {
+        // TODO: Improvement - Use the result of the 'resolutionConflicts' to verify if the module contains conflicts.
+
         // Extract only the Etendo jar file if the module is not already in sources - 'modules/' dir
         File modulesLocation = new File("${project.rootDir.absolutePath}${File.separator}${PublicationUtils.BASE_MODULE_DIR}")
         File sourceModule = new File(modulesLocation, this.moduleName)
@@ -27,6 +31,11 @@ class EtendoJarModuleArtifact extends ArtifactDependency{
             project.logger.info("The JAR module '${moduleName}' already exists in the 'modules/' directory. Skipping extraction. Artifact '${this.group}:${this.name}:${this.version}" )
             return
         }
+
+        // Validate that the module is allowed to be extracted
+        this.versionParser = this.version
+        EtendoArtifactsConsistencyContainer consistencyContainer = project.ext.get(ResolverDependencyLoader.CONSISTENCY_CONTAINER)
+        consistencyContainer.validateArtifact(this)
 
         project.logger.info("")
         project.logger.info("Extracting the Etendo module JAR '${this.group}:${this.name}:${this.version}'")

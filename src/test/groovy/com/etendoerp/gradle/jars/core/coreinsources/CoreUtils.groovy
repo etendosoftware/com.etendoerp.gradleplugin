@@ -6,7 +6,7 @@ import groovy.sql.Sql
 class CoreUtils {
 
     static Map<String, GroovyRowResult> getMapOfModules(Object connection) {
-        Map<String, GroovyRowResult> map = new HashMap<>()
+        Map<String, GroovyRowResult> map = new TreeMap<>(String.CASE_INSENSITIVE_ORDER)
         String qry = "select * from ad_module"
         def rowResult = executeQuery(qry, connection)
 

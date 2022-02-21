@@ -96,7 +96,9 @@ class ResolutionUtils {
 
         // Throw on core conflict
         if (isCoreDependency(module.toString()) && !force) {
-            throw new IllegalArgumentException("${CORE_CONFLICTS_ERROR_MESSAGE} - ${module}")
+            def errorMessage = "${CORE_CONFLICTS_ERROR_MESSAGE} - ${module} \n"
+            errorMessage += EtendoPluginExtension.forceResolutionMessage()
+            throw new IllegalArgumentException(errorMessage)
         }
     }
 
