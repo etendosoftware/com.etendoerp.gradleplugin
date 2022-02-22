@@ -128,14 +128,9 @@ class EtendoArtifactsConsistencyContainer {
     boolean isIgnoredArtifact(String moduleName) {
         def extension = project.extensions.findByType(EtendoPluginExtension)
         List ignoredArtifacts = extension.ignoredArtifacts
-
-        for (String ignoredArtifact : ignoredArtifacts) {
-            if (moduleName.equalsIgnoreCase(ignoredArtifact)) {
-                return true
-            }
-        }
-
-        return false
+        return ignoredArtifacts.stream().anyMatch({
+            return it.equalsIgnoreCase(moduleName)
+        })
     }
 
     boolean validateArtifact(ArtifactDependency localArtifact) {
