@@ -41,7 +41,7 @@ class CompilationTasksConsistencyVerificationTest extends EtendoCoreResolutionSp
         and: "The user resolves the core"
         resolveCore([coreType : "${coreType}", testProjectDir: testProjectDir])
 
-        and: "The user install the Etendo core environment along with the dependency."
+        and: "The user install the Etendo core environment."
         def setupResult = runTask("setup")
         def installResult = runTask("install")
 

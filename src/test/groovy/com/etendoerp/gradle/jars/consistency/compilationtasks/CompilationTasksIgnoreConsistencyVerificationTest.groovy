@@ -6,7 +6,6 @@ import com.etendoerp.gradle.jars.resolution.EtendoCoreResolutionSpecificationTes
 import com.etendoerp.legacy.ant.ConsistencyVerification
 import com.etendoerp.legacy.dependencies.EtendoArtifactMetadata
 import org.gradle.testkit.runner.TaskOutcome
-import org.gradle.testkit.runner.UnexpectedBuildFailure
 import spock.lang.Issue
 import spock.lang.Narrative
 import spock.lang.TempDir
@@ -17,7 +16,7 @@ import spock.lang.Title
 @Narrative("""
 The user can ignore the consistency verification using 
 the 'ignoreConsistencyVerification' plugin extension variable,
-the '-Pforce' and the '-Dlocal=no' flags.
+the '--PignoreConsistency' and the '-Dlocal=no' flags.
 """)
 class CompilationTasksIgnoreConsistencyVerificationTest extends EtendoCoreResolutionSpecificationTest {
     @TempDir File testProjectDir
@@ -42,7 +41,7 @@ class CompilationTasksIgnoreConsistencyVerificationTest extends EtendoCoreResolu
         and: "The user resolves the core"
         resolveCore([coreType : "${coreType}", testProjectDir: testProjectDir])
 
-        and: "The user install the Etendo core environment along with the dependency."
+        and: "The user install the Etendo core environment."
         def setupResult = runTask("setup")
         def installResult = runTask("install")
 
