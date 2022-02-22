@@ -5,40 +5,66 @@ import com.etendoerp.legacy.ant.ConsistencyVerification
 
 class EtendoPluginExtension {
     String coreVersion = '[20.1.2,)' // default core version
+    String coreGroup = CoreMetadata.DEFAULT_ETENDO_CORE_GROUP
+    String coreName = CoreMetadata.DEFAULT_ETENDO_CORE_NAME
 
     boolean loadCompilationDependencies = false
     boolean loadTestDependencies = false
 
-    // Flag used to ignore loading the source modules to perform resolution conflicts.
+    /**
+     * Flag used to ignore loading the source modules to perform resolution conflicts.
+     * Default false
+     */
     boolean ignoreSourceModulesResolution = false
 
-    // Flag used to perform or not the resolution conflicts
+    /**
+     * Flag used to perform or not the resolution conflicts.
+     * Default true
+     */
     boolean performResolutionConflicts = true
 
-    // Flag used to ignore throwing a error if there is conflict resolutions with the Core dependency.
+    /**
+     * Flag used to ignore throwing a error if there is conflict resolutions with the Core dependency.
+     * Default false
+     */
     boolean forceResolution = false
 
-    // Flag used to apply the subproject dependencies to the main project
+    /**
+     * Flag used to apply the subproject dependencies to the main project.
+     * Default true
+     */
     boolean applyDependenciesToMainProject = true
 
-    // Flag used to prevent overwriting the transitive source modules when performing the expand
+    /**
+     * Flag used to prevent overwriting the transitive source modules when performing the expand.
+     * Default true
+     */
     boolean overwriteTransitiveExpandModules = true
 
-    // Flag used to exclude the Core dependency from each subproject to all the configurations.
+    /**
+     * Flag used to exclude the Core dependency from each subproject to all the configurations.
+     * Default true
+     */
     boolean excludeCoreDependencyFromSubprojectConfigurations = true
 
-    // Flag used to indicate that the current Core version support jars (default true)
+    /**
+     *  Flag used to indicate that the current Core version support jars.
+     *  Default true
+     */
     boolean supportJars = true
 
-    // List of Etendo artifacts to always extract
+    /**
+     * List of Etendo artifacts to always extract and ignore from the version consistency verification.
+     */
     List<String> ignoredArtifacts = []
 
-    // Flag use to prevent throwing error on version inconsistency between modules
+    /**
+     * Flag use to prevent throwing error on version inconsistency between modules.
+     * Default false
+     */
     boolean ignoreConsistencyVerification = false
 
-    String coreGroup = CoreMetadata.DEFAULT_ETENDO_CORE_GROUP
-    String coreName = CoreMetadata.DEFAULT_ETENDO_CORE_NAME
-
+    /************************ MESSAGES ************************/
 
     static String ignoredArtifactsMessage(String exampleModule) {
         String message = ""
