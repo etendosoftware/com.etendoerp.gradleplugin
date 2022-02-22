@@ -12,6 +12,18 @@ import groovy.sql.GroovyRowResult
 import org.gradle.api.Project
 import org.gradle.api.logging.LogLevel
 
+/**
+ * This class is used to perform the version consistency verification.
+ * At first, the 'installedArtifacts' should be loaded from the database if exists, containing a map with
+ * the installed modules.
+ *
+ * Then the 'local' artifacts should be loaded, with is respective installed version.
+ * This will be used to perform the version consistency verification.
+ *
+ * A JAR artifact to be extracted should not contain a 'MINOR' version compared with the installed one.
+ * And a module is consistent ONLY if the 'local' version is EQUAL with the one installed in the database.
+ *
+ */
 class EtendoArtifactsConsistencyContainer {
 
     final static String CORE_MODULE = "org.openbravo"
@@ -307,6 +319,13 @@ class EtendoArtifactsConsistencyContainer {
         return [moduleName, comparator]
     }
 
+    /**
+     * Load the 'local' artifacts.
+     * The artifacts could be:
+     * In SOURCES (modules) dir.
+     * In JARs (build/etendo/modules) dir.
+     * The CORE in SOURCES or JAR.
+     */
     void loadComparators() {
         try {
             // Load jar artifact comparator
@@ -473,6 +492,11 @@ class EtendoArtifactsConsistencyContainer {
         }
     }
 
+    /**
+     * This method load the comparators and run
+     * the artifact consistency verification for the
+     * CORE, JAR and SOURCES artifacts.
+     */
     void runArtifactConsistency() {
         loadComparators()
         try {
@@ -485,7 +509,7 @@ class EtendoArtifactsConsistencyContainer {
             // Verify SOURCE modules consistency
             sourceModulesConsistency()
         } catch (ArtifactInconsistentException ae) {
-          throw ae//new IllegalArgumentException(ae)
+          throw ae
         } catch (Exception e) {
             project.logger.error("* Error running the artifacts consistency verification.")
             project.logger.error("* ERROR: ${e.message}")

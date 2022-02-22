@@ -39,7 +39,6 @@ class ResolverDependencyLoader {
             // Save the consistency container in the project
             project.ext.set(CONSISTENCY_CONTAINER, consistencyContainer)
 
-
             def extension = project.extensions.findByType(EtendoPluginExtension)
             boolean loadCompilationDependencies = extension.loadCompilationDependencies
             boolean loadTestDependencies        = extension.loadTestDependencies
