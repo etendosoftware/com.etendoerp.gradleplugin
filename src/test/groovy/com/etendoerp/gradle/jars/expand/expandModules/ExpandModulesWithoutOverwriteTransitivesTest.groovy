@@ -1,4 +1,4 @@
-package com.etendoerp.gradle.jars.resolution.expand
+package com.etendoerp.gradle.jars.expand.expandModules
 
 import com.etendoerp.gradle.jars.resolution.EtendoCoreResolutionSpecificationTest
 import org.gradle.testkit.runner.TaskOutcome
@@ -7,7 +7,7 @@ import spock.lang.Narrative
 import spock.lang.TempDir
 import spock.lang.Title
 
-
+@Issue("EPL-190")
 @Title("Expanding a module with transitive dependency does not overwrites the sources")
 @Narrative("""
 (Sources not supporting JARs)
@@ -17,8 +17,7 @@ which depends on A, by default A would be overwritten. The user can specify a fl
 in the plugin extension to prevent this behavior.
 
 """)
-@Issue("EPL-104")
-class ExpandModulesWithoutOverwriteTest extends EtendoCoreResolutionSpecificationTest {
+class ExpandModulesWithoutOverwriteTransitivesTest extends EtendoCoreResolutionSpecificationTest {
 
     @TempDir File testProjectDir
 
@@ -33,7 +32,6 @@ class ExpandModulesWithoutOverwriteTest extends EtendoCoreResolutionSpecificatio
     }
 
     def "Expanding a module with transitive dependencies already in sources"() {
-
         given: "A Etendo core '#coreType'"
         addRepositoryToBuildFile(getCoreRepo())
 

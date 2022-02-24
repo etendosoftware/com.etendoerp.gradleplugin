@@ -12,13 +12,21 @@ import com.etendoerp.publication.PublicationUtils
 import groovy.io.FileType
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
+import org.gradle.api.artifacts.Dependency
 import org.gradle.api.artifacts.ResolvedArtifact
 import org.gradle.api.logging.LogLevel
+
+import java.util.function.Function
 
 class ExpandUtils {
 
     final static String SOURCE_MODULES_CONTAINER = "sourceModulesContainer"
     final static String EXPAND_SOURCES_RESOLUTION_CONTAINER = "expandSourcesResolutionContainer"
+
+    final static String PACKAGE_PROPERTY = "pkg"
+    final static String FORCE_PROPERTY   = "force"
+
+    final static String MODULE_NOT_FOUND_MESSAGE = "* The module to extract is not found"
 
     final static List<String> MODULES_CLASSIC = [
             'com.smf:smartclient.debugtools:[1.0.1,)@zip',
@@ -137,14 +145,14 @@ class ExpandUtils {
 
     static Map<String, List<ArtifactDependency>> performExpandResolutionConflicts(Project project, CoreMetadata coreMetadata, boolean addCoreDependency, boolean addProjectDependencies, boolean filterCoreDependency, boolean getSelected) {
         // Create custom configuration container
-        def resolutionContainer = project.configurations.create(EXPAND_SOURCES_RESOLUTION_CONTAINER)
+        def resolutionContainer = ResolverDependencyUtils.createRandomConfiguration(project, EXPAND_SOURCES_RESOLUTION_CONTAINER)
         def resolutionDependencySet = resolutionContainer.dependencies
 
         if (addCoreDependency) {
             // Add the current core version
             def core = "${coreMetadata.coreGroup}:${coreMetadata.coreName}:${coreMetadata.coreVersion}"
             project.logger.info("* Adding the core dependency to perform resolution conflicts. ${core}")
-            project.dependencies.add(EXPAND_SOURCES_RESOLUTION_CONTAINER, core)
+            project.dependencies.add(resolutionContainer.name, core)
         }
 
         def configurationsToLoad = []
@@ -184,28 +192,110 @@ class ExpandUtils {
      * @param artifactDependencies
      */
     static void expandModulesOnlySources(Project project, CoreMetadata coreMetadata, Configuration configuration, List<ArtifactDependency> artifactDependencies) {
-        def extension = project.extensions.findByType(EtendoPluginExtension)
-        def overwrite = extension.overwriteTransitiveExpandModules
+        Function<String, Boolean> filterFunction = generateFilterFunction(project, configuration)
 
-        def dependencyMap = ResolverDependencyUtils.loadDependenciesMap(project, configuration)
-        def sourceModulesMap = getSourceModules(project)
+        List extractedArtifacts = []
 
         artifactDependencies.stream().filter({artifact ->
                 artifact.type == DependencyType.ETENDOZIPMODULE
-        }).filter({artifact ->
-            String moduleName = artifact.moduleName
-            // Prevent extracting transitive modules if the overwrite flag is set to false,
-            // the module is already in sources
-            // and the module was not defined by the user
-            return (overwrite || !sourceModulesMap.containsKey(moduleName) || dependencyMap.containsKey(moduleName))
+        }).filter({
+            return filterFunction.apply(it.moduleName)
         }).forEach({artifact ->
             artifact.extract()
+            extractedArtifacts.add(artifact.moduleName)
         })
+
+        project.logger.info("************** Extracted modules **************")
+        extractedArtifacts.stream().forEach({ String name ->
+            project.logger.info("* Module: ${name}")
+        })
+        project.logger.info("***********************************************")
+
+        // Verify pkg property passed by the user
+        String pkgName = project.findProperty(PACKAGE_PROPERTY)
+        if (pkgName && !(extractedArtifacts.stream().anyMatch({String name -> name.equalsIgnoreCase(pkgName)}))) {
+            throw new IllegalArgumentException("${MODULE_NOT_FOUND_MESSAGE} - '${pkgName}'")
+        }
 
     }
 
+
+    static Function<String, Boolean> generateFilterFunction(Project project, Configuration configuration) {
+        def dependencyMap = ResolverDependencyUtils.loadDependenciesMap(project, configuration)
+        def sourceModulesMap = getSourceModules(project)
+
+        // Check if the users provide the -Ppkg flag
+        String pkgName = project.findProperty(PACKAGE_PROPERTY)
+        String forceProp = project.findProperty(FORCE_PROPERTY)
+        Boolean overwrite = project.extensions.findByType(EtendoPluginExtension).overwriteTransitiveExpandModules
+
+        Function<String, Boolean> filterFunction
+
+        if (pkgName) {
+            filterFunction = filterArtifactByPackage(pkgName, dependencyMap)
+        } else {
+            filterFunction = filterArtifact(dependencyMap, sourceModulesMap, forceProp, overwrite)
+        }
+
+       return filterFunction
+    }
+
+    /**
+     * Generates the lambda function used to filter the module passed by the user as a command line parameter
+     * @param pkgName
+     * @param dependencyMap
+     * @return
+     */
+    static Function<String, Boolean> filterArtifactByPackage(String pkgName, Map<String, Dependency> dependencyMap) {
+        return { moduleName ->
+            return moduleName.equalsIgnoreCase(pkgName) && dependencyMap.containsKey(moduleName)
+        }
+    }
+
+    /**
+     * Generates the lambda function used to filter the source module to extrad based on:
+     * If the module is not in sources, then MUST be extracted.
+     * If the module is in the 'moduleDeps' config:
+     *  If the user provides the force flag, then should be ALWAYS extracted.
+     *  If the module is already in sources, then is NOT extracted.
+     *
+     * If the module is not in the 'moduleDeps' then is a transitive module.
+     * Transitive modules by default are overwritten, unless the user specifies the overwrite flag to false.
+     *
+     * @param dependencyMap
+     * @param sourceModuleMap
+     * @param force
+     * @param overwrite
+     * @return
+     */
+    static Function<String, Boolean> filterArtifact(Map<String, Dependency> dependencyMap, Map<String, File> sourceModuleMap, String force, Boolean overwrite) {
+        return { moduleName ->
+            def isInSources = sourceModuleMap.containsKey(moduleName)
+            def isInModuleDeps = dependencyMap.containsKey(moduleName)
+            def extract = false
+
+            // If the module is not in sources then should be extracted
+            if (!isInSources) {
+                extract = true
+            } else {
+                if (isInModuleDeps) {
+                    if (force) {
+                        extract = true
+                    }
+                } else {
+                    // Transitive (not defined in the 'moduleDeps' config)
+                    if (overwrite) {
+                        extract = true
+                    }
+                }
+            }
+
+            return extract
+        }
+    }
+
     static Map<String, File> getSourceModules(Project project) {
-        Map<String, File> sourceModules = new HashMap<>()
+        Map<String, File> sourceModules = new TreeMap<>(String.CASE_INSENSITIVE_ORDER)
         def modulesLocation = new File(project.rootDir, PublicationUtils.BASE_MODULE_DIR)
 
         if (!modulesLocation.exists()) {
