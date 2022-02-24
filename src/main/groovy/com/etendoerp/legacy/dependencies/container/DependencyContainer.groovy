@@ -71,9 +71,15 @@ class DependencyContainer {
     }
 
     static ArtifactDependency getArtifactDependency(Project project, ResolvedArtifact resolvedArtifact) {
-        // If the extension is 'zip' then could be a Etendo module in zip format
+        // If the extension is 'zip' then could be a Etendo module or Core in zip format
         if (resolvedArtifact.extension == "zip") {
-            // TODO: Verify that is a Etendo artifact
+            // TODO - Improvement: Verify that is a Etendo artifact
+            String fileName = resolvedArtifact.file.name
+
+            if (fileName.contains(CoreMetadata.CLASSIC_ETENDO_CORE_NAME) || fileName.contains(CoreMetadata.DEFAULT_ETENDO_CORE_NAME)) {
+                return new EtendoCoreZipArtifact(project, resolvedArtifact)
+            }
+
             return new EtendoZipModuleArtifact(project, resolvedArtifact)
         }
 

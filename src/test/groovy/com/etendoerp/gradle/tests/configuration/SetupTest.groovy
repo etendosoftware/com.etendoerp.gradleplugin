@@ -29,6 +29,8 @@ class SetupTest extends EtendoSpecification {
 
     def "Create Openbravo.properties on first setup"() {
         given: "a configured gradle.properties"
+        addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
+
         def gradleProperties = new File(testProjectDir, "gradle.properties")
         gradleProperties.text = """
         source.path=/test/source/path
@@ -43,7 +45,7 @@ class SetupTest extends EtendoSpecification {
         """
 
         when: "running the setup"
-        def expandResult = runTask("expand")
+        def expandResult = runTask("expandCore")
         def result = runTask("setup")
 
         then: "the Openbravo.properties file is created with the correct data"
@@ -51,7 +53,7 @@ class SetupTest extends EtendoSpecification {
         def props = new Properties()
         props.load(propsFile.newReader())
         verifyAll {
-            expandResult.task(":expand").outcome == TaskOutcome.SUCCESS
+            expandResult.task(":expandCore").outcome == TaskOutcome.SUCCESS
             result.task(":setup").outcome == TaskOutcome.UP_TO_DATE
 
             props.getProperty("context.name") == "test_etendo"
@@ -69,6 +71,8 @@ class SetupTest extends EtendoSpecification {
 
     def "Edit Openbravo.properties when it already exists"() {
         given: "a configured gradle.properties"
+        addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
+
         def gradleProperties = new File(testProjectDir, "gradle.properties")
         gradleProperties.text = """
         source.path=/test/source/path
@@ -83,9 +87,9 @@ class SetupTest extends EtendoSpecification {
         """
 
         and: "running the first setup"
-        def expandResult = runTask("expand")
+        def expandResult = runTask("expandCore")
         def firstSetupResult = runTask("setup")
-        expandResult.task(":expand").outcome == TaskOutcome.SUCCESS
+        expandResult.task(":expandCore").outcome == TaskOutcome.SUCCESS
         firstSetupResult.task(":setup").outcome == TaskOutcome.UP_TO_DATE
 
         when: "running the setup again, after chaning the gradle.properties contents"
@@ -116,11 +120,13 @@ class SetupTest extends EtendoSpecification {
 
     def "Use default values when gradle.properties is empty or does not exists"() {
         given: "no gradle.properties"
+        addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
+
         def gradleProperties = new File(testProjectDir, "gradle.properties")
         gradleProperties.text = ""
 
         when: "running the setup"
-        def expandResult = runTask("expand")
+        def expandResult = runTask("expandCore")
         def result = runTask("setup")
 
         then: "the Openbravo.properties file is created with the correct data"
@@ -128,7 +134,7 @@ class SetupTest extends EtendoSpecification {
         def props = new Properties()
         props.load(propsFile.newReader())
         verifyAll {
-            expandResult.task(":expand").outcome == TaskOutcome.SUCCESS
+            expandResult.task(":expandCore").outcome == TaskOutcome.SUCCESS
             result.task(":setup").outcome == TaskOutcome.UP_TO_DATE
 
             props.getProperty("context.name") == "etendo"

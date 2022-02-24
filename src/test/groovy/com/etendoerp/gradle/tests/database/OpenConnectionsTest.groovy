@@ -32,7 +32,8 @@ class OpenConnectionsTest extends EtendoSpecification {
         def queryCount = queryResult?.queryCount
 
         when: "executing a failing gradle task, that uses the database"
-        def expandResult = getOutcome("expand")
+        addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
+        def expandResult = getOutcome("expandCore")
         def setupResult = getOutcome("setup")
 
         BuildResult installOutcome
@@ -49,7 +50,12 @@ class OpenConnectionsTest extends EtendoSpecification {
 
         then: "the same number of connections exists"
         expandResult == TaskOutcome.SUCCESS
-        installOutcome.task(executedTask).outcome == expectedResult
+        if (expectedResult == TaskOutcome.UP_TO_DATE) {
+            installOutcome.task(executedTask).outcome == expectedResult || TaskOutcome.SUCCESS
+        } else {
+            installOutcome.task(executedTask).outcome == expectedResult
+        }
+
         setupResult == TaskOutcome.UP_TO_DATE
 
         Sql.withInstance(getDBConnection()) {

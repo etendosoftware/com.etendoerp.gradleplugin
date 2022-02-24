@@ -67,9 +67,10 @@ class DependencyProcessor {
         def performResolutionConflicts = extension.performResolutionConflicts
         def applyDependenciesToMainProject = extension.applyDependenciesToMainProject
 
-        if (coreMetadata.coreType == CoreType.SOURCES ) {
+        def rootProjectConfigurations = DependencyUtils.loadListOfConfigurations(project)
+
+        if (coreMetadata.coreType == CoreType.SOURCES) {
             // Exclude from the root project the Core JAR dependency (included also from transitivity)
-            def rootProjectConfigurations = DependencyUtils.loadListOfConfigurations(project)
             rootProjectConfigurations.each {
                 ResolverDependencyUtils.excludeCoreDependencies(project, it, true)
             }
@@ -93,6 +94,11 @@ class DependencyProcessor {
             // Collect module dependency
             etendoDependenciesFiles.addAll(collectDependenciesFiles(this.dependencyContainer.etendoDependenciesJarFiles, applyDependenciesToMainProject))
             mavenDependenciesFiles.addAll(collectDependenciesFiles(this.dependencyContainer.mavenDependenciesFiles, applyDependenciesToMainProject))
+        } else {
+            // Exclude the core from each dependency to prevent downloading it when the Core is undefined
+            rootProjectConfigurations.each {
+                ResolverDependencyUtils.excludeCoreDependencies(project, it, false)
+            }
         }
 
         dependencies.addAll(mavenDependenciesFiles)

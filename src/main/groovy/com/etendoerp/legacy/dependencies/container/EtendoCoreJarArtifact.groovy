@@ -49,10 +49,7 @@ class EtendoCoreJarArtifact extends ArtifactDependency{
         }
 
         // Create the Artifact metadata file
-        EtendoArtifactMetadata metadataToCopy = new EtendoArtifactMetadata(project, DependencyType.ETENDOCOREJAR)
-        metadataToCopy.group = this.group
-        metadataToCopy.name = this.name
-        metadataToCopy.version = this.version
+        EtendoArtifactMetadata metadataToCopy = new EtendoArtifactMetadata(project, DependencyType.ETENDOCOREJAR, this.group, this.name, this.version)
         metadataToCopy.createMetadataFile(coreJarLocation)
 
         // Sync the config templates
