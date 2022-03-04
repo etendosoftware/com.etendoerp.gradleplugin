@@ -43,7 +43,7 @@ pipeline {
                             """
                             sh "./gradlew test --info --no-daemon" //run a gradle task
                             currentBuild.result = 'SUCCESS'
-                            sh "./pipelines/build-update.sh etendo_gradle_plugin SUCCESSFUL 'Build successful'"
+                            sh "./pipelines/build-update.sh etendo_gradle_plugin SUCCESSFUL 'Build successful' $GIT_USERNAME $GIT_PASSWORD"
 
                             publishHTML([
                                 allowMissing: true,
