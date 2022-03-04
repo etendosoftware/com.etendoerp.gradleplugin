@@ -1,13 +1,12 @@
 package com.etendoerp.legacy.dependencies
 
 import com.etendoerp.EtendoPluginExtension
+import com.etendoerp.core.CoreMetadata
 import com.etendoerp.dependencies.EtendoCoreDependencies
-import com.etendoerp.jars.ExtractResourcesOfJars
 import com.etendoerp.legacy.ant.AntLoader
 import com.etendoerp.legacy.utils.NexusUtils
 import org.gradle.api.Project
 import org.gradle.api.logging.LogLevel
-import org.gradle.api.tasks.ant.AntTarget
 
 class ResolverDependencyLoader {
 
@@ -22,13 +21,13 @@ class ResolverDependencyLoader {
          * This method gets all resolved dependencies by gradle and pass all resolved jars to ANT tasks
          */
 
-        project.gradle.projectsEvaluated {
+        project.afterEvaluate {
             project.logger.info("Running GRADLE projectsEvaluated.")
 
             NexusUtils.configureRepositories(project)
+            CoreMetadata coreMetadata = new CoreMetadata(project)
 
             def extension = project.extensions.findByType(EtendoPluginExtension)
-
             boolean loadCompilationDependencies = extension.loadCompilationDependencies
             boolean loadTestDependencies        = extension.loadTestDependencies
 
@@ -42,10 +41,8 @@ class ResolverDependencyLoader {
                 EtendoCoreDependencies.loadCoreTestDependencies(project)
             }
 
-            List<File> jarFiles = ResolverDependencyUtils.getJarFiles(project)
-
-            ExtractResourcesOfJars.extractResources(project)
-            ExtractResourcesOfJars.copyConfigFile(project)
+            DependencyProcessor dependencyProcessor = new DependencyProcessor(project, coreMetadata)
+            List<File> jarFiles = dependencyProcessor.processJarFiles()
 
             // Note: previously the antClassLoader was used to add classes to ant's classpath
             // but when the core is a complete jar (with libs) affecting the class loader can cause collisions
@@ -94,13 +91,13 @@ class ResolverDependencyLoader {
             // Ant task build.local.context uses this to copy them to WebContent
             project.ant.filelist(id: 'gradle.libs', files: dependencies.join(','))
 
-            AntLoader.loadAntFile(project)
+            AntLoader.loadAntFile(project, coreMetadata)
 
             //
             project.ant.references.keySet().forEach {
                 if(it.contains("path")) {
                     newPath.forEach { pth ->
-                        project.logger.log(LogLevel.INFO, "GRADLE - ant reference " + it + " add to classpath " + pth)
+                        project.logger.log(LogLevel.DEBUG, "GRADLE - ant reference " + it + " add to classpath " + pth)
                         project.ant.references[it].add(pth)
                     }
                 }

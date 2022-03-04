@@ -10,8 +10,8 @@ REPO_SLUG=$1
 REVISION=$GIT_COMMIT
 URL="$URI/$OWNER/$REPO_SLUG/commit/$REVISION/statuses/build"
 
-USER="koodu_bot"
-PASSWORD="koodu"
+USER=$4
+PASSWORD=$5
 
 echo $URL
 echo $DATA

@@ -15,14 +15,16 @@ class DepsTest extends EtendoSpecification {
 
     def "gradle dependency is added to the ant classpath"() {
         given: "an installed project with an additional dependency"
+        addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
+
         buildFile << """
         dependencies {
           compile 'com.google.code.gson:gson:2.8.7'
         }
         """
 
-        def expandResult = runTask("expand")
-        expandResult.task(":expand").outcome == TaskOutcome.SUCCESS
+        def expandResult = runTask("expandCore")
+        expandResult.task(":expandCore").outcome == TaskOutcome.SUCCESS
         def setupResult = runTask("setup")
         setupResult.task(":setup").outcome == TaskOutcome.SUCCESS
         def installResult = runTask("install")
@@ -50,19 +52,20 @@ class DepsTest extends EtendoSpecification {
         """
 
         then: "compilation with #task succeeds"
-        def compilationResult = runTask(task)
-        compilationResult.task(":${task}").outcome == TaskOutcome.SUCCESS
+        def compilationSmartbuildResult = runTask(":smartbuild")
+        compilationSmartbuildResult.task(":smartbuild").outcome == TaskOutcome.SUCCESS
 
-        where:
-        task | _
-        "smartbuild" | _
-        "compile.complete.deploy" | _
+        def compileCompleteResult = runTask(":compile.complete.deploy")
+        compileCompleteResult.task(":compile.complete.deploy").outcome == TaskOutcome.SUCCESS
+
     }
 
     def "compilation fails when dependency is not added to gradle"() {
         given: "an installed project with a missing dependency"
-        def expandResult = runTask("expand")
-        expandResult.task(":expand").outcome == TaskOutcome.SUCCESS
+        addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
+
+        def expandResult = runTask("expandCore")
+        expandResult.task(":expandCore").outcome == TaskOutcome.SUCCESS
         def setupResult = runTask("setup")
         setupResult.task(":setup").outcome == TaskOutcome.SUCCESS
         def installResult = runTask("install")

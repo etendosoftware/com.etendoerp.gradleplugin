@@ -34,13 +34,15 @@ class AntTasksTest extends EtendoSpecification {
     }
 
     def "successfully installs"() {
-        when: "expanding, configuring and intalling the environment"
-        def expandResult = runTask("expand")
+        when: "expanding, configuring and installing the environment"
+        addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
+
+        def expandResult = runTask("expandCore")
         def setupResult = runTask("setup")
         def installResult = runTask("install")
 
         then: "all tasks run successfully"
-        isInstalled(expandResult.task(":expand").outcome, setupResult.task(":setup").outcome, installResult.task(":install").outcome)
+        isInstalled(expandResult.task(":expandCore").outcome, setupResult.task(":setup").outcome, installResult.task(":install").outcome)
     }
 
     def "successfully runs #task"() {
