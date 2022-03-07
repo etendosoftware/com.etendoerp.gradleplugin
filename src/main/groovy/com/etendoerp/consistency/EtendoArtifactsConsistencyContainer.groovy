@@ -26,7 +26,7 @@ import org.gradle.api.logging.LogLevel
  */
 class EtendoArtifactsConsistencyContainer {
 
-    final static String CORE_MODULE = "org.openbravo"
+    static final String CORE_MODULE = "org.openbravo"
 
     Project project
     EtendoPluginExtension extension
@@ -42,17 +42,17 @@ class EtendoArtifactsConsistencyContainer {
     EtendoArtifactsComparator etendoCoreArtifactComparator
 
     Boolean etendoJarModulesConsistent
-    final static String VALIDATION_ERROR_MESSAGE = "* Error validating the artifact"
+    static final String VALIDATION_ERROR_MESSAGE = "* Error validating the artifact"
 
-    final static String JAR_MODULES_CONSISTENT_ERROR = "* The modules in JAR must not have inconsistencies between versions."
+    static final String JAR_MODULES_CONSISTENT_ERROR = "* The modules in JAR must not have inconsistencies between versions."
 
     Boolean etendoZipModulesConsistent
-    final static String ZIP_MODULES_CONSISTENT_ERROR = "* The modules in SOURCES must not have inconsistencies between versions."
+    static final String ZIP_MODULES_CONSISTENT_ERROR = "* The modules in SOURCES must not have inconsistencies between versions."
 
     Boolean etendoCoreArtifactConsistent
-    final static String CORE_ARTIFACT_CONSISTENT_ERROR = "* The CORE artifact must not have inconsistencies between versions."
+    static final String CORE_ARTIFACT_CONSISTENT_ERROR = "* The CORE artifact must not have inconsistencies between versions."
 
-    final static String CONSISTEN_ERROR_MESSAGE = "* The environment must not have inconsistencies between versions."
+    static final String CONSISTEN_ERROR_MESSAGE = "* The environment must not have inconsistencies between versions."
 
     boolean artifactsLoaded = false
 
@@ -172,14 +172,10 @@ class EtendoArtifactsConsistencyContainer {
         }
 
         def moduleName = localArtifact.moduleName
-        ArtifactDependency installedArtifact = null
+        ArtifactDependency installedArtifact = this.installedCoreArtifact
 
-        if (localArtifact.type == DependencyType.ETENDOCOREJAR) {
-            installedArtifact = this.installedCoreArtifact
-        } else if (localArtifact.type == DependencyType.ETENDOJARMODULE) {
-            if (this.installedArtifacts.containsKey(moduleName)) {
-                installedArtifact = this.installedArtifacts.get(moduleName)
-            }
+        if (localArtifact.type == DependencyType.ETENDOJARMODULE && this.installedArtifacts.containsKey(moduleName)) {
+            installedArtifact = this.installedArtifacts.get(moduleName)
         }
 
         // The artifact is not installed
@@ -189,7 +185,6 @@ class EtendoArtifactsConsistencyContainer {
 
         EtendoArtifactsComparator comparator = new EtendoArtifactsComparator(project, localArtifact, installedArtifact)
         comparator.loadVersionStatus()
-
 
         // Fail on MINOR version
         if (comparator.versionStatus == VersionStatus.MINOR) {
@@ -435,8 +430,7 @@ class EtendoArtifactsConsistencyContainer {
         boolean allModulesConsistent = true
 
         for (def comparator in comparatorMap) {
-            boolean isModuleConsistent = verifyModuleComparatorConsistency(comparator.value)
-            if (!isModuleConsistent) {
+            if (!verifyModuleComparatorConsistency(comparator.value)) {
                 allModulesConsistent = false
             }
         }
