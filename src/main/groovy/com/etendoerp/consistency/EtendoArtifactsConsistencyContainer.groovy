@@ -370,15 +370,18 @@ class EtendoArtifactsConsistencyContainer {
         String location = null
         DependencyType dependencyType
 
-        if (coreType == CoreType.SOURCES) {
-            location = project.rootDir.absolutePath
-            dependencyType = DependencyType.ETENDOCOREZIP
-        } else if (coreType == CoreType.JAR) {
-            location = project.buildDir.absolutePath + File.separator + "etendo"
-            dependencyType = DependencyType.ETENDOCOREJAR
-        } else {
+        if (!coreType || coreType == CoreType.UNDEFINED) {
             project.logger.info("* The core comparator could not be loaded because the core is UNDEFINED.")
             return
+        }
+
+        // Default set to SOURCES
+        location = project.rootDir.absolutePath
+        dependencyType = DependencyType.ETENDOCOREZIP
+
+        if (coreType == CoreType.JAR) {
+            location = project.buildDir.absolutePath + File.separator + "etendo"
+            dependencyType = DependencyType.ETENDOCOREJAR
         }
 
         if (location) {
