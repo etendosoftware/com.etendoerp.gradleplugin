@@ -172,9 +172,11 @@ class EtendoArtifactsConsistencyContainer {
         }
 
         def moduleName = localArtifact.moduleName
-        ArtifactDependency installedArtifact = this.installedCoreArtifact
+        ArtifactDependency installedArtifact = null
 
-        if (localArtifact.type == DependencyType.ETENDOJARMODULE && this.installedArtifacts.containsKey(moduleName)) {
+        if (localArtifact.type == DependencyType.ETENDOCOREJAR) {
+            installedArtifact = this.installedCoreArtifact
+        } else if (localArtifact.type == DependencyType.ETENDOJARMODULE && this.installedArtifacts.containsKey(moduleName)) {
             installedArtifact = this.installedArtifacts.get(moduleName)
         }
 
