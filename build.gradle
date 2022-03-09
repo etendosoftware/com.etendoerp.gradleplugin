@@ -56,6 +56,13 @@ publishing {
 dependencies {
     compile     gradleApi()
     testCompile gradleTestKit()
+
+    // https://mvnrepository.com/artifact/org.apache.commons/commons-dbcp2
+    implementation group: 'org.apache.commons', name: 'commons-dbcp2', version: '2.9.0'
+
+    // https://mvnrepository.com/artifact/org.postgresql/postgresql
+    implementation group: 'org.postgresql', name: 'postgresql', version: '42.3.2'
+
     testImplementation 'org.codehaus.groovy:groovy-all:2.5.14'
     testImplementation platform("org.spockframework:spock-bom:2.0-M4-groovy-2.5")
     testImplementation 'org.spockframework:spock-core'

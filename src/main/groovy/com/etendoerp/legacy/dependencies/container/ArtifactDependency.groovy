@@ -1,11 +1,13 @@
 package com.etendoerp.legacy.dependencies.container
 
 import com.etendoerp.jars.PathUtils
+import com.etendoerp.legacy.dependencies.EtendoArtifactMetadata
 import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Dependency
 import org.gradle.api.artifacts.ModuleVersionIdentifier
 import org.gradle.api.artifacts.ResolvedArtifact
+import org.gradle.api.file.FileTree
 import org.gradle.api.internal.artifacts.DefaultModuleVersionIdentifier
 
 class ArtifactDependency {
@@ -31,6 +33,9 @@ class ArtifactDependency {
     String version
     String moduleName
 
+    // Version used to compare Artifacts
+    String versionParser
+
     // Gradle properties
     ModuleVersionIdentifier moduleVersionIdentifier
     String displayName
@@ -43,6 +48,12 @@ class ArtifactDependency {
         this.project = project
         this.resolvedArtifact = resolvedArtifact
         loadFromArtifact()
+    }
+
+    ArtifactDependency(Project project, String moduleName, String version) {
+        this.project = project
+        this.moduleName = moduleName
+        this.version = version
     }
 
     ArtifactDependency(Project project, String group, String name, String version) {
@@ -65,7 +76,15 @@ class ArtifactDependency {
     ArtifactDependency(Project project, ModuleVersionIdentifier moduleVersionIdentifier, String displayName) {
         this.project = project
         this.moduleVersionIdentifier = moduleVersionIdentifier
+        loadFromVersionIdentifier(moduleVersionIdentifier)
         this.displayName = replaceSnapshot(displayName)
+    }
+
+    void loadFromVersionIdentifier(ModuleVersionIdentifier moduleVersionIdentifier) {
+        this.group = moduleVersionIdentifier.group
+        this.name = moduleVersionIdentifier.name
+        this.version = moduleVersionIdentifier.version
+        this.moduleName = "${this.group}.${this.name}"
     }
 
     static String replaceSnapshot(String displayName) {
@@ -80,6 +99,7 @@ class ArtifactDependency {
         this.group = group
         this.name = name
         this.version = version
+        this.moduleName = "${this.group}.${this.name}"
     }
 
     void loadFromArtifact() {
@@ -90,9 +110,26 @@ class ArtifactDependency {
         this.version      = this.resolvedArtifact.moduleVersion.id.version
         this.extension    = this.resolvedArtifact.extension
         this.moduleName   = "${this.group}.${this.name}"
-        this.displayName = "${this.group}:${this.name}:${this.version}"
+        this.displayName  = "${this.group}:${this.name}:${this.version}"
     }
 
     void extract() {}
+
+    static File getADModuleFile(Project project, File unzipFile) {
+        FileTree fileTree = project.zipTree(unzipFile)
+        def adModuleLocation = "${JAR_ETENDO_LOCATION}${EtendoArtifactMetadata.AD_MODULE_LOCATION}"
+
+        def adModuleFilter = fileTree.matching {
+            include "${adModuleLocation}"
+        }
+
+        File adModuleFile = null
+
+        adModuleFilter.each {
+            adModuleFile = it
+        }
+
+        return adModuleFile
+    }
 
 }

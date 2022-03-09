@@ -2,6 +2,7 @@ package com.etendoerp.gradle.jars.resolution
 
 import com.etendoerp.gradle.tests.EtendoSpecification
 import org.gradle.testkit.runner.TaskOutcome
+import org.gradle.testkit.runner.UnexpectedBuildFailure
 
 
 abstract class EtendoCoreResolutionSpecificationTest extends EtendoSpecification{
@@ -76,6 +77,28 @@ abstract class EtendoCoreResolutionSpecificationTest extends EtendoSpecification
             dependenciesTaskResult.task(":dependencies").outcome == TaskOutcome.SUCCESS
             File modules = new File(testProjectDir, "build/etendo/modules")
             assert modules.exists()
+        }
+    }
+
+    void runSmartBuildTask(boolean isSuccess, String exceptionMessage="", String... args) {
+        def success = true
+        def exception  = null
+        def smartTaskResult = null
+        try {
+            smartTaskResult = runTask(":smartbuild", args)
+        } catch (UnexpectedBuildFailure ignored) {
+            exception = ignored
+            success = false
+        }
+
+        if (isSuccess) {
+            assert success
+            assert smartTaskResult
+            assert smartTaskResult.task(":smartbuild").outcome == TaskOutcome.SUCCESS || TaskOutcome.UP_TO_DATE
+        } else {
+            assert !success
+            assert exception
+            assert exception.message.contains(exceptionMessage)
         }
     }
 

@@ -151,6 +151,9 @@ class DependencyProcessor {
             // The resolution conflict returns all the 'selected' dependencies (matched versions)
             def artifactDependencies = performResolutionConflict(container, addCoreToResolution, false)
 
+            // TODO: Improvement - Save the 'artifactDependencies' in the project properties, to use later to verify if a module
+            // To be extracted contains conflicts.
+
             // Obtain the 'selected' Core version
             String currentCoreDependency = "${this.coreMetadata.coreGroup}:${this.coreMetadata.coreName}"
             coreArtifactDependency = ResolverDependencyUtils.getCoreDependency(project, currentCoreDependency ,artifactDependencies)
@@ -267,19 +270,17 @@ class DependencyProcessor {
             throw new IllegalArgumentException("Error collecting the Etendo core JAR file")
         }
 
-        // TODO: Depending on the core version to extract, and the one installed
         // a verification should be done to see if the version is MINOR or MAJOR that the current installed,
         // If the version is MAJOR, a WARNING should be showed to the user to UPDATE the core.
         // If the version is MINOR, the core should not be extracted (the user can use a force flag)
         // If the core is not extracted, a Exception should be thrown with the problem and how to fix it
         // (because the user can run a clean and the 'build.xml' will never be loaded)
 
-
         coreArtifact.extract()
 
-
-        // TODO: Check if the core dependency should be applied if the version is MAJOR or MINOR
-        applyDependencyToMainProject(coreArtifact, true)
+        if (coreArtifact.extracted) {
+            applyDependencyToMainProject(coreArtifact, true)
+        }
 
         return coreArtifact.locationFile
     }
