@@ -7,6 +7,5 @@ class JarLoader {
 
     static load(Project project) {
         JarCoreGenerator.load(project)
-        ModuleJarLoader.load(project)
     }
 }

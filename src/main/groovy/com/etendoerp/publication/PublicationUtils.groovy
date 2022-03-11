@@ -1,5 +1,6 @@
 package com.etendoerp.publication
 
+import com.etendoerp.legacy.dependencies.EtendoArtifactMetadata
 import com.etendoerp.legacy.utils.NexusUtils
 import org.gradle.api.Project
 import org.gradle.api.internal.artifacts.repositories.AbstractAuthenticationSupportedRepository
@@ -48,7 +49,8 @@ class PublicationUtils {
             "gradle/**",
             "deploy.gradle",
             "target/**",
-            "*.xml"
+            "*.xml",
+            "${EtendoArtifactMetadata.METADATA_FILE}"
     ]
 
     /**

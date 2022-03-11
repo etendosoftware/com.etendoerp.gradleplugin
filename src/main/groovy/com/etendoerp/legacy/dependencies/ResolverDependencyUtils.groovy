@@ -8,6 +8,7 @@ import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.Dependency
 import org.gradle.api.artifacts.DependencySet
 import org.gradle.api.internal.artifacts.dependencies.AbstractModuleDependency
+import org.gradle.api.internal.artifacts.dependencies.DefaultProjectDependency
 
 class ResolverDependencyUtils {
 
@@ -39,6 +40,22 @@ class ResolverDependencyUtils {
         return container
     }
 
+    static Configuration loadSubprojectDependencies(Project mainProject, Project subProject, List<String> configurationsToSearch=[], boolean onlyExternalDependencies=true) {
+        def subProjectConfigurations = DependencyUtils.loadListOfConfigurations(subProject, configurationsToSearch)
+
+        def container = subProject.configurations.create(UUID.randomUUID().toString().replace("-",""))
+        DependencySet containerSet = container.dependencies
+
+        // Create a DependencySet with all the dependencies from the subproject
+        DependencyUtils.loadDependenciesFromConfigurations(subProjectConfigurations, containerSet, onlyExternalDependencies)
+        return container
+    }
+
+    static Configuration loadSubprojectDefaultDependencies(Project mainProject, Project subProject, boolean onlyExternalDependencies=true) {
+        return loadSubprojectDependencies(mainProject, subProject, DependencyUtils.VALID_CONFIGURATIONS, onlyExternalDependencies)
+    }
+
+
     /**
      * Loads the dependencies map with the module name has key and the Dependency has value.
      * @param container
@@ -48,6 +65,13 @@ class ResolverDependencyUtils {
         for (Dependency dependency : container.dependencies) {
             def group = dependency.group
             def name = dependency.name
+            if (dependency instanceof DefaultProjectDependency) {
+                DefaultProjectDependency projectDependency = dependency as DefaultProjectDependency
+                def artifact = projectDependency.getDependencyProject().findProperty("artifact")
+                if (artifact) {
+                    name = artifact
+                }
+            }
             String moduleName = "${group}.${name}"
             dependenciesMap.put(moduleName, dependency)
         }

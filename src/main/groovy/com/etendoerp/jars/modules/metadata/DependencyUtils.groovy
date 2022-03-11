@@ -4,7 +4,6 @@ import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.DependencySet
 import org.gradle.api.internal.artifacts.dependencies.DefaultExternalModuleDependency
-import org.gradle.api.internal.artifacts.dependencies.DefaultSelfResolvingDependency
 
 class DependencyUtils {
 
@@ -65,24 +64,46 @@ class DependencyUtils {
         return list
     }
 
-    static DependencySet loadDependenciesFromConfigurations(List<Configuration> configurations, DependencySet setToLoad) {
+    static DependencySet loadDependenciesFromConfigurations(List<Configuration> configurations, DependencySet setToLoad, boolean onlyExternalDependencies = true) {
         DependencySet set = setToLoad
         configurations.each {
             // Continue on null configuration
             if (it == null) {
                 return
             }
-
             it.allDependencies.each {
                 // Used to prevent adding dependencies related to /lib/runtime
                 // when needs to be load to the ANT classpath
-                if (it instanceof DefaultExternalModuleDependency) {
+                if (onlyExternalDependencies) {
+                    if (it instanceof DefaultExternalModuleDependency) {
+                        set.add(it)
+                    }
+                } else {
                     set.add(it)
                 }
             }
-
         }
         return set
+    }
+
+    static int removeDependencyFromSubproject(Project mainProject, Project subProject, String dependencyGroup, String dependencyName, List<String> configurations=VALID_CONFIGURATIONS) {
+        try {
+            int removed = 0
+            List<Configuration> configList = loadListOfConfigurations(subProject)
+            for (Configuration configuration : configList) {
+                def removedDep = configuration.dependencies.removeIf({
+                    it.group == dependencyGroup && it.name == dependencyName
+                })
+                if (removedDep) {
+                    removed ++
+                }
+            }
+            return removed
+        } catch (Exception e) {
+            mainProject.logger.warn("* Error removing the dependencies of the '${subProject}'.")
+            mainProject.logger.warn("* Error: ${e.getMessage()}")
+            return 0
+        }
     }
 
 }

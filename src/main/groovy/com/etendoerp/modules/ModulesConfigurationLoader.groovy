@@ -1,12 +1,18 @@
 package com.etendoerp.modules
 
 import com.etendoerp.EtendoPluginExtension
+import com.etendoerp.jars.modules.mavenpublication.MavenPublicationConfig
 import com.etendoerp.jars.modules.metadata.DependencyUtils
 import com.etendoerp.legacy.dependencies.ResolverDependencyUtils
 import com.etendoerp.publication.PublicationUtils
+import com.etendoerp.publication.configuration.PublicationConfiguration
+import com.etendoerp.publication.taskloaders.PublicationTaskLoader
+import com.etendoerp.publication.taskloaders.ZipTaskGenerator
 import org.gradle.api.Project
+import org.gradle.api.internal.artifacts.dependencies.DefaultProjectDependency
 import org.gradle.api.internal.file.UnionFileCollection
 import org.gradle.api.plugins.JavaPlugin
+import org.gradle.api.publish.maven.MavenPublication
 
 /**
  * This class configures all the module subprojects sourcesSets.
@@ -42,13 +48,17 @@ class ModulesConfigurationLoader {
             def extension = project.extensions.findByType(EtendoPluginExtension)
 
             moduleProject.subprojects.each {subproject ->
+                subproject.pluginManager.apply("java")
+                subproject.pluginManager.apply("maven-publish")
 
-                subproject.beforeEvaluate {
-                    subproject.pluginManager.apply("java")
-                    subproject.pluginManager.apply("maven-publish")
+                // Create the configuration used to reference other subproject dependencies
+                if (!subproject.configurations.findByName(PublicationConfiguration.SUBPROJECT_DEPENDENCIES_CONFIGURATION_CONTAINER)) {
+                    subproject.configurations.create(PublicationConfiguration.SUBPROJECT_DEPENDENCIES_CONFIGURATION_CONTAINER)
                 }
 
                 subproject.afterEvaluate {
+                    // Load the tasks related to the publication of the module subproject
+                    PublicationTaskLoader.load(project, subproject)
 
                     // Throw error when a module subproject does not have the java plugin
                     if (!subproject.getPluginManager().hasPlugin("java")) {
@@ -81,10 +91,8 @@ class ModulesConfigurationLoader {
                     subproject.sourceSets.main.runtimeClasspath += project.sourceSets.main.runtimeClasspath
 
                 }
-
                 // Each subproject should be evaluated before the root project
                 project.evaluationDependsOn(subproject.path)
-
             }
         }
     }
