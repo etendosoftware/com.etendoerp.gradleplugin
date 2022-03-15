@@ -8,9 +8,9 @@ import org.gradle.api.Project
 class EtendoLegacy {
 
     static void load(Project project) {
+        ExpandModulesLoader.load(project)
         LegacyScriptLoader.load(project)
         ModuleZipLoader.load(project)
         ResolverDependencyLoader.load(project)
-        ExpandModulesLoader.load(project)
     }
 }

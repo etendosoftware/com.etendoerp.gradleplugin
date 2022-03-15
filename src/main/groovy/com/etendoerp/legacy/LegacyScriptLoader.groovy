@@ -130,10 +130,13 @@ class LegacyScriptLoader {
         project.repositories {
             mavenCentral()
             maven {
-                url "https://repo.futit.cloud/repository/maven-releases"
+                url 'https://repo.futit.cloud/repository/maven-releases'
             }
             maven {
-                url "https://repo.futit.cloud/repository/maven-public-jars"
+                url 'https://repo.futit.cloud/repository/maven-public-jars'
+            }
+            maven {
+                url 'https://repo.futit.cloud/repository/etendo-public-jars'
             }
             maven {
                 url 'https://repo.futit.cloud/repository/etendo-public-jars'
@@ -350,15 +353,11 @@ class LegacyScriptLoader {
             project.tasks.findByName('expandModulesLegacy').mustRunAfter 'expandCoreLegacy'
         }
 
+        /** Expand core and modules from the dependencies */
         project.task("expand") {
-            doLast {
-                def errorMsg = ""
-                errorMsg += "*********************************************************************************************\n"
-                errorMsg += "* This task has been deprecated. To expand the core use the new 'expandCore' task.           \n"
-                errorMsg += "* You could still access to the old tasks with 'expandCoreLegacy' and 'expandModulesLegacy'. \n"
-                errorMsg += "*********************************************************************************************\n"
-                throw new IllegalArgumentException(errorMsg)
-            }
+            dependsOn project.tasks.findByName("expandCore")
+            dependsOn project.tasks.findByName("expandModules")
+            project.tasks.findByName('expandModules').mustRunAfter 'expandCore'
         }
 
         /**
