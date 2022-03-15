@@ -44,7 +44,7 @@ class ResolverDependencyUtils {
      * @param container
      */
     static Map<String, Dependency> loadDependenciesMap(Project project, Configuration container) {
-        Map<String, Dependency> dependenciesMap = new HashMap<>()
+        Map<String, Dependency> dependenciesMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER)
         for (Dependency dependency : container.dependencies) {
             def group = dependency.group
             def name = dependency.name
