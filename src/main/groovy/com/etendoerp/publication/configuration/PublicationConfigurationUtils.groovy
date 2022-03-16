@@ -109,7 +109,7 @@ class PublicationConfigurationUtils {
             moduleSubproject.configurations.create(configurationContainerProperty)
         }
         // Add the project to the 'java' plugin configuration 'implementation' to be added automatically to the POM
-        moduleSubproject.dependencies.add("implementation", subProjectToAdd)
+        moduleSubproject.dependencies.add(DependencyUtils.IMPLEMENTATION, subProjectToAdd)
 
         // Store a Project dependency
         moduleSubproject.dependencies.add(configurationContainerProperty, subProjectToAdd)

@@ -19,12 +19,6 @@ class PublicationConfiguration {
     static final String DEFAULT_DEPENDENCIES_CONTAINER = "defaultDependenciesContainer"
 
     /**
-     * Name of the configuration used to add dependencies of another subprojects.
-     * Can be used in the generated build.gradle by the users to specify dependencies between subprojects (modules).
-     */
-    static final String SUBPROJECT_DEPENDENCIES_CONFIGURATION_CONTAINER = "subprojectDependenciesContainer"
-
-    /**
      * Property used to verify if is used by the user as a command line parameter to run the recursive publication
      */
     static final String RECURSIVE_PUBLICATION_PROPERTY = "recursive"
@@ -54,8 +48,19 @@ class PublicationConfiguration {
         taskNames.each {
             if (it == PublicationLoader.PUBLISH_VERSION_TASK || it == ":${PublicationLoader.PUBLISH_VERSION_TASK}") {
                 configurePublishVersion()
+            } else if (it == PublicationLoader.PUBLISH_ALL_MODULES_TASK || it == ":${PublicationLoader.PUBLISH_ALL_MODULES_TASK}") {
+                configurePublishAll()
             }
         }
+    }
+
+    void configurePublishAll() {
+        // Get all the submodules to publish
+        def moduleProject = project.findProject(":${PublicationUtils.BASE_MODULE_DIR}")
+        List<Project> moduleSubprojects = moduleProject.subprojects.toList()
+        def updateLeaf = project.findProperty(RECURSIVE_UPDATE_LEAF) ? true : false
+
+        loadSubprojectPublicationTasks(moduleSubprojects, true, updateLeaf)
     }
 
     void configurePublishVersion() {

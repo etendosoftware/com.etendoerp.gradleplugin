@@ -7,6 +7,7 @@ import org.gradle.api.Project
 
 class PublicationLoader {
 
+    final static String PUBLISH_ALL_MODULES_TASK = "publishAll"
     final static String PUBLISH_VERSION_TASK     = "publishVersion"
     final static String PUBLISH_LOCAL_DUMMY_TASK = "publishToLocalDummy"
     final static String PUBLISH_MAVEN_DUMMY_TASK = "publishToMavenDummy"
@@ -41,6 +42,13 @@ class PublicationLoader {
                 return mavenTask.get()
             })
         }
-    }
 
+        project.tasks.register(PUBLISH_ALL_MODULES_TASK) {
+            dependsOn({
+                return localTask.get()
+            }, {
+                return mavenTask.get()
+            })
+        }
+    }
 }
