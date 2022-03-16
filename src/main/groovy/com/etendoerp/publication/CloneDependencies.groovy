@@ -19,7 +19,9 @@ class CloneDependencies {
                 def subProject = moduleProject.subprojects.find {
                     it.name == javaPackage
                 }
-
+                if (subProject == null) {
+                    throw new IllegalArgumentException("The javapackage ${javaPackage} not found")
+                }
                 List<String> repoList = subProject.findProperty("defaultExtensionModules") as List
 
                 repoList.each {
