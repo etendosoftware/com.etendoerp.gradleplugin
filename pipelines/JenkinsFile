@@ -21,53 +21,55 @@ pipeline {
         stage('Run Tests') {
             steps { //Checking out the repo
                 script{
-                    try{
-                        sh 'printenv'
-                        sh 'chmod a+x ./pipelines/build-update.sh'
-                        sh "./pipelines/build-update.sh etendo_gradle_plugin INPROGRESS 'Starting build'"
-                        sh './gradlew --version --info' //run a gradle task
-                        sh """
-                        echo -e "mavenUser=${NEXUS_USER}\n
-                        mavenPassword=${NEXUS_PASSWORD}\n
-                        nexusUser=${NEXUS_USER}\n
-                        nexusPassword=${NEXUS_PASSWORD}\n
-                        test.bbdd.url=jdbc:postgresql://localhost:5432\n
-                        test.bbdd.sid=${BBDD_SID}\n
-                        test.bbdd.systemUser=${BBDD_SYSTEMUSER}\n
-                        test.bbdd.systemPassword=${BBDD_SYSTEMPASS}\n
-                        test.bbdd.user=${BBDD_USER}\n
-                        test.bbdd.password=${BBDD_PASSWOR}\n
-                        org.gradle.daemon=false\n
-                        org.gradle.jvmargs=-Xmx2g -XX:MaxPermSize=1024m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8" > ./gradle.properties
-                        """
-                        sh './gradlew test --info --no-daemon' //run a gradle task
-                        sh "./pipelines/build-update.sh etendo_gradle_plugin SUCCESSFUL 'Build successful'"
+                    withCredentials([usernamePassword(credentialsId: "koodu_credentials", passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
+                        try{
+                            sh 'printenv'
+                            sh 'chmod a+x ./pipelines/build-update.sh'
+                            sh "./pipelines/build-update.sh etendo_gradle_plugin INPROGRESS 'Starting build'"
+                            sh './gradlew --version --info' //run a gradle task
+                            sh """
+                            echo -e "mavenUser=${NEXUS_USER}\n
+                            mavenPassword=${NEXUS_PASSWORD}\n
+                            nexusUser=${NEXUS_USER}\n
+                            nexusPassword=${NEXUS_PASSWORD}\n
+                            test.bbdd.url=jdbc:postgresql://localhost:5432\n
+                            test.bbdd.sid=${BBDD_SID}\n
+                            test.bbdd.systemUser=${BBDD_SYSTEMUSER}\n
+                            test.bbdd.systemPassword=${BBDD_SYSTEMPASS}\n
+                            test.bbdd.user=${BBDD_USER}\n
+                            test.bbdd.password=${BBDD_PASSWOR}\n
+                            org.gradle.daemon=false\n
+                            org.gradle.jvmargs=-Xmx2g -XX:MaxPermSize=1024m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8" > ./gradle.properties
+                            """
+                            sh './gradlew test --info --no-daemon' //run a gradle task
+                            sh "./pipelines/build-update.sh etendo_gradle_plugin SUCCESSFUL 'Build successful' $GIT_USERNAME $GIT_PASSWORD"
 
-                        publishHTML([
-                            allowMissing: true,
-                            alwaysLinkToLastBuild: false,
-                            keepAll: true,
-                            reportDir: 'build/spock-reports/',
-                            reportFiles: '*.html',
-                            reportName: 'TESTS REPORT',
-                            reportTitles: ''
-                        ])
+                            publishHTML([
+                                allowMissing: true,
+                                alwaysLinkToLastBuild: false,
+                                keepAll: true,
+                                reportDir: 'build/spock-reports/',
+                                reportFiles: '*.html',
+                                reportName: 'TESTS REPORT',
+                                reportTitles: ''
+                            ])
 
-                    } catch (Exception e) {
-                       echo 'Exception occurred: ' + e.toString()
-                       sh "./pipelines/build-update.sh etendo_gradle_plugin FAILED 'Build failed'"
-                       echo '....FAILED TESTS....'
-                       currentBuild.result = 'UNSTABLE'
-                       unstable('Failed Plugin Tests')
-                       publishHTML([
-                           allowMissing: false,
-                           alwaysLinkToLastBuild: false,
-                           keepAll: true,
-                           reportDir: 'build/spock-reports/',
-                           reportFiles: '*.html',
-                           reportName: 'TESTS REPORT',
-                           reportTitles: ''
-                       ])
+                        } catch (Exception e) {
+                           echo 'Exception occurred: ' + e.toString()
+                           sh "./pipelines/build-update.sh etendo_gradle_plugin FAILED 'Build failed'"
+                           echo '....FAILED TESTS....'
+                           currentBuild.result = 'UNSTABLE'
+                           unstable('Failed Plugin Tests')
+                           publishHTML([
+                               allowMissing: false,
+                               alwaysLinkToLastBuild: false,
+                               keepAll: true,
+                               reportDir: 'build/spock-reports/',
+                               reportFiles: '*.html',
+                               reportName: 'TESTS REPORT',
+                               reportTitles: ''
+                           ])
+                        }
                     }
                 }
             }

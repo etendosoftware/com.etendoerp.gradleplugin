@@ -41,8 +41,9 @@ class ResolutionUtils {
      * @param project
      * @param configuration
      * @param filterCoreDependency Flag used to prevent adding the Core dependency to the returned Map
+     * @param obtainSelectedArtifacts Flag used to obtain only the 'selected' artifacts resolved by gradle if true, otherwise obtains the requested by the user.
      */
-    static Map<String, List<ArtifactDependency>> dependenciesResolutionConflict(Project project, Configuration configuration, boolean filterCoreDependency, boolean getSelected) {
+    static Map<String, List<ArtifactDependency>> dependenciesResolutionConflict(Project project, Configuration configuration, boolean filterCoreDependency, boolean obtainSelectedArtifacts) {
         def extension = project.extensions.findByType(EtendoPluginExtension)
 
         def forceParameter = project.findProperty("force")
@@ -69,7 +70,7 @@ class ResolutionUtils {
             }
         }
         // Trigger the resolution
-        return getIncomingDependencies(project, configuration, filterCoreDependency, getSelected, LogLevel.INFO, artifactsConflicts)
+        return getIncomingDependencies(project, configuration, filterCoreDependency, obtainSelectedArtifacts, LogLevel.INFO, artifactsConflicts)
     }
 
     static void handleResolutionConflict(Project project, Configuration configuration, ComponentSelectionReasonInternal reason, ModuleVersionIdentifier module, boolean force) {
@@ -110,10 +111,11 @@ class ResolutionUtils {
      * @param project
      * @param configuration
      * @param filterCoreDependency Flag used to prevent adding the Core dependency to the returned Map
+     * @param obtainSelectedArtifacts Flag used to obtain only the 'selected' artifacts resolved by gradle if true, otherwise obtains the requested by the user.
      * @param artifactConflicts Map used to add to the ArtifactDependency the 'hasConflict' flag.
      * @return
      */
-    static Map<String, List<ArtifactDependency>> getIncomingDependencies(Project project, Configuration configuration, boolean filterCoreDependency, boolean getSelected, LogLevel logLevel, Map < String, Boolean > artifactConflicts = null) {
+    static Map<String, List<ArtifactDependency>> getIncomingDependencies(Project project, Configuration configuration, boolean filterCoreDependency, boolean obtainSelectedArtifacts, LogLevel logLevel, Map < String, Boolean > artifactConflicts = null) {
         Map<String, List<ArtifactDependency>> incomingDependencies = [:]
         configuration.incoming.each {
             for (DependencyResult dependency: it.resolutionResult.allDependencies) {
@@ -133,7 +135,7 @@ class ResolutionUtils {
                     ArtifactDependency artifactDependency = null
                     String artifactName = ""
 
-                    if (getSelected) {
+                    if (obtainSelectedArtifacts) {
                         ModuleVersionIdentifier identifier = dependencyResult.getSelected().moduleVersion
                         String displayName = dependencyResult.getSelected().getId().displayName
                         artifactDependency = new ArtifactDependency(project, identifier, displayName)
@@ -246,7 +248,7 @@ class ResolutionUtils {
         return sourcesModulesContainer
     }
 
-    static Map<String, List<ArtifactDependency>> performResolutionConflicts(Project project, Configuration configToPerformResolution, boolean filterCoreDependency, boolean getSelected) {
+    static Map<String, List<ArtifactDependency>> performResolutionConflicts(Project project, Configuration configToPerformResolution, boolean filterCoreDependency, boolean obtainSelectedArtifacts) {
 
         // Obtain all the incoming 'requested' dependencies (Core dependencies will be not included)
         def requestedDependencies = getIncomingDependenciesExcludingCore(project, configToPerformResolution, filterCoreDependency, false)
@@ -258,7 +260,7 @@ class ResolutionUtils {
         ResolverDependencyUtils.loadConfigurationWithArtifacts(project, configurationContainer, requestedDependencies)
 
         // Perform the resolution conflicts
-        return dependenciesResolutionConflict(project, configurationContainer, filterCoreDependency, getSelected)
+        return dependenciesResolutionConflict(project, configurationContainer, filterCoreDependency, obtainSelectedArtifacts)
     }
 
     /**
@@ -267,16 +269,16 @@ class ResolutionUtils {
      * @param project
      * @param configuration
      * @param filterCoreDependency
-     * @param getSelected
+     * @param obtainSelectedArtifacts Flag used to obtain only the 'selected' artifacts resolved by gradle if true, otherwise obtains the requested by the user.
      * @return
      */
-    static Map<String, List<ArtifactDependency>> getIncomingDependenciesExcludingCore(Project project, Configuration configuration, boolean filterCoreDependency, boolean getSelected) {
+    static Map<String, List<ArtifactDependency>> getIncomingDependenciesExcludingCore(Project project, Configuration configuration, boolean filterCoreDependency, boolean obtainSelectedArtifacts) {
         // Create a random configuration to exclude Core transitive dependencies (The ones defined in the core pom.xml)
         def randomContainer = ResolverDependencyUtils.createRandomConfiguration(project, "incoming", configuration)
         ResolverDependencyUtils.excludeCoreDependencies(project, randomContainer, false)
 
         // Obtain all the incoming dependencies (Core dependencies will be not included)
-        return getIncomingDependencies(project, randomContainer, filterCoreDependency, getSelected, LogLevel.DEBUG)
+        return getIncomingDependencies(project, randomContainer, filterCoreDependency, obtainSelectedArtifacts, LogLevel.DEBUG)
     }
 
 

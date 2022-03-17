@@ -102,6 +102,11 @@ test {
     systemProperty 'test.bbdd.url', project['test.bbdd.url']
     systemProperty 'org.gradle.jvmargs', '-Xmx2g -XX:MaxPermSize=512m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8'
     environment 'JAVA_HOME', System.getenv('JAVA_HOME')
+
+
+    maxParallelForks 2
+    forkEvery 100
+    maxHeapSize= '2G'
 }
 
 gradlePlugin {

@@ -31,29 +31,24 @@ class DatabaseConnection {
     }
 
     boolean validateConnection(DatabaseProperties databaseProperties) {
-        boolean isValid = false
         try {
             def sql = new Sql(dataSource)
             String validationQuery = getValidationQuery(databaseProperties)
             def x = sql.rows(validationQuery)
-            isValid = true
+            return true
         } catch (SQLException e) {
             project.logger.error("* Error validating the connection.")
             project.logger.error("* Error: ${e.message}")
-            isValid = false
+            return false
         }
-        return isValid
     }
 
     static String getValidationQuery(DatabaseProperties databaseProperties) {
-        String query = ""
-        switch (databaseProperties.databaseType) {
-            case DatabaseType.POSTGRE:
-                query = "select 1;"
-                break
-            case DatabaseType.ORACLE:
-                query = "select 1 from dual;"
-                break
+        // Default POSTGRE query
+        String query = "select 1;"
+
+        if (databaseProperties.databaseType == DatabaseType.ORACLE) {
+            query = "select 1 from dual;"
         }
         return query
     }

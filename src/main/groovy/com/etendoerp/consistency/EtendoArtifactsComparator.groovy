@@ -61,13 +61,11 @@ class EtendoArtifactsComparator {
             VersionNumber installedModule = VersionNumber.parse(installedModule.versionParser)
 
             this.comparisonResult = localModule.compareTo(installedModule)
-
+            this.versionStatus = VersionStatus.EQUAL
             if (this.comparisonResult > 0) {
                 this.versionStatus = VersionStatus.MAJOR
             } else if (this.comparisonResult < 0)  {
                 this.versionStatus = VersionStatus.MINOR
-            } else {
-                this.versionStatus = VersionStatus.EQUAL
             }
 
         } catch (Exception e) {
