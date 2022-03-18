@@ -13,6 +13,7 @@ import org.gradle.api.plugins.JavaBasePlugin
 import org.gradle.api.plugins.WarPlugin
 import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
 import org.gradle.api.publish.plugins.PublishingPlugin
+import com.etendoerp.publication.CloneDependencies
 
 class EtendoPlugin implements Plugin<Project> {
     @Override
@@ -33,6 +34,7 @@ class EtendoPlugin implements Plugin<Project> {
         PublicationLoader.load(project)
         ModulesConfigurationLoader.load(project)
         DependenciesLoader.load(project)
+        CloneDependencies.load(project)
         JandexConfigLoader.load(project)
     }
 }
