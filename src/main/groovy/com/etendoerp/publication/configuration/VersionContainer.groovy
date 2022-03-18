@@ -34,6 +34,8 @@ class VersionContainer {
     String oldVersion
     String version
 
+    boolean versionUpdated = false
+
     int mayor
     int minor
     int patch
@@ -74,7 +76,7 @@ class VersionContainer {
      * @param version
      * @return
      */
-    static String parsePatchVersion(String version)  {
+    static String parsePatchVersion(String version) {
         return version
     }
 
@@ -115,6 +117,7 @@ class VersionContainer {
         // Update publication version
         this.subProject.version = updatedVersion
         updatePublicationVersion(this.subProject, updatedVersion)
+        this.versionUpdated = true
 
         return updatedVersion
     }

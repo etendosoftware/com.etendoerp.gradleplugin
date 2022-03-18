@@ -28,6 +28,8 @@ class PublicationConfiguration {
      */
     static final String RECURSIVE_UPDATE_LEAF = "updateLeaf"
 
+    static final String PUBLISHED_FLAG = "publishedFlag"
+
     Project project
     ProjectPublicationRegistry projectPublicationRegistry
 
@@ -77,6 +79,11 @@ class PublicationConfiguration {
         if (recursivePublication) {
             Map<String, Project> subprojectsMap = PublicationConfigurationUtils.generateProjectMap(subprojects)
             subprojectsToPublish = processLeafProjects(subprojectsMap, updateSubprojectsLeafVersion)
+        }
+
+        // Mark the subprojects which will be published
+        subprojectsToPublish.each {
+            it.ext.set(PUBLISHED_FLAG, true)
         }
 
         // Load local publication tasks

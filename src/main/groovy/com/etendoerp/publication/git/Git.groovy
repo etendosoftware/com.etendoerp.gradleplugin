@@ -1,4 +1,4 @@
-package com.etendoerp.publication
+package com.etendoerp.publication.git
 
 import org.gradle.api.Project
 
@@ -28,6 +28,14 @@ class Git {
         runCommand(project, directory.getParent(), "git", "clone", originUrl, directory.getFileName().toString());
     }
 
+    static void gitTag(Project project, Path directory, String tagName, String tagMessage) {
+        runCommand(project, directory, "git", "tag", "-a", tagName, "-m", tagMessage)
+    }
+
+    static void gitPushTag(Project project, Path directory) {
+        runCommand(project, directory, "git", "push", "--tags")
+    }
+
     static void runCommand(Project project, Path directory, String... command) throws IOException, InterruptedException {
         Objects.requireNonNull(directory, "directory");
         if (!Files.exists(directory)) {
@@ -45,7 +53,7 @@ class Git {
         errorGobbler.join();
         outputGobbler.join();
         if (exit != 0) {
-            throw new IllegalAccessError(String.format("runCommand returned %d", exit));
+            throw new IllegalAccessError(String.format("runCommand '${command}' returned %d", exit));
         }
     }
 

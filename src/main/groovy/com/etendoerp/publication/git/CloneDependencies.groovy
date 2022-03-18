@@ -1,7 +1,7 @@
-package com.etendoerp.publication
+package com.etendoerp.publication.git
 
+import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
-import org.gradle.api.publish.Publication
 
 import java.nio.file.Path
 import java.nio.file.Paths;
