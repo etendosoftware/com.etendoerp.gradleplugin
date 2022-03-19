@@ -15,13 +15,16 @@ class BuildMetadataContainer {
      * Map used to store the AD_MODULE_ID of a module with the 'BuildMetadata' information.
      * This is used to obtain the dependencies between subprojects from the 'AD_MODULE_DEPENDENCY.xml' file
      */
-    Map<String, BuildMetadata> moduleSubprojectsMetadata
+    Map<String, BuildMetadata> moduleSubprojectsMetadataById
+
+    Map<String, BuildMetadata> moduleSubprojectsMetadataByName
 
     BuildMetadataContainer(Project project, String repositoryName, File buildGradleTemplateFile) {
         this.project = project
         this.repositoryName = repositoryName
         this.buildGradleTemplateFile = buildGradleTemplateFile
-        this.moduleSubprojectsMetadata = new TreeMap<>(String.CASE_INSENSITIVE_ORDER)
+        this.moduleSubprojectsMetadataById = new TreeMap<>(String.CASE_INSENSITIVE_ORDER)
+        this.moduleSubprojectsMetadataByName = new TreeMap<>(String.CASE_INSENSITIVE_ORDER)
     }
 
     void loadSubprojectMetadata() {
@@ -45,17 +48,54 @@ class BuildMetadataContainer {
 
         for (File sourceModule : sourceModules) {
             String moduleName = sourceModule.name
-            BuildMetadata metadata = new BuildMetadata(project, moduleName, repositoryName, buildGradleTemplateFile, true, this)
+            BuildMetadata metadata = new BuildMetadata(project, moduleName, repositoryName, buildGradleTemplateFile)
+            metadata.buildMetadataContainer = this
+            this.moduleSubprojectsMetadataByName.put(metadata.javaPackage, metadata)
+            this.moduleSubprojectsMetadataById.put(metadata.adModuleId, metadata)
             metadata.addCoreDependency = true
-            this.moduleSubprojectsMetadata.put(metadata.adModuleId, metadata)
         }
     }
 
     void createSubprojectsBuildFile() {
-        this.moduleSubprojectsMetadata.each {
+        createSubprojectsBuildFileFromMap(this.moduleSubprojectsMetadataByName, true)
+    }
+
+    static void createSubprojectsBuildFileFromMap(Map<String, BuildMetadata> map, boolean addSubprojectDependencies) {
+        map.each {
             BuildMetadata metadata = it.value
+            metadata.processSubprojectDependencies = addSubprojectDependencies
             metadata.createBuildFile()
         }
+    }
+
+    void createCustomSubprojectBuildFile(String name) {
+        BuildMetadata metadata = verifyBundle(this.project)
+        if (!metadata) {
+            BuildFileUtils.verifyModuleLocation(this.project, name)
+            metadata = this.moduleSubprojectsMetadataByName.get(name)
+        }
+
+        if (!metadata) {
+            throw new IllegalArgumentException("* The metadata for the module '${name}' does not exists.\n" +
+                    "Make sure that the module with name '${name}' exists in the SOURCE modules directory.")
+        }
+
+        metadata.createBuildFile()
+    }
+
+    BuildMetadata verifyBundle(Project project) {
+        Project bundle = BuildFileUtils.getBundleSubproject(project)
+        BuildMetadata metadata = null
+        if (bundle) {
+            String name = PublicationUtils.loadModuleName(project, bundle)
+            metadata = this.moduleSubprojectsMetadataByName.get(name)
+            if (!metadata) {
+                throw new IllegalArgumentException("* The bundle '${name}' is not loaded in the subproject list.")
+            }
+            metadata.loadBundleProject(bundle)
+            metadata.processSubprojectDependencies = true
+        }
+        return metadata
     }
 
 }

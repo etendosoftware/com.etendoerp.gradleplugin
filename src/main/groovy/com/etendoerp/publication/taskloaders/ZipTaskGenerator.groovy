@@ -21,7 +21,7 @@ class ZipTaskGenerator {
                 def temporaryDir = getTemporaryDir()
                 doLast {
                     // Get the module name
-                    String moduleName = subProject.projectDir.name
+                    String moduleName = PublicationUtils.loadModuleName(mainProject, subProject)
                     File moduleLocation = subProject.projectDir
 
                     // Configure the task

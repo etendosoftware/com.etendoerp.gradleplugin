@@ -116,16 +116,16 @@ class VersionContainer {
 
         // Update publication version
         this.subProject.version = updatedVersion
-        updatePublicationVersion(this.subProject, updatedVersion)
+        updatePublicationVersion(this.mainProject, this.subProject, updatedVersion)
         this.versionUpdated = true
 
         return updatedVersion
     }
 
-    static void updatePublicationVersion(Project subProject, String version) {
+    static void updatePublicationVersion(Project mainProject, Project subProject, String version) {
         if (subProject instanceof DefaultProject) {
             DefaultProject defaultProject = subProject as DefaultProject
-            def subprojectName = "${subProject.projectDir.name}"
+            def subprojectName = subProject.name
             ProjectPublicationRegistry registry = defaultProject.services.get(ProjectPublicationRegistry)
             def publications = registry.getPublications(ProjectPublication, defaultProject.getIdentityPath())
 

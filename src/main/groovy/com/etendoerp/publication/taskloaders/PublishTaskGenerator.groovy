@@ -23,7 +23,7 @@ class PublishTaskGenerator {
     }
 
     static void createPublicationTasks(Project mainProject, Project subProject, String taskName, String destine) {
-        def moduleName = subProject.projectDir.name
+        def moduleName = PublicationUtils.loadModuleName(mainProject, subProject)
         def capitalized   = PublicationUtils.capitalizeModule(moduleName)
 
         if (!subProject.tasks.findByName(taskName)) {

@@ -4,12 +4,14 @@ import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
 
 import java.nio.file.Path
-import java.nio.file.Paths;
+import java.nio.file.Paths
 
 class CloneDependencies {
 
     static String[] filesToDelete = ["pom.xml", "assembly.xml", ".hgtags"]
     static String subFolder = "modules/"
+
+    static final EXTENSION_MODULES_LIST = "defaultExtensionModules"
 
     static void load(Project project) {
         project.tasks.register("cloneDependencies") {
@@ -22,7 +24,7 @@ class CloneDependencies {
                 if (subProject == null) {
                     throw new IllegalArgumentException("The javapackage ${javaPackage} not found")
                 }
-                List<String> repoList = subProject.findProperty("defaultExtensionModules") as List
+                List<String> repoList = subProject.findProperty(EXTENSION_MODULES_LIST) as List
 
                 repoList.each {
                     String[] splitURI = ((String) it).split("/")
@@ -36,7 +38,7 @@ class CloneDependencies {
                 FileFilter filterFolders = new FileFilter() {
                     @Override
                     boolean accept(File arch) {
-                        return arch.isDirectory() && arch.getName() != javaPackage;
+                        return arch.isDirectory() && arch.getName() != javaPackage
                     }
                 }
 
@@ -46,7 +48,7 @@ class CloneDependencies {
                     FileFilter filterFilesToDelete = new FileFilter() {
                         @Override
                         boolean accept(File arch) {
-                            return arch.isFile() && filesToDelete.contains(arch.getName());
+                            return arch.isFile() && filesToDelete.contains(arch.getName())
                         }
                     }
 

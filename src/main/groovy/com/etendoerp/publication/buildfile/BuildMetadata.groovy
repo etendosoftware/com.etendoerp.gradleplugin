@@ -8,9 +8,8 @@ import com.etendoerp.legacy.utils.DependenciesUtils
 import com.etendoerp.legacy.utils.ModulesUtils
 import com.etendoerp.publication.PublicationUtils
 import com.etendoerp.publication.configuration.pom.PomConfigurationContainer
+import com.etendoerp.publication.git.CloneDependencies
 import org.gradle.api.Project
-import org.gradle.api.artifacts.Dependency
-import org.gradle.api.internal.artifacts.dependencies.DefaultExternalModuleDependency
 import org.w3c.dom.NodeList
 
 import java.time.Instant
@@ -37,6 +36,14 @@ class BuildMetadata {
     static final String CONFIGURATION = "configuration"
     static final String DEPENDENCIES  = "dependencies"
     static final String MODULENAME    = "modulename"
+
+    /**
+     * Values to set the extension list in the build.gradle.template when the file to build
+     * is from a bundle.
+     */
+    static final String EXTENSION_MODULES_FILE        = "extension-modules.gradle"
+    static final String APPLY_EXTENSION_FILE_PROPERTY = "applyExtensionFile"
+    static final String APPLY_EXTENSION_FILE_VALUE    = "apply from: '${EXTENSION_MODULES_FILE}'"
 
     /**
      * Name of properties that the used can pass by the command line
@@ -71,8 +78,13 @@ class BuildMetadata {
     Map<String, BuildMetadata> subprojectDependencies
     BuildMetadataContainer buildMetadataContainer
 
+    Project bundleSubproject
+    boolean isBundle = false
+    boolean generateDependenciesFromPom = false
+    boolean ignoreMissingModules = false
+
     /**
-     * Flag used to search the subproject dependencies from the 'AD_MODULE_DEPENDENCY.xml' file
+     * Flag used to search the subproject dependencies from the 'AD_MODULE_DEPENDENCY.xml' or the 'extension module list'
      */
     boolean processSubprojectDependencies = false
 
@@ -124,15 +136,7 @@ class BuildMetadata {
     }
 
     void loadModuleLocation(String moduleName) {
-        moduleLocation = PathUtils.createPath(
-                project.rootDir.absolutePath,
-                PublicationUtils.BASE_MODULE_DIR,
-                moduleName
-        )
-
-        if(!project.file(moduleLocation).exists()) {
-            throw new IllegalArgumentException("The module '${moduleLocation}' does not exists.")
-        }
+        this.moduleLocation = BuildFileUtils.verifyModuleLocation(this.project, moduleName)
     }
 
     void loadSrcFile() {
@@ -155,11 +159,16 @@ class BuildMetadata {
 
         javaPackage = moduleNode[JAVAPACKAGE.toUpperCase()].text()
         version     = moduleNode[VERSION.toUpperCase()].text()
-        description = moduleNode[DESCRIPTION.toUpperCase()].text()
+        description = (moduleNode[DESCRIPTION.toUpperCase()].text() as String).replace("\"","'")
         adModuleId  = moduleNode[AD_MODULE_ID.toUpperCase()].text()
 
         group    = ModulesUtils.splitGroup(javaPackage)
         artifact = ModulesUtils.splitArtifact(javaPackage)
+    }
+
+    void loadBundleProject(Project bundle) {
+        this.bundleSubproject = bundle
+        this.isBundle = true
     }
 
     /**
@@ -179,7 +188,15 @@ class BuildMetadata {
         map.put(REPOSITORY    , repository)
         map.put(MODULENAME    , moduleName)
 
-        def dependencies = DependenciesUtils.generatePomDependencies(project, moduleName, PublicationUtils.CONFIGURATION_NAME)
+        if (isBundle)  {
+            map.put(APPLY_EXTENSION_FILE_PROPERTY, APPLY_EXTENSION_FILE_VALUE)
+        }
+
+        def dependencies = ""
+
+        if (generateDependenciesFromPom) {
+            dependencies += DependenciesUtils.generatePomDependencies(project, moduleName, PublicationUtils.CONFIGURATION_NAME)
+        }
 
         if (processSubprojectDependencies) {
             dependencies += generateSubprojectDependencies()
@@ -199,6 +216,29 @@ class BuildMetadata {
     }
 
     void loadSubprojectDependencies() {
+        if (isBundle) {
+            loadSubprojectDependenciesFromBundle()
+        } else {
+            loadSubprojectDependenciesFromXML()
+        }
+    }
+
+    void loadSubprojectDependenciesFromBundle() {
+        List<String> extensionModulesList = this.bundleSubproject.findProperty(CloneDependencies.EXTENSION_MODULES_LIST) as List<String>
+        List<String> unloadedModulesNames = []
+        if (extensionModulesList) {
+            extensionModulesList.each {
+                String javaPackage = BuildFileUtils.getModuleJavaPackageFromGitRepo(it)
+                if (!loadSubprojectDependenciesMap(javaPackage, this.buildMetadataContainer.moduleSubprojectsMetadataByName)) {
+                    unloadedModulesNames.add(javaPackage)
+                }
+            }
+        }
+
+        BuildFileUtils.processUnloadedModulesList(this.project, this, unloadedModulesNames, "javapackage")
+    }
+
+    void loadSubprojectDependenciesFromXML() {
         String adModuleDependencyPath = PathUtils.createPath(
                 moduleLocation,
                 SRC_DB,
@@ -215,16 +255,26 @@ class BuildMetadata {
 
         // Get the dependencies declared in the AD_MODULE_DEPENDENCY.xml file
         def ad_module_dependency = new XmlParser().parse(adModuleDependencyFile)
-
+        List<String> unloadedModulesIds = []
         NodeList moduleDependencyNode = ad_module_dependency[AD_MODULE_DEPENDENCY] as NodeList
         moduleDependencyNode.each {dep ->
             String dependentModuleId = dep[AD_DEPENDENT_MODULE_ID]?.text()
-            if (dependentModuleId && this.buildMetadataContainer.moduleSubprojectsMetadata.containsKey(dependentModuleId)) {
-                BuildMetadata metadata = this.buildMetadataContainer.moduleSubprojectsMetadata.get(dependentModuleId)
-                String name = "${metadata.group}.${metadata.artifact}"
-                this.subprojectDependencies.put(name, metadata)
+            if (!loadSubprojectDependenciesMap(dependentModuleId, this.buildMetadataContainer.moduleSubprojectsMetadataById)) {
+                unloadedModulesIds.add(dependentModuleId)
             }
         }
+
+        BuildFileUtils.processUnloadedModulesList(this.project, this, unloadedModulesIds, "id")
+    }
+
+    boolean loadSubprojectDependenciesMap(String key, Map<String, BuildMetadata> map) {
+        if (key && map && map.containsKey(key)) {
+            BuildMetadata metadata = map.get(key)
+            String name = "${metadata.group}.${metadata.artifact}"
+            this.subprojectDependencies.put(name, metadata)
+            return true
+        }
+        return false
     }
 
     String generateSubprojectDependencies() {

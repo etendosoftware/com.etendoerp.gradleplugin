@@ -20,7 +20,7 @@ class MavenTaskGenerator {
     static final String POM_CONFIG_PROPERTY = "configureOnlyPom"
 
     static void load(Project mainProject, Project subProject) {
-        def moduleName = subProject.projectDir.name
+        def moduleName = PublicationUtils.loadModuleName(mainProject, subProject)
         def moduleCapitalize = PublicationUtils.capitalizeModule(moduleName)
         def mavenTask = "publish${moduleCapitalize}PublicationTo${PublishTaskGenerator.PUBLICATION_MAVEN_DESTINE}"
         def localTask = "publish${moduleCapitalize}PublicationTo${PublishTaskGenerator.PUBLICATION_LOCAL_DESTINE}"
@@ -63,7 +63,7 @@ class MavenTaskGenerator {
                         boolean isZipArtifact = false
                         if (it instanceof AbstractMavenArtifact) {
                             AbstractMavenArtifact mavenArtifact = it as AbstractMavenArtifact
-                            return it.extension == "zip" && it.getFile().name.contains(zipFile.getAsFile().name)
+                            return it.extension == "zip" && it.getFile().name.toLowerCase().contains(zipFile.getAsFile().name.toLowerCase())
                         }
                         return isZipArtifact
                     }).findAny()
@@ -86,7 +86,7 @@ class MavenTaskGenerator {
         def publicationTask = GradleUtils.getTaskByName(mainProject, subProject, publicationTaskName)
         if (!publicationTask) {
             mainProject.logger.warn("WARNING: The subproject ${subProject} is missing the maven publiction task '${publicationTaskName}'.")
-            mainProject.logger.warn("*** Make sure that the 'build.gradle' file contains the MavenPublication '${subProject.projectDir.name}'.")
+            mainProject.logger.warn("*** Make sure that the 'build.gradle' file contains the MavenPublication '${PublicationUtils.loadModuleName(mainProject, subProject)}'.")
         }
         publicationTask?.configure({
             dependsOn({configTaskName})
@@ -104,7 +104,7 @@ class MavenTaskGenerator {
         def metadataTask = GradleUtils.getTaskByName(mainProject, subProject, metadataTaskName)
         if (!metadataTask) {
             mainProject.logger.warn("WARNING: The subproject ${subProject} is missing the maven POM task '${metadataTaskName}'.")
-            mainProject.logger.warn("*** Make sure that the 'build.gradle' file contains the MavenPublication '${subProject.projectDir.name}'.")
+            mainProject.logger.warn("*** Make sure that the 'build.gradle' file contains the MavenPublication '${PublicationUtils.loadModuleName(mainProject, subProject)}'.")
         }
         metadataTask?.configure({
             dependsOn(configTaskName)
@@ -136,7 +136,7 @@ class MavenTaskGenerator {
         def pomTask = GradleUtils.getTaskByName(mainProject, subProject, pomTaskName)
         if (!pomTask) {
             mainProject.logger.warn("WARNING: The subproject ${subProject} is missing the maven POM task '${pomTaskName}'.")
-            mainProject.logger.warn("*** Make sure that the 'build.gradle' file contains the MavenPublication '${subProject.projectDir.name}'.")
+            mainProject.logger.warn("*** Make sure that the 'build.gradle' file contains the MavenPublication '${PublicationUtils.loadModuleName(mainProject, subProject)}'.")
         }
         pomTask?.configure({
             dependsOn(configTaskName)

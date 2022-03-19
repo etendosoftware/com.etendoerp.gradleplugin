@@ -20,7 +20,6 @@ class ModuleBuildTemplateLoader {
          * */
         project.task(CREATE_MODULE_BUILD) {
             doLast {
-
                 String moduleName     = PublicationUtils.loadModuleName(project)
                 String repositoryName = PublicationUtils.loadRepositoryName(project)
 
@@ -33,13 +32,12 @@ class ModuleBuildTemplateLoader {
                 def tempBuildGradleFile = File.createTempFile("build.gradle","template")
                 tempBuildGradleFile.text = template.text
 
+                BuildMetadataContainer container = new BuildMetadataContainer(project, repositoryName, tempBuildGradleFile)
+                container.loadSubprojectMetadata()
                 if (moduleName == ALL_COMMAND_PROPERTY) {
-                    BuildMetadataContainer container = new BuildMetadataContainer(project, repositoryName, tempBuildGradleFile)
-                    container.loadSubprojectMetadata()
                     container.createSubprojectsBuildFile()
                 } else {
-                    def buildMetadata = new BuildMetadata(project, moduleName, repositoryName, tempBuildGradleFile)
-                    buildMetadata.createBuildFile()
+                    container.createCustomSubprojectBuildFile(moduleName)
                 }
             }
         }

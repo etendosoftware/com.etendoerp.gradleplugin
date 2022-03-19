@@ -58,6 +58,9 @@ class ModulesConfigurationLoader {
                 }
 
                 subproject.afterEvaluate {
+                    // Verify that the subproject contains the 'group' and 'artifact' properties
+                    PublicationUtils.loadModuleName(project, subproject)
+
                     // Load the tasks related to the publication of the module subproject
                     PublicationTaskLoader.load(project, subproject)
 

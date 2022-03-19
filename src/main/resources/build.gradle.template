@@ -11,7 +11,7 @@ version        = "${version}"
 description    = "${description}"
 ext.artifact   = "${artifact}"
 ext.repository = "${repository}"
-
+${applyExtensionFile}
 configurations {
     ${configuration}
 }
@@ -39,6 +39,9 @@ repositories {
     }
     maven {
         url "https://repo.futit.cloud/repository/maven-releases"
+    }
+    maven {
+        url "https://repo.futit.cloud/repository/maven-public-releases"
     }
     maven {
         url "https://repo.futit.cloud/repository/maven-public-jars"

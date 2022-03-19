@@ -6,7 +6,6 @@ import com.etendoerp.jars.modules.metadata.DependencyUtils
 import com.etendoerp.legacy.dependencies.EtendoArtifactMetadata
 import com.etendoerp.publication.PublicationUtils
 import com.etendoerp.publication.buildfile.BuildMetadata
-import com.etendoerp.publication.configuration.PublicationConfiguration
 import com.etendoerp.publication.configuration.VersionContainer
 import org.gradle.api.Project
 import org.gradle.api.publish.maven.tasks.GenerateMavenPom
@@ -111,7 +110,7 @@ class PomConfigurationContainer {
     }
 
     void loadPomTask() {
-        String subprojectName = this.subProject.projectDir.name
+        String subprojectName = PublicationUtils.loadModuleName(mainProject, subProject)
         def moduleCapitalize = PublicationUtils.capitalizeModule(subprojectName)
         def pomTaskName = "generatePomFileFor${moduleCapitalize}Publication"
         def pomTask = this.subProject.tasks.findByName(pomTaskName)
@@ -252,8 +251,22 @@ class PomConfigurationContainer {
         File newXMLLocationFile = new File(temporaryDir.absolutePath, XMLLocationPath)
 
         if (newXMLLocationFile && newXMLLocationFile.exists()) {
-            updateAdModuleXML(this.subProject, newXMLLocationFile)
+            _updateAdModuleXML(this.subProject, newXMLLocationFile)
         }
+    }
+
+    static void _updateAdModuleXML(Project project, File adModuleFile, Map<String, Object> properties = null) {
+        String adModuleText = adModuleFile.text
+        String newVersion = "<VERSION><![CDATA[${project.version}]]></VERSION>"
+        String adModuleChanged = ""
+
+        adModuleText.eachLine {
+            if (it.contains("<VERSION>") && it.contains("</VERSION>")) {
+                it = it.replaceFirst("(<VERSION>)(.)*(</VERSION>)", newVersion)
+            }
+            adModuleChanged += it
+        }
+        adModuleFile.text = adModuleChanged
     }
 
     static void updateAdModuleXML(Project project, File adModuleFile, Map<String, Object> properties = null) {
