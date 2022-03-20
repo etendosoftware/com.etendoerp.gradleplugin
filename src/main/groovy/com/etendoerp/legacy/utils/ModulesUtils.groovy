@@ -49,4 +49,18 @@ class ModulesUtils {
         return null
     }
 
+    static File searchFileInDirIgnoreCase(Project project, String locationToSearch, String filename) {
+        File locatedFile = null
+        File locationToSearchFile = new File(locationToSearch)
+        if (locationToSearchFile && locationToSearchFile.exists() && locationToSearchFile.isDirectory()) {
+            for (File file : locationToSearchFile.listFiles()) {
+                if (file.name.equalsIgnoreCase(filename)) {
+                    locatedFile = file
+                    break
+                }
+            }
+        }
+        return locatedFile
+    }
+
 }

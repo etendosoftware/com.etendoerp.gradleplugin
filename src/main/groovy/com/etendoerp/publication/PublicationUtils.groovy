@@ -123,7 +123,7 @@ class PublicationUtils {
             throw new GradleException("* The subproject '${subProject}' does not contain the 'group' property. Make sure is defined in the build.gradle (group = 'modulegroup')")
         }
 
-        if(!artifact) {
+        if (!artifact) {
             throw new GradleException("* The subproject '${subProject}' does not contain the 'artifact' property. Make sure is defined in the build.gradle (ext.artifact = 'moduleartifact')")
         }
 
