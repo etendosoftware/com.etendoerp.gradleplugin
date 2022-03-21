@@ -264,7 +264,7 @@ class PomConfigurationContainer {
             if (it.contains("<VERSION>") && it.contains("</VERSION>")) {
                 it = it.replaceFirst("(<VERSION>)(.)*(</VERSION>)", newVersion)
             }
-            adModuleChanged += it
+            adModuleChanged += "${it}\n"
         }
         adModuleFile.text = adModuleChanged
     }

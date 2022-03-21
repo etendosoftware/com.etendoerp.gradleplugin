@@ -188,6 +188,7 @@ class BuildMetadata {
         map.put(REPOSITORY    , repository)
         map.put(MODULENAME    , moduleName)
 
+        map.put(APPLY_EXTENSION_FILE_PROPERTY, "")
         if (isBundle)  {
             map.put(APPLY_EXTENSION_FILE_PROPERTY, APPLY_EXTENSION_FILE_VALUE)
         }
