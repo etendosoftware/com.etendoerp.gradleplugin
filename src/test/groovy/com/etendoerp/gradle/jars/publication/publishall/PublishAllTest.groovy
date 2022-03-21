@@ -27,7 +27,7 @@ class PublishAllTest extends EtendoSpecification {
 
     // Clean the repository
     def cleanupSpec() {
-        //PublicationUtils.cleanRepositoryModules(REPOSITORY)
+        PublicationUtils.cleanRepositoryModules(REPOSITORY)
     }
 
     def "Publishing all the source modules"() {
@@ -96,7 +96,5 @@ class PublishAllTest extends EtendoSpecification {
         def modB = modulesData.put(moduleB, ["1.0.0"])
         def modC = modulesData.put(moduleC, ["1.0.0"])
         PublicationUtils.repoContainsModules(REPOSITORY, modulesData)
-
     }
-
 }
