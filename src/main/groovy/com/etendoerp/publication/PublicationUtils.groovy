@@ -115,19 +115,22 @@ class PublicationUtils {
 
     }
 
-    static String loadModuleName(Project mainProject, Project subProject) {
+    static Optional<String> loadModuleName(Project mainProject, Project subProject) {
         String group    = subProject.group as String
         String artifact = subProject.findProperty(BuildMetadata.ARTIFACT) as String
 
         if (!group) {
-            throw new GradleException("* The subproject '${subProject}' does not contain the 'group' property. Make sure is defined in the build.gradle (group = 'modulegroup')")
+            mainProject.logger.warn("* The subproject '${subProject}' does not contain the 'group' property. Make sure is defined in the build.gradle (group = 'modulegroup')")
+            return Optional.empty()
         }
 
         if (!artifact) {
-            throw new GradleException("* The subproject '${subProject}' does not contain the 'artifact' property. Make sure is defined in the build.gradle (ext.artifact = 'moduleartifact')")
+            mainProject.logger.warn("* The subproject '${subProject}' does not contain the 'artifact' property. Make sure is defined in the build.gradle (ext.artifact = 'moduleartifact')")
+            return Optional.empty()
         }
 
-        return "${group}.${artifact}" as String
+        String moduleName = "${group}.${artifact}"
+        return Optional.of(moduleName)
     }
 
 }

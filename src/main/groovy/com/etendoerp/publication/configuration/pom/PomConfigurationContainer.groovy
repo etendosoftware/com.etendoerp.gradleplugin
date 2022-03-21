@@ -110,7 +110,7 @@ class PomConfigurationContainer {
     }
 
     void loadPomTask() {
-        String subprojectName = PublicationUtils.loadModuleName(mainProject, subProject)
+        String subprojectName = PublicationUtils.loadModuleName(mainProject, subProject).orElse("")
         def moduleCapitalize = PublicationUtils.capitalizeModule(subprojectName)
         def pomTaskName = "generatePomFileFor${moduleCapitalize}Publication"
         def pomTask = this.subProject.tasks.findByName(pomTaskName)

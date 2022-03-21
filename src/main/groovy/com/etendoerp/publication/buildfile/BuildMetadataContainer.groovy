@@ -70,6 +70,8 @@ class BuildMetadataContainer {
 
     void createCustomSubprojectBuildFile(String name) {
         BuildMetadata metadata = verifyBundle(this.project)
+
+        // If the metadata is not defined, then is not a bundle
         if (!metadata) {
             BuildFileUtils.verifyModuleLocation(this.project, name)
             metadata = this.moduleSubprojectsMetadataByName.get(name)
@@ -87,10 +89,10 @@ class BuildMetadataContainer {
         Project bundle = BuildFileUtils.getBundleSubproject(project)
         BuildMetadata metadata = null
         if (bundle) {
-            String name = PublicationUtils.loadModuleName(project, bundle)
+            String name = PublicationUtils.loadModuleName(project, bundle).orElse(project.findProperty(BuildFileUtils.BUNDLE_PROPERTY) as String)
             metadata = this.moduleSubprojectsMetadataByName.get(name)
             if (!metadata) {
-                throw new IllegalArgumentException("* The bundle '${name}' is not loaded in the subproject list.")
+                throw new IllegalArgumentException("* The bundle '${bundle}' is not loaded in the subproject list.")
             }
             metadata.loadBundleProject(bundle)
             metadata.processSubprojectDependencies = true

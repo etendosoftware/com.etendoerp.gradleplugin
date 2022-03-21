@@ -5,6 +5,7 @@ import com.etendoerp.publication.PublicationLoader
 import com.etendoerp.publication.PublicationUtils
 import com.etendoerp.publication.configuration.pom.PomConfigurationContainer
 import com.etendoerp.publication.configuration.pom.PomConfigurationType
+import com.etendoerp.publication.taskloaders.PublicationTaskLoader
 import com.etendoerp.publication.taskloaders.PublishTaskGenerator
 import org.gradle.api.Project
 import org.gradle.api.Task
@@ -29,6 +30,12 @@ class PublicationConfiguration {
     static final String RECURSIVE_UPDATE_LEAF = "updateLeaf"
 
     static final String PUBLISHED_FLAG = "publishedFlag"
+
+    /**
+     * Property used to ignore the publication of projects not containing the necessary information
+     */
+    static final String IGNORE_INVALID_PROJECTS_PROPERTY = "ignoreInvalidProjects"
+
 
     Project project
     ProjectPublicationRegistry projectPublicationRegistry
@@ -67,18 +74,51 @@ class PublicationConfiguration {
 
     void configurePublishVersion() {
         def submodule = PublicationConfigurationUtils.loadSubproject(project)
+        if (!PublicationTaskLoader.validateSubmodulePublicationTasks(this.project, submodule)) {
+            throw new IllegalArgumentException("* The subproject '${submodule}' does not contains the necessary information to publish.")
+        }
+
         def recursivePublication = project.findProperty(RECURSIVE_PUBLICATION_PROPERTY) ? true : false
         def updateLeaf = project.findProperty(RECURSIVE_UPDATE_LEAF) ? true : false
 
         loadSubprojectPublicationTasks([submodule], recursivePublication, updateLeaf)
     }
 
+    static def filterValidAndInvalidProjectsToPublish(Project project, List<Project> subProjects) {
+        List<Project> validProjectsToPublish = []
+        List<Project> invalidProjectsToPublish = []
+
+        subProjects.each {
+            (PublicationTaskLoader.validateSubmodulePublicationTasks(project, it)) ? validProjectsToPublish.add(it) : invalidProjectsToPublish.add(it)
+        }
+
+        return [validProjectsToPublish, invalidProjectsToPublish]
+    }
+
+    static def filterAndValidateProjectsToPublish(Project project, List<Project> subProjects) {
+        def (List<Project> validProjectsToPublish, List<Project> invalidProjectsToPublish) = filterValidAndInvalidProjectsToPublish(project, subProjects)
+        boolean ignoreInvalidProjects = project.findProperty(IGNORE_INVALID_PROJECTS_PROPERTY) ? true : false
+
+        if (invalidProjectsToPublish && !invalidProjectsToPublish.isEmpty() && !ignoreInvalidProjects) {
+            throw new IllegalArgumentException("* The publication can not be ran because there is some module projects with missing information to publish. Modules: ${invalidProjectsToPublish.toList()}.\n" +
+                    "* You can force the publication with the flag '-P${IGNORE_INVALID_PROJECTS_PROPERTY}=true'. WARNING: This can lead to inconsistent dependencies.")
+        }
+
+        return [validProjectsToPublish, invalidProjectsToPublish]
+    }
+
     void loadSubprojectPublicationTasks(List<Project> subprojects, boolean recursivePublication, boolean updateSubprojectsLeafVersion) {
-        def subprojectsToPublish = subprojects
+        def (List<Project> validProjectsToPublish, List<Project> invalidProjectsToPublish) = filterAndValidateProjectsToPublish(project, subprojects)
+
+        def subprojectsToPublish = validProjectsToPublish
 
         if (recursivePublication) {
-            Map<String, Project> subprojectsMap = PublicationConfigurationUtils.generateProjectMap(subprojects)
+            Map<String, Project> subprojectsMap = PublicationConfigurationUtils.generateProjectMap(validProjectsToPublish)
             subprojectsToPublish = processLeafProjects(subprojectsMap, updateSubprojectsLeafVersion)
+
+            // Check if the 'subprojectToPublish' contains new projects that can be invalid to publish
+            (validProjectsToPublish, invalidProjectsToPublish) = filterAndValidateProjectsToPublish(project, subprojectsToPublish)
+            subprojectsToPublish = validProjectsToPublish
         }
 
         // Mark the subprojects which will be published

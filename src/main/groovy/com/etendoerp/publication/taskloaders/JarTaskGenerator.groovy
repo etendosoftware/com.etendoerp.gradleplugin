@@ -18,7 +18,7 @@ class JarTaskGenerator {
                 dependsOn({mainProject.tasks.findByName("compileJava")})
                 doLast {
                     // Get the module name
-                    def moduleName = PublicationUtils.loadModuleName(mainProject, subProject)
+                    String moduleName = PublicationUtils.loadModuleName(mainProject, subProject).orElseThrow()
                     mainProject.logger.info("Starting module JAR configuration.")
                     String moduleLocation = subProject.projectDir
 
