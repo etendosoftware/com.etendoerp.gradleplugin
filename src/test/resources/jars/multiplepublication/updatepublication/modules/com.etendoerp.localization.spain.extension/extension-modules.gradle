@@ -1,0 +1,7 @@
+ext.defaultExtensionModules = [
+        'git@bitbucket.org:koodu_software/com.test.moduleApublish.git',
+        'git@bitbucket.org:koodu_software/com.test.moduleBpublish.git',
+        'git@bitbucket.org:koodu_software/com.test.moduleCpublish.git',
+        'git@bitbucket.org:koodu_software/com.test.moduleDpublish_eses.git',
+        'git@bitbucket.org:koodu_software/com.test.moduleEpublish_ese.git'
+]
