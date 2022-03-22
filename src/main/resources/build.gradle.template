@@ -18,7 +18,7 @@ configurations {
 
 publishing {
     publications {
-        "${modulename}"(MavenPublication) {
+        "${javapackage}"(MavenPublication) {
             from components.java
             groupId    = group
             artifactId = artifact
