@@ -26,7 +26,7 @@ class BuildFileUtils {
      * Obtain the module 'javapackage' from a GIT url
      * @param repo
      */
-    static getModuleJavaPackageFromGitRepo(String repo) {
+    static getModuleDirNameFromGitRepo(String repo) {
         String[] splitURI = ((String) repo).split("/")
         return splitURI[1].substring(0, splitURI[1].size() - 4)
     }

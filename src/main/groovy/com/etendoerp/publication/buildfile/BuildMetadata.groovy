@@ -71,7 +71,14 @@ class BuildMetadata {
     String repository
     String srcFile
 
+    /**
+     * Represents the name of the module directory (file)
+     */
     String moduleName
+
+    /**
+     * Represents the location path of the module directory
+     */
     String moduleLocation
 
     File buildGradleTemplateFile
@@ -186,7 +193,7 @@ class BuildMetadata {
         map.put(VERSION       , version)
         map.put(DESCRIPTION   , description)
         map.put(REPOSITORY    , repository)
-        map.put(MODULENAME    , moduleName)
+        map.put(JAVAPACKAGE   , javaPackage)
 
         map.put(APPLY_EXTENSION_FILE_PROPERTY, "")
         if (isBundle)  {
@@ -229,14 +236,14 @@ class BuildMetadata {
         List<String> unloadedModulesNames = []
         if (extensionModulesList) {
             extensionModulesList.each {
-                String javaPackage = BuildFileUtils.getModuleJavaPackageFromGitRepo(it)
-                if (!loadSubprojectDependenciesMap(javaPackage, this.buildMetadataContainer.moduleSubprojectsMetadataByName)) {
-                    unloadedModulesNames.add(javaPackage)
+                String moduleDirName = BuildFileUtils.getModuleDirNameFromGitRepo(it)
+                if (!loadSubprojectDependenciesMap(moduleDirName, this.buildMetadataContainer.moduleSubprojectsMetadataByDirName)) {
+                    unloadedModulesNames.add(moduleDirName)
                 }
             }
         }
 
-        BuildFileUtils.processUnloadedModulesList(this.project, this, unloadedModulesNames, "javapackage")
+        BuildFileUtils.processUnloadedModulesList(this.project, this, unloadedModulesNames, "directory name")
     }
 
     void loadSubprojectDependenciesFromXML() {

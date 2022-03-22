@@ -170,15 +170,20 @@ class PublicationConfiguration {
             List<Project> projectDependencies = PublicationConfigurationUtils.verifyProjectDependency(this.project, subprojectToProcess, moduleSubprojects, pomType)
 
             for (def projectDependency : projectDependencies) {
-                def name = "${projectDependency.group}.${projectDependency.artifact}"
-                def entryProject = new EntryProjects(name, projectDependency)
+                // Verify that the 'projectDependency' contains the necessary information to publish
+                if (PublicationTaskLoader.validateSubmodulePublicationTasks(this.project, projectDependency)) {
+                    def name = "${projectDependency.group}.${projectDependency.artifact}"
+                    def entryProject = new EntryProjects(name, projectDependency)
 
-                // Adds the project to the unprocessed queue only if was not already processed
-                if (!processedProjects.contains(entryProject) && !unprocessedProjects.contains(entryProject)) {
-                    unprocessedProjects.add(entryProject)
+                    // Adds the project to the unprocessed queue only if was not already processed
+                    if (!processedProjects.contains(entryProject) && !unprocessedProjects.contains(entryProject)) {
+                        unprocessedProjects.add(entryProject)
+                    }
+                } else {
+                    throw new IllegalArgumentException("* The subproject '${projectDependency}' does not contains the necessary information to publish.\n" +
+                            "* The subproject is a parent dependency of the '${subprojectToProcess}'.")
                 }
             }
-
             processedProjects.add(subprojectEntry)
         }
 
