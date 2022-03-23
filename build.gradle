@@ -63,6 +63,16 @@ dependencies {
     // https://mvnrepository.com/artifact/org.postgresql/postgresql
     implementation group: 'org.postgresql', name: 'postgresql', version: '42.3.2'
 
+    // https://mvnrepository.com/artifact/org.jdom/jdom2
+    implementation("org.jdom:jdom2:2.0.5") {
+        exclude group: 'jdom', module: 'jdom'
+    }
+
+    // https://mvnrepository.com/artifact/jaxen/jaxen
+    implementation("jaxen:jaxen:1.1.4") {
+        exclude group: 'jdom', module: 'jdom'
+    }
+
     testImplementation 'org.codehaus.groovy:groovy-all:2.5.14'
     testImplementation platform("org.spockframework:spock-bom:2.0-M4-groovy-2.5")
     testImplementation 'org.spockframework:spock-core'

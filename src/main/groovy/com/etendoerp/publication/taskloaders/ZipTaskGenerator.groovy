@@ -1,0 +1,63 @@
+package com.etendoerp.publication.taskloaders
+
+import com.etendoerp.jars.FileExtensions
+import com.etendoerp.jars.PathUtils
+import com.etendoerp.publication.PublicationUtils
+import com.etendoerp.publication.configuration.pom.PomConfigurationContainer
+import com.etendoerp.publication.configuration.pom.PomConfigurationType
+import org.gradle.api.Project
+import org.gradle.api.Task
+import org.gradle.api.file.DuplicatesStrategy
+import org.gradle.api.tasks.bundling.Zip
+
+class ZipTaskGenerator {
+
+    final static String ZIP_CONFIG_TASK = "generateModuleZipConfig"
+    final static String ZIP_TASK = "generateModuleZip"
+
+    static void load(Project mainProject, Project subProject) {
+        if (!subProject.tasks.findByName(ZIP_CONFIG_TASK)) {
+            subProject.tasks.register(ZIP_CONFIG_TASK) {
+                def temporaryDir = getTemporaryDir()
+                doLast {
+                    // Get the module name
+                    String moduleName = subProject.projectDir.name
+                    File moduleLocation = subProject.projectDir
+
+                    // Configure the task
+                    Task moduleZip = subProject.tasks.named(ZIP_TASK).get() as Zip
+
+                    // Duplicate strategy 'EXCLUDE' to only copy one time the same file
+                    moduleZip.setDuplicatesStrategy(DuplicatesStrategy.EXCLUDE)
+
+                    moduleZip.archiveFileName = "${moduleName}${FileExtensions.ZIP}"
+
+                    def destinationDir = PathUtils.createPath(mainProject.buildDir.absolutePath, PublicationUtils.LIB)
+                    moduleZip.destinationDirectory = mainProject.file(destinationDir)
+
+                    moduleZip.exclude(PublicationUtils.EXCLUDED_FILES)
+
+                    // Verify if the build files needs to be changed
+                    def parserResult = TaskLoaderUtils.parseFilesToTemporaryDir(mainProject, subProject)
+                    if (parserResult && parserResult.isPresent()) {
+                        moduleZip.from(parserResult.get())
+                        moduleZip.into(moduleName)
+                    }
+
+                    moduleZip.from(moduleLocation)
+                    moduleZip.into(moduleName)
+                }
+            }
+        }
+
+        if (!subProject.tasks.findByName(ZIP_TASK)) {
+            subProject.tasks.register(ZIP_TASK, Zip) {
+                dependsOn(ZIP_CONFIG_TASK)
+                doLast {
+                    mainProject.logger.info("The ZIP file '${archiveFileName.get()}' has been created in the '${destinationDirectory.get()}' directory.")
+                }
+            }
+        }
+    }
+
+}

@@ -1,14 +1,12 @@
 package com.etendoerp.legacy.dependencies
 
 import com.etendoerp.EtendoPluginExtension
-import com.etendoerp.connections.DatabaseConnection
-import com.etendoerp.consistency.EtendoArtifactsComparator
 import com.etendoerp.consistency.EtendoArtifactsConsistencyContainer
 import com.etendoerp.core.CoreMetadata
 import com.etendoerp.dependencies.EtendoCoreDependencies
 import com.etendoerp.legacy.ant.AntLoader
-import com.etendoerp.legacy.dependencies.container.ArtifactDependency
 import com.etendoerp.legacy.utils.NexusUtils
+import com.etendoerp.publication.configuration.PublicationConfiguration
 import org.gradle.api.Project
 import org.gradle.api.logging.LogLevel
 
@@ -32,6 +30,9 @@ class ResolverDependencyLoader {
 
             NexusUtils.configureRepositories(project)
             CoreMetadata coreMetadata = new CoreMetadata(project)
+
+            PublicationConfiguration publicationConfiguration = new PublicationConfiguration(project)
+            publicationConfiguration.configurePublication()
 
             EtendoArtifactsConsistencyContainer consistencyContainer = new EtendoArtifactsConsistencyContainer(project, coreMetadata)
             consistencyContainer.loadInstalledArtifacts()
