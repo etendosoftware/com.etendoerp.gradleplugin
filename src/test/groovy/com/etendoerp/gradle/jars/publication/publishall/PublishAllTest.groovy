@@ -49,8 +49,8 @@ class PublishAllTest extends EtendoSpecification {
         def moduleB = "com.test.moduleBpublish"
         FileUtils.copyDirectoryToDirectory(new File("${ENVIRONMENTS_LOCATION}/${moduleB}"), modulesDir)
         File moduleBLocation = new File(testProjectDir, "modules/${moduleB}")
-        // Delete the 'build.gradle' from the module A to be recreated
-        File buildFileB = new File(moduleALocation, "build.gradle")
+        // Delete the 'build.gradle'
+        File buildFileB = new File(moduleBLocation, "build.gradle")
         if (buildFileB.exists()) {
             buildFileB.delete()
         }
@@ -59,8 +59,8 @@ class PublishAllTest extends EtendoSpecification {
         def moduleC = "com.test.moduleCpublish"
         FileUtils.copyDirectoryToDirectory(new File("${ENVIRONMENTS_LOCATION}/${moduleC}"), modulesDir)
         File moduleCLocation = new File(testProjectDir, "modules/${moduleC}")
-        // Delete the 'build.gradle' from the module A to be recreated
-        File buildFileC = new File(moduleALocation, "build.gradle")
+        // Delete the 'build.gradle'
+        File buildFileC = new File(moduleCLocation, "build.gradle")
         if (buildFileC.exists()) {
             buildFileC.delete()
         }
