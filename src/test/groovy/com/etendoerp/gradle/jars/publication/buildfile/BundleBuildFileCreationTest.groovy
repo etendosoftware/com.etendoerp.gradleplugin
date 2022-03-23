@@ -1,7 +1,6 @@
 package com.etendoerp.gradle.jars.publication.buildfile
 
 import com.etendoerp.gradle.tests.EtendoSpecification
-import com.etendoerp.legacy.utils.DependenciesUtils
 import com.etendoerp.legacy.utils.ModulesUtils
 import com.etendoerp.publication.PublicationUtils
 import com.etendoerp.publication.buildfile.BuildFileUtils
@@ -46,7 +45,7 @@ class BundleBuildFileCreationTest extends EtendoSpecification {
         File bundleBuildFile = new File(bundleLocation, "build.gradle")
         assert bundleBuildFile.exists()
 
-        and: "The obtains the source modules specified by the bundle in the 'modules-extension' list"
+        and: "The user obtains the source modules specified by the bundle in the 'modules-extension' list"
 
         def moduleADirName = "com.test.moduleApublish"
         def moduleAJavaPackage = "com.test.moduleApublish"
