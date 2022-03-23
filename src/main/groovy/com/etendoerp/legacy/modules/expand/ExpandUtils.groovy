@@ -26,7 +26,7 @@ class ExpandUtils {
     final static String PACKAGE_PROPERTY = "pkg"
     final static String FORCE_PROPERTY   = "force"
 
-    final static String MODULE_NOT_FOUND_MESSAGE = "* The module to extract is not found"
+    final static String MODULE_NOT_FOUND_MESSAGE = "* The module to extract specified by the command line parameter '-P${PACKAGE_PROPERTY}' was not found"
 
     final static List<String> MODULES_CLASSIC = [
             'com.smf:smartclient.debugtools:[1.0.1,)@zip',
