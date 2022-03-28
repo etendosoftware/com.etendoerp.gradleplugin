@@ -542,9 +542,9 @@ class EtendoArtifactsConsistencyContainer {
         }
 
         if (!this.artifactsLoaded) {
-            project.logger.error("********************* ERROR *************************")
-            project.logger.error("* The installed modules are NOT loaded.")
-            project.logger.error("*****************************************************")
+            project.logger.warn("********************* WARNING *************************")
+            project.logger.warn("* The installed modules are NOT loaded.")
+            project.logger.warn("*******************************************************")
             return
         }
 
