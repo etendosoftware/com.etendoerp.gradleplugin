@@ -1,5 +1,6 @@
 package com.etendoerp
 
+import com.etendoerp.css.CssCompileLoader
 import com.etendoerp.dependencies.DependenciesLoader
 import com.etendoerp.jandex.JandexConfigLoader
 import com.etendoerp.jars.JarLoader
@@ -36,5 +37,6 @@ class EtendoPlugin implements Plugin<Project> {
         DependenciesLoader.load(project)
         CloneDependencies.load(project)
         JandexConfigLoader.load(project)
+        CssCompileLoader.load(project)
     }
 }
