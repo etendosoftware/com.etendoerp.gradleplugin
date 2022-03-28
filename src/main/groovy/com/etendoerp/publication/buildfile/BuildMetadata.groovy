@@ -53,9 +53,9 @@ class BuildMetadata {
     static final String CORE_VERSION_PROPERTY = "coreVersion"
 
     /**
-     *
+     * Default Core version
      */
-    static final String DEFAULT_CORE_VERSION_DEPENDENCY = "[22.1.0, 22.1.1)"
+    static final String DEFAULT_CORE_VERSION_DEPENDENCY = "[22.1.0, 22.2.0)"
 
     // Properties used to fill the build.gradle.template
     static final String DATE = "date"
