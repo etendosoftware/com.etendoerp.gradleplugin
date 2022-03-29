@@ -4,7 +4,6 @@ import com.etendoerp.EtendoPluginExtension
 import com.etendoerp.consistency.EtendoArtifactsConsistencyContainer
 import com.etendoerp.core.CoreMetadata
 import com.etendoerp.dependencies.EtendoCoreDependencies
-import com.etendoerp.kubernetes.KubernetesConfigurationLoader
 import com.etendoerp.legacy.ant.AntLoader
 import com.etendoerp.legacy.utils.NexusUtils
 import com.etendoerp.publication.configuration.PublicationConfiguration
