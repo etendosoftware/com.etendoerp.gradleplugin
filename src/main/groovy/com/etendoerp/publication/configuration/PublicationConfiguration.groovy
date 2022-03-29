@@ -5,6 +5,7 @@ import com.etendoerp.publication.PublicationLoader
 import com.etendoerp.publication.PublicationUtils
 import com.etendoerp.publication.configuration.pom.PomConfigurationContainer
 import com.etendoerp.publication.configuration.pom.PomConfigurationType
+import com.etendoerp.publication.taskloaders.PublicationTaskLoader
 import com.etendoerp.publication.taskloaders.PublishTaskGenerator
 import org.gradle.api.Project
 import org.gradle.api.Task
@@ -19,12 +20,6 @@ class PublicationConfiguration {
     static final String DEFAULT_DEPENDENCIES_CONTAINER = "defaultDependenciesContainer"
 
     /**
-     * Name of the configuration used to add dependencies of another subprojects.
-     * Can be used in the generated build.gradle by the users to specify dependencies between subprojects (modules).
-     */
-    static final String SUBPROJECT_DEPENDENCIES_CONFIGURATION_CONTAINER = "subprojectDependenciesContainer"
-
-    /**
      * Property used to verify if is used by the user as a command line parameter to run the recursive publication
      */
     static final String RECURSIVE_PUBLICATION_PROPERTY = "recursive"
@@ -33,6 +28,14 @@ class PublicationConfiguration {
      * Property used to update automatically the passed project to publish, or the detected leafs.
      */
     static final String RECURSIVE_UPDATE_LEAF = "updateLeaf"
+
+    static final String PUBLISHED_FLAG = "publishedFlag"
+
+    /**
+     * Property used to ignore the publication of projects not containing the necessary information
+     */
+    static final String IGNORE_INVALID_PROJECTS_PROPERTY = "ignoreInvalidProjects"
+
 
     Project project
     ProjectPublicationRegistry projectPublicationRegistry
@@ -54,24 +57,73 @@ class PublicationConfiguration {
         taskNames.each {
             if (it == PublicationLoader.PUBLISH_VERSION_TASK || it == ":${PublicationLoader.PUBLISH_VERSION_TASK}") {
                 configurePublishVersion()
+            } else if (it == PublicationLoader.PUBLISH_ALL_MODULES_TASK || it == ":${PublicationLoader.PUBLISH_ALL_MODULES_TASK}") {
+                configurePublishAll()
             }
         }
     }
 
+    void configurePublishAll() {
+        // Get all the submodules to publish
+        def moduleProject = project.findProject(":${PublicationUtils.BASE_MODULE_DIR}")
+        List<Project> moduleSubprojects = moduleProject.subprojects.toList()
+        def updateLeaf = project.findProperty(RECURSIVE_UPDATE_LEAF) ? true : false
+
+        loadSubprojectPublicationTasks(moduleSubprojects, true, updateLeaf)
+    }
+
     void configurePublishVersion() {
         def submodule = PublicationConfigurationUtils.loadSubproject(project)
+        if (!PublicationTaskLoader.validateSubmodulePublicationTasks(this.project, submodule)) {
+            throw new IllegalArgumentException("* The subproject '${submodule}' does not contains the necessary information to publish.")
+        }
+
         def recursivePublication = project.findProperty(RECURSIVE_PUBLICATION_PROPERTY) ? true : false
         def updateLeaf = project.findProperty(RECURSIVE_UPDATE_LEAF) ? true : false
 
         loadSubprojectPublicationTasks([submodule], recursivePublication, updateLeaf)
     }
 
+    static def filterValidAndInvalidProjectsToPublish(Project project, List<Project> subProjects) {
+        List<Project> validProjectsToPublish = []
+        List<Project> invalidProjectsToPublish = []
+
+        subProjects.each {
+            (PublicationTaskLoader.validateSubmodulePublicationTasks(project, it)) ? validProjectsToPublish.add(it) : invalidProjectsToPublish.add(it)
+        }
+
+        return [validProjectsToPublish, invalidProjectsToPublish]
+    }
+
+    static def filterAndValidateProjectsToPublish(Project project, List<Project> subProjects) {
+        def (List<Project> validProjectsToPublish, List<Project> invalidProjectsToPublish) = filterValidAndInvalidProjectsToPublish(project, subProjects)
+        boolean ignoreInvalidProjects = project.findProperty(IGNORE_INVALID_PROJECTS_PROPERTY) ? true : false
+
+        if (invalidProjectsToPublish && !invalidProjectsToPublish.isEmpty() && !ignoreInvalidProjects) {
+            throw new IllegalArgumentException("* The publication can not be ran because there is some module projects with missing information to publish. Modules: ${invalidProjectsToPublish.toList()}.\n" +
+                    "* You can force the publication with the flag '-P${IGNORE_INVALID_PROJECTS_PROPERTY}=true'. WARNING: This can lead to inconsistent dependencies.")
+        }
+
+        return [validProjectsToPublish, invalidProjectsToPublish]
+    }
+
     void loadSubprojectPublicationTasks(List<Project> subprojects, boolean recursivePublication, boolean updateSubprojectsLeafVersion) {
-        def subprojectsToPublish = subprojects
+        def (List<Project> validProjectsToPublish, List<Project> invalidProjectsToPublish) = filterAndValidateProjectsToPublish(project, subprojects)
+
+        def subprojectsToPublish = validProjectsToPublish
 
         if (recursivePublication) {
-            Map<String, Project> subprojectsMap = PublicationConfigurationUtils.generateProjectMap(subprojects)
+            Map<String, Project> subprojectsMap = PublicationConfigurationUtils.generateProjectMap(validProjectsToPublish)
             subprojectsToPublish = processLeafProjects(subprojectsMap, updateSubprojectsLeafVersion)
+
+            // Check if the 'subprojectToPublish' contains new projects that can be invalid to publish
+            (validProjectsToPublish, invalidProjectsToPublish) = filterAndValidateProjectsToPublish(project, subprojectsToPublish)
+            subprojectsToPublish = validProjectsToPublish
+        }
+
+        // Mark the subprojects which will be published
+        subprojectsToPublish.each {
+            it.ext.set(PUBLISHED_FLAG, true)
         }
 
         // Load local publication tasks
@@ -118,15 +170,20 @@ class PublicationConfiguration {
             List<Project> projectDependencies = PublicationConfigurationUtils.verifyProjectDependency(this.project, subprojectToProcess, moduleSubprojects, pomType)
 
             for (def projectDependency : projectDependencies) {
-                def name = "${projectDependency.group}.${projectDependency.artifact}"
-                def entryProject = new EntryProjects(name, projectDependency)
+                // Verify that the 'projectDependency' contains the necessary information to publish
+                if (PublicationTaskLoader.validateSubmodulePublicationTasks(this.project, projectDependency)) {
+                    def name = "${projectDependency.group}.${projectDependency.artifact}"
+                    def entryProject = new EntryProjects(name, projectDependency)
 
-                // Adds the project to the unprocessed queue only if was not already processed
-                if (!processedProjects.contains(entryProject) && !unprocessedProjects.contains(entryProject)) {
-                    unprocessedProjects.add(entryProject)
+                    // Adds the project to the unprocessed queue only if was not already processed
+                    if (!processedProjects.contains(entryProject) && !unprocessedProjects.contains(entryProject)) {
+                        unprocessedProjects.add(entryProject)
+                    }
+                } else {
+                    throw new IllegalArgumentException("* The subproject '${projectDependency}' does not contains the necessary information to publish.\n" +
+                            "* The subproject is a parent dependency of the '${subprojectToProcess}'.")
                 }
             }
-
             processedProjects.add(subprojectEntry)
         }
 

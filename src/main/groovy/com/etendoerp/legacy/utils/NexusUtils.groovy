@@ -5,6 +5,7 @@ import org.gradle.api.Project
 import org.gradle.api.artifacts.repositories.PasswordCredentials
 import org.gradle.api.internal.tasks.userinput.NonInteractiveUserInputHandler
 import org.gradle.api.internal.tasks.userinput.UserInputHandler
+import org.gradle.api.artifacts.repositories.ArtifactRepository
 
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
@@ -126,6 +127,35 @@ class NexusUtils {
     }
 
     /**
+     * Adds a repository to the project only if does not already exists.
+     * @param project
+     * @param repository
+     */
+    static void addRepoToProject(Project project, ArtifactRepository repository) {
+        String repoUrl = repository.properties.get("url").toString()
+
+        ArtifactRepository projectRepo = project.repositories.find({
+            it.properties.get("url")?.toString()?.equalsIgnoreCase(repoUrl)
+        })
+
+        // The project does not contain the repository
+        if (!projectRepo) {
+            def repoCredentials = repository["credentials"] as PasswordCredentials
+            project.repositories {
+                maven {
+                    url "${repoUrl}"
+                    if (repoCredentials.username && repoCredentials.password) {
+                        credentials {
+                            username = repoCredentials.username
+                            password = repoCredentials.password
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * Configure all project and subproject repositories with the System credentials.
      * The credentials could be passed by the command line parameters '-DnexusUser=user -DnexusPassword=password'
      */
@@ -148,17 +178,10 @@ class NexusUtils {
                     repoCredentials.setPassword(passwordCredential)
                 }
 
-                project.repositories {
-                    maven {
-                        url "${repo.properties.get("url")}"
-                        if (repoCredentials.username && repoCredentials.password) {
-                            credentials {
-                                username = repoCredentials.username
-                                password = repoCredentials.password
-                            }
-                        }
-                    }
-                }
+                /**
+                 * Adds the 'subproject' repository to the 'main project' only if does not already exists.
+                 */
+                addRepoToProject(project, repo)
             }
         }
 

@@ -6,6 +6,7 @@ import com.etendoerp.jars.modules.metadata.DependencyUtils
 import com.etendoerp.legacy.dependencies.ResolverDependencyUtils
 import com.etendoerp.publication.PublicationUtils
 import com.etendoerp.publication.configuration.PublicationConfiguration
+import com.etendoerp.publication.configuration.pom.PomConfigurationContainer
 import com.etendoerp.publication.taskloaders.PublicationTaskLoader
 import com.etendoerp.publication.taskloaders.ZipTaskGenerator
 import org.gradle.api.Project
@@ -52,8 +53,8 @@ class ModulesConfigurationLoader {
                 subproject.pluginManager.apply("maven-publish")
 
                 // Create the configuration used to reference other subproject dependencies
-                if (!subproject.configurations.findByName(PublicationConfiguration.SUBPROJECT_DEPENDENCIES_CONFIGURATION_CONTAINER)) {
-                    subproject.configurations.create(PublicationConfiguration.SUBPROJECT_DEPENDENCIES_CONFIGURATION_CONTAINER)
+                if (!subproject.configurations.findByName(PomConfigurationContainer.SUBPROJECT_DEPENDENCIES_CONFIGURATION_CONTAINER)) {
+                    subproject.configurations.create(PomConfigurationContainer.SUBPROJECT_DEPENDENCIES_CONFIGURATION_CONTAINER)
                 }
 
                 subproject.afterEvaluate {

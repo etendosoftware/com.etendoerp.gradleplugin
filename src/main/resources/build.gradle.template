@@ -11,14 +11,14 @@ version        = "${version}"
 description    = "${description}"
 ext.artifact   = "${artifact}"
 ext.repository = "${repository}"
-
+${applyExtensionFile}
 configurations {
     ${configuration}
 }
 
 publishing {
     publications {
-        "${modulename}"(MavenPublication) {
+        "${javapackage}"(MavenPublication) {
             from components.java
             groupId    = group
             artifactId = artifact
@@ -39,6 +39,9 @@ repositories {
     }
     maven {
         url "https://repo.futit.cloud/repository/maven-releases"
+    }
+    maven {
+        url "https://repo.futit.cloud/repository/maven-public-releases"
     }
     maven {
         url "https://repo.futit.cloud/repository/maven-public-jars"

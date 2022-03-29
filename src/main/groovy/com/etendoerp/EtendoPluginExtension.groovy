@@ -64,6 +64,13 @@ class EtendoPluginExtension {
      */
     boolean ignoreConsistencyVerification = false
 
+    /**
+     * Flag used to prevent throwing error when an artifact could not be resolved.
+     * This includes transitives ones.
+     * Default false
+     */
+    boolean ignoreUnresolvedArtifacts = false
+
     /************************ MESSAGES ************************/
 
     static String ignoredArtifactsMessage(String exampleModule) {

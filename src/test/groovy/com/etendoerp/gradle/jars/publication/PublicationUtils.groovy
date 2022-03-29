@@ -30,11 +30,15 @@ class PublicationUtils {
         }
     }
 
-    static Object getRepositoryModules(String repository) {
+    static Object getRepositoryModules(String repository, String token=null) {
         Object response = null
         HttpURLConnection uc
         try {
-            URL url = new URL( "https://repo.futit.cloud/service/rest/v1/components?repository=${repository}")
+            def contToken = ""
+            if (token) {
+                contToken = "&continuationToken=${token}"
+            }
+            URL url = new URL( "https://repo.futit.cloud/service/rest/v1/components?repository=${repository}${contToken}")
             uc = url.openConnection() as HttpURLConnection
             uc.setRequestMethod("GET")
             String basicAuth = generateBasicAuth()
@@ -42,6 +46,10 @@ class PublicationUtils {
             def responseText = uc.getInputStream().getText()
             def jsonSlurper = new JsonSlurper()
             response = jsonSlurper.parseText(responseText)
+            String continuationToken = response.continuationToken
+            if (continuationToken && continuationToken != null) {
+                response.items += getRepositoryModules(repository, continuationToken).items
+            }
         } catch (Exception e ) {
             print(e)
         }
@@ -64,6 +72,29 @@ class PublicationUtils {
             out << uc.getInputStream().readAllBytes()
         }
         return dataFile
+    }
+
+    static void repoContainsModules(String repo, Map<String, List<String>> modulesData) {
+        def modules = getRepositoryModules(repo)
+        Map<String, List<String>> modulesFromRepo = new TreeMap(String.CASE_INSENSITIVE_ORDER)
+        for (def module : modules.items) {
+            String moduleName = "${module.group}.${module.name}"
+            if (!modulesFromRepo.containsKey(moduleName)) {
+                modulesFromRepo.put(moduleName, new ArrayList())
+            }
+            (modulesFromRepo.get(moduleName) as List).add(module.version)
+        }
+
+        // Check that the modules are in the repository
+        for (def moduleToVerify : modulesData) {
+            assert modulesFromRepo.containsKey(moduleToVerify.key)
+            List<String> versionsFromRepo = modulesFromRepo.get(moduleToVerify.key) as List<String>
+
+            List<String> versionsToVerify = moduleToVerify.value
+            versionsToVerify.each {
+                assert it in versionsFromRepo
+            }
+        }
     }
 
     static void correctModuleVersion(String repo, Map<String, List<String>> modulesData) {

@@ -5,9 +5,12 @@ import org.gradle.api.Project
 
 class ModuleBuildTemplateLoader {
 
-    final static String BUILD_FILE = "build.gradle"
-
-    final static String CREATE_MODULE_BUILD = "createModuleBuild"
+    static final String BUILD_FILE = "build.gradle"
+    static final String CREATE_MODULE_BUILD = "createModuleBuild"
+    /**
+     * Property used to create the 'build.gradle' file from all the modules.
+     */
+    static final String ALL_COMMAND_PROPERTY = "all"
 
     static void load(Project project) {
 
@@ -17,11 +20,8 @@ class ModuleBuildTemplateLoader {
          * */
         project.task(CREATE_MODULE_BUILD) {
             doLast {
-
                 String moduleName     = PublicationUtils.loadModuleName(project)
                 String repositoryName = PublicationUtils.loadRepositoryName(project)
-
-                def buildMetadata = new BuildMetadata(project, moduleName, repositoryName)
 
                 def template = Thread.currentThread().getContextClassLoader().getResource("build.gradle.template")
 
@@ -32,13 +32,12 @@ class ModuleBuildTemplateLoader {
                 def tempBuildGradleFile = File.createTempFile("build.gradle","template")
                 tempBuildGradleFile.text = template.text
 
-                project.copy {
-                    from(tempBuildGradleFile.absolutePath)
-                    into(buildMetadata.moduleLocation)
-                    rename { String filename ->
-                        return BUILD_FILE
-                    }
-                    expand(buildMetadata.generatePropertiesMap())
+                BuildMetadataContainer container = new BuildMetadataContainer(project, repositoryName, tempBuildGradleFile)
+                container.loadSubprojectMetadata()
+                if (moduleName == ALL_COMMAND_PROPERTY) {
+                    container.createSubprojectsBuildFile()
+                } else {
+                    container.createCustomSubprojectBuildFile(moduleName)
                 }
             }
         }

@@ -4,10 +4,12 @@ import com.etendoerp.consistency.EtendoArtifactsConsistencyContainer
 import com.etendoerp.jars.PathUtils
 import com.etendoerp.legacy.dependencies.EtendoArtifactMetadata
 import com.etendoerp.legacy.dependencies.ResolverDependencyLoader
+import com.etendoerp.legacy.utils.ModulesUtils
 import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ResolvedArtifact
 import org.gradle.api.file.FileTree
+import org.gradle.internal.impldep.org.junit.platform.commons.util.ModuleUtils
 
 class EtendoJarModuleArtifact extends ArtifactDependency{
 
@@ -24,7 +26,7 @@ class EtendoJarModuleArtifact extends ArtifactDependency{
 
         // Extract only the Etendo jar file if the module is not already in sources - 'modules/' dir
         File modulesLocation = new File("${project.rootDir.absolutePath}${File.separator}${PublicationUtils.BASE_MODULE_DIR}")
-        File sourceModule = new File(modulesLocation, this.moduleName)
+        File sourceModule = ModulesUtils.searchFileInDirIgnoreCase(project, modulesLocation.absolutePath, this.moduleName)
 
         if (sourceModule && sourceModule.exists()) {
             this.extracted = false
