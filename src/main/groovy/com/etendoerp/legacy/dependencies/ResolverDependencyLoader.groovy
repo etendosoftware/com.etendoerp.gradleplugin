@@ -111,9 +111,6 @@ class ResolverDependencyLoader {
 
             AntLoader.loadAntFile(project, coreMetadata)
 
-            // Load K8 tasks
-            KubernetesConfigurationLoader.load(project)
-
             //
             project.ant.references.keySet().forEach {
                 if(it.contains("path")) {
