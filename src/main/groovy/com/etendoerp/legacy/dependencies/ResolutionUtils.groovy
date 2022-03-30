@@ -222,7 +222,7 @@ class ResolutionUtils {
         def modulesLocation = new File(project.rootDir, PublicationUtils.BASE_MODULE_DIR)
 
         if (!modulesLocation.exists()) {
-            return
+            return sourcesModulesContainer
         }
         
         project.logger.info("Loading source modules dependencies from 'modules/'.")

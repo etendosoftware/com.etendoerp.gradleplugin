@@ -3,8 +3,6 @@ package com.etendoerp.publication.taskloaders
 import com.etendoerp.jars.FileExtensions
 import com.etendoerp.jars.PathUtils
 import com.etendoerp.publication.PublicationUtils
-import com.etendoerp.publication.configuration.pom.PomConfigurationContainer
-import com.etendoerp.publication.configuration.pom.PomConfigurationType
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.file.DuplicatesStrategy
@@ -18,10 +16,9 @@ class ZipTaskGenerator {
     static void load(Project mainProject, Project subProject) {
         if (!subProject.tasks.findByName(ZIP_CONFIG_TASK)) {
             subProject.tasks.register(ZIP_CONFIG_TASK) {
-                def temporaryDir = getTemporaryDir()
                 doLast {
                     // Get the module name
-                    String moduleName = subProject.projectDir.name
+                    String moduleName = PublicationUtils.loadModuleName(mainProject, subProject).orElseThrow()
                     File moduleLocation = subProject.projectDir
 
                     // Configure the task

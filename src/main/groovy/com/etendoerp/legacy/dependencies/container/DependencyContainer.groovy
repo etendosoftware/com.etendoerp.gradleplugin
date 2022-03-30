@@ -1,11 +1,13 @@
 package com.etendoerp.legacy.dependencies.container
 
+import com.etendoerp.EtendoPluginExtension
 import com.etendoerp.core.CoreMetadata
 import com.etendoerp.jars.JarCoreGenerator
 import com.etendoerp.legacy.dependencies.ResolverDependencyUtils
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.Dependency
+import org.gradle.api.artifacts.ResolveException
 import org.gradle.api.artifacts.ResolvedArtifact
 import org.gradle.api.file.FileTree
 
@@ -37,6 +39,16 @@ class DependencyContainer {
         this.configuration = configuration
     }
 
+    static void showUnresolvedArtifactsException(Project project, ResolveException resolveException) {
+        project.logger.error("* Error resolving the dependencies")
+        project.logger.error("* ERROR: ${resolveException.getMessage()}")
+
+        resolveException.causes.each {
+            Throwable t = it
+            project.logger.error("* -> ${t.getMessage()}")
+        }
+    }
+
     /**
      * Filters the external dependencies by type:
      *  - MAVEN
@@ -46,7 +58,17 @@ class DependencyContainer {
      */
     void filterDependenciesFiles() {
         this.dependenciesMap = ResolverDependencyUtils.loadDependenciesMap(this.project, this.configuration)
-        def resolvedArtifacts = this.configuration.resolvedConfiguration.resolvedArtifacts
+        Set<ResolvedArtifact> resolvedArtifacts = [].toSet() as Set<ResolvedArtifact>
+        try {
+            resolvedArtifacts = this.configuration.resolvedConfiguration.resolvedArtifacts
+        } catch (ResolveException re) {
+            def extension = project.extensions.findByType(EtendoPluginExtension)
+            if (!extension.ignoreUnresolvedArtifacts) {
+                throw re
+            }
+            // Show the warning
+            showUnresolvedArtifactsException(this.project, re)
+        }
 
         for (ResolvedArtifact resolvedArtifact : resolvedArtifacts) {
             ArtifactDependency artifactDependency = getArtifactDependency(project, resolvedArtifact)

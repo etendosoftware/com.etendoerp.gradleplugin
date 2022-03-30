@@ -1,6 +1,7 @@
 package com.etendoerp.legacy.dependencies.container
 
 import com.etendoerp.legacy.dependencies.EtendoArtifactMetadata
+import com.etendoerp.legacy.utils.ModulesUtils
 import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ResolvedArtifact
@@ -20,7 +21,7 @@ class EtendoZipModuleArtifact extends ArtifactDependency{
 
         // Delete the JAR module if already exists.
         File modulesJarLocation = new File("${project.buildDir.absolutePath}${File.separator}etendo${File.separator}${PublicationUtils.BASE_MODULE_DIR}")
-        File jarModule = new File(modulesJarLocation, this.moduleName)
+        File jarModule = ModulesUtils.searchFileInDirIgnoreCase(project, modulesJarLocation.absolutePath, this.moduleName)
 
         if (jarModule && jarModule.exists()) {
             project.logger.info("Deleting the JAR module '${jarModule.absolutePath}'")
