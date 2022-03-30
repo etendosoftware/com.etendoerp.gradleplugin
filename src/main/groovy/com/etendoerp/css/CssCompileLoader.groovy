@@ -23,14 +23,12 @@ class CssCompileLoader {
                     }.each {
                         def less_fl = it.toString()
                         def css_fl = less_fl.replaceAll(".scss", ".css")
-                        if (project.file(less_fl).lastModified() > project.file(css_fl).lastModified()) {
-                            println(it)
-                            gen_css.add(css_fl)
-                            List argsList = [less_fl, css_fl, styleArg]
-                            project.exec {
-                                executable "sass"
-                                args argsList
-                            }
+                        println(it)
+                        gen_css.add(css_fl)
+                        List argsList = [less_fl, css_fl, styleArg]
+                        project.exec {
+                            executable "sass"
+                            args argsList
                         }
                     }
                 })
