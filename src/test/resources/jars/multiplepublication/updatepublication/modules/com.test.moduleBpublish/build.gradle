@@ -1,0 +1,47 @@
+group          = "com.test"
+version        = "1.0.0"
+description    = "module B publish"
+ext.artifact   = "moduleBpublish"
+ext.repository = "https://repo.futit.cloud/repository/etendo-multiplepublish-test"
+
+configurations {
+    moduleDependencyContainer
+}
+
+publishing {
+    publications {
+        "com.test.moduleBpublish"(MavenPublication) {
+            from components.java
+            groupId    = group
+            artifactId = artifact
+            version    = version
+        }
+    }
+    repositories {
+        maven {
+            url "https://repo.futit.cloud/repository/etendo-multiplepublish-test"
+        }
+    }
+}
+dependencies {
+    implementation 'com.test:moduleApublish:1.0.0'
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url "https://repo.futit.cloud/repository/etendo-test"
+    }
+    maven {
+        url "https://repo.futit.cloud/repository/maven-releases"
+    }
+    maven {
+        url "https://repo.futit.cloud/repository/maven-public-jars"
+    }
+    maven {
+        url "https://repo.futit.cloud/repository/etendo-resolution-test"
+    }
+    maven {
+        url "https://repo.futit.cloud/repository/etendo-multiplepublish-test"
+    }
+}

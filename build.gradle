@@ -1,0 +1,119 @@
+plugins {
+    id 'java'
+    id 'groovy'
+    id 'java-gradle-plugin'
+    id 'maven-publish'
+}
+
+def MASTER = "master"
+def DEV    = "dev"
+def PROD   = "prod"
+
+def URL_PROD = "https://repo.futit.cloud/repository/maven-public-releases"
+def URL_DEV  = "https://repo.futit.cloud/repository/maven-public-snapshots"
+
+// Default mode
+def mode = DEV
+def pluginVersion = "1.0.0"
+
+static def gitBranch() {
+    def branch = ""
+    def proc = "git rev-parse --abbrev-ref HEAD".execute()
+    proc.in.eachLine { line -> branch = line }
+    proc.err.eachLine { line -> println line }
+    proc.waitFor()
+    branch
+}
+
+if (MASTER == gitBranch()) {
+    mode = PROD
+}
+if (mode == DEV) {
+    pluginVersion += "-SNAPSHOT"
+}
+
+def urlToPublish = (mode == PROD) ? URL_PROD : URL_DEV
+
+group 'com.etendoerp'
+version(pluginVersion)
+
+repositories {
+    mavenCentral()
+}
+
+publishing {
+    repositories {
+        maven {
+            credentials {
+                username "$nexusUser"
+                password "$nexusPassword"
+            }
+            url(urlToPublish)
+        }
+    }
+}
+
+dependencies {
+    compile     gradleApi()
+    testCompile gradleTestKit()
+
+    // https://mvnrepository.com/artifact/org.apache.commons/commons-dbcp2
+    implementation group: 'org.apache.commons', name: 'commons-dbcp2', version: '2.9.0'
+
+    // https://mvnrepository.com/artifact/org.postgresql/postgresql
+    implementation group: 'org.postgresql', name: 'postgresql', version: '42.3.2'
+
+    // https://mvnrepository.com/artifact/org.jdom/jdom2
+    implementation("org.jdom:jdom2:2.0.5") {
+        exclude group: 'jdom', module: 'jdom'
+    }
+
+    // https://mvnrepository.com/artifact/jaxen/jaxen
+    implementation("jaxen:jaxen:1.1.4") {
+        exclude group: 'jdom', module: 'jdom'
+    }
+
+    testImplementation 'org.codehaus.groovy:groovy-all:2.5.14'
+    testImplementation platform("org.spockframework:spock-bom:2.0-M4-groovy-2.5")
+    testImplementation 'org.spockframework:spock-core'
+    testImplementation 'org.spockframework:spock-junit4'
+    testImplementation 'junit:junit:4.13.1'
+    testImplementation( "com.athaydes:spock-reports:2.0-groovy-2.5" ) {
+        transitive = false // this avoids affecting your version of Groovy/Spock
+    }
+    testImplementation 'org.postgresql:postgresql:42.2.22'
+
+}
+
+tasks.withType(Test).configureEach {
+    // Using JUnitPlatform for running tests
+    useJUnitPlatform()
+}
+
+test {
+    systemProperty 'com.athaydes.spockframework.report.showCodeBlocks', true
+    systemProperty 'nexusUser', project.hasProperty('nexusUser') ? project.nexusUser : System.getenv("NEXUS_USR")
+    systemProperty 'nexusPassword', project.hasProperty('nexusPassword') ? project.nexusPassword : System.getenv("NEXUS_PSW")
+    systemProperty 'test.bbdd.sid', project['test.bbdd.sid']
+    systemProperty 'test.bbdd.systemUser', project['test.bbdd.systemUser']
+    systemProperty 'test.bbdd.systemPassword', project['test.bbdd.systemPassword']
+    systemProperty 'test.bbdd.user', project['test.bbdd.systemUser']
+    systemProperty 'test.bbdd.password', project['test.bbdd.systemPassword']
+    systemProperty 'test.bbdd.url', project['test.bbdd.url']
+    systemProperty 'org.gradle.jvmargs', '-Xmx2g -XX:MaxPermSize=512m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8'
+    environment 'JAVA_HOME', System.getenv('JAVA_HOME')
+
+
+    maxParallelForks 2
+    forkEvery 100
+    maxHeapSize= '2G'
+}
+
+gradlePlugin {
+    plugins {
+        etendoPlugin {
+            id = "com.etendoerp.gradleplugin"
+            implementationClass = "com.etendoerp.EtendoPlugin"
+        }
+    }
+}

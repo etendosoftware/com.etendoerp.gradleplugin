@@ -1,0 +1,55 @@
+/**
+ *   This file was generated automatically by the 'createModuleBuild' task.
+ *   Created at: 2021-09-19T14:30:51.850486Z.
+ */
+
+plugins {
+    id 'java'
+    id 'maven-publish'
+}
+
+group          = "com.test"
+version        = "1.0.0"
+description    = "com.test.dummytofill"
+ext.artifact   = "dummytofill"
+ext.repository = "https://repo.futit.cloud/repository/etendo-test"
+
+configurations {
+    moduleDependencyContainer
+}
+
+publishing {
+    publications {
+        "com.test.dummytofill"(MavenPublication) {
+            from components.java
+            groupId    = group
+            artifactId = artifact
+            version    = version
+        }
+    }
+    repositories {
+        maven {
+            url "https://repo.futit.cloud/repository/etendo-test"
+        }
+    }
+}
+
+repositories {
+    maven {
+        url "https://repo.futit.cloud/repository/etendo-test"
+    }
+    maven {
+        url "https://repo.futit.cloud/repository/maven-releases"
+    }
+    maven {
+        url "https://repo.futit.cloud/repository/maven-public-jars"
+    }
+    mavenCentral()
+}
+
+/**
+ * Declare Java dependencies using 'implementation'
+ * Ex: implementation "com.sun.mail:javax.mail:1.6.2"
+ */
+dependencies {
+}

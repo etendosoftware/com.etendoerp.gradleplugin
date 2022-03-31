@@ -1,0 +1,241 @@
+package com.etendoerp.legacy.dependencies
+
+import com.etendoerp.core.CoreMetadata
+import com.etendoerp.jars.modules.metadata.DependencyUtils
+import com.etendoerp.legacy.dependencies.container.ArtifactDependency
+import org.gradle.api.Project
+import org.gradle.api.artifacts.Configuration
+import org.gradle.api.artifacts.Dependency
+import org.gradle.api.artifacts.DependencySet
+import org.gradle.api.internal.artifacts.dependencies.AbstractModuleDependency
+import org.gradle.api.internal.artifacts.dependencies.DefaultProjectDependency
+
+class ResolverDependencyUtils {
+
+    /**
+     * Loads all the dependencies of the project and subproject in a custom Configuration
+     * @param project
+     * @return Configuration
+     */
+    static Configuration loadAllDependencies(Project project) {
+        // Get all the base project configurations
+        def baseProjectConfigurations = DependencyUtils.loadListOfConfigurations(project)
+
+        // Get all the subproject configurations
+        def subprojectConfigurations = DependencyUtils.getConfigurationsFromProject(project)
+
+        // Add all the subproject configurations to the base project configuration
+        baseProjectConfigurations.addAll(subprojectConfigurations)
+
+        // The configuration container allows to filter equals dependencies with different versions
+        // The container will contain the last version of a dependency
+        def container = project.configurations.create(UUID.randomUUID().toString().replace("-",""))
+
+        DependencySet containerSet = container.dependencies
+
+        // Create a DependencySet with all the dependency from the base project and subprojects
+        // The DependencySet can contain same dependencies with different versions
+        DependencyUtils.loadDependenciesFromConfigurations(baseProjectConfigurations, containerSet)
+
+        return container
+    }
+
+    static Configuration loadSubprojectDependencies(Project mainProject, Project subProject, List<String> configurationsToSearch=[], boolean onlyExternalDependencies=true) {
+        def subProjectConfigurations = DependencyUtils.loadListOfConfigurations(subProject, configurationsToSearch)
+
+        def container = subProject.configurations.create(UUID.randomUUID().toString().replace("-",""))
+        DependencySet containerSet = container.dependencies
+
+        // Create a DependencySet with all the dependencies from the subproject
+        DependencyUtils.loadDependenciesFromConfigurations(subProjectConfigurations, containerSet, onlyExternalDependencies)
+        return container
+    }
+
+    static Configuration loadSubprojectDefaultDependencies(Project mainProject, Project subProject, boolean onlyExternalDependencies=true) {
+        return loadSubprojectDependencies(mainProject, subProject, DependencyUtils.VALID_CONFIGURATIONS, onlyExternalDependencies)
+    }
+
+
+    /**
+     * Loads the dependencies map with the module name has key and the Dependency has value.
+     * @param container
+     */
+    static Map<String, Dependency> loadDependenciesMap(Project project, Configuration container) {
+        Map<String, Dependency> dependenciesMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER)
+        for (Dependency dependency : container.dependencies) {
+            def group = dependency.group
+            def name = dependency.name
+            if (dependency instanceof DefaultProjectDependency) {
+                DefaultProjectDependency projectDependency = dependency as DefaultProjectDependency
+                def artifact = projectDependency.getDependencyProject().findProperty("artifact")
+                if (artifact) {
+                    name = artifact
+                }
+            }
+            String moduleName = "${group}.${name}"
+            dependenciesMap.put(moduleName, dependency)
+        }
+        return dependenciesMap
+    }
+
+
+    /**
+     * Creates a custom Configuration loaded with the ArtifactDependencies and Configurations passed has parameter.
+     * @param project
+     * @param configurations
+     * @param artifactDependencyMap
+     * @return
+     */
+    static Configuration createConfigurationFromArtifacts(Project project, List<Configuration> configurations, Map<String, List<ArtifactDependency>> artifactDependencyMap) {
+
+        def configurationContainer = createRandomConfiguration(project)
+        def configurationDependencySet = configurationContainer.dependencies
+
+        // Load the configurations
+        DependencyUtils.loadDependenciesFromConfigurations(configurations, configurationDependencySet)
+
+        // Load the Artifact dependencies
+        loadConfigurationWithArtifacts(project, configurationContainer, artifactDependencyMap)
+
+        return configurationContainer
+    }
+
+    static void loadConfigurationWithArtifacts(Project project, Configuration configuration, Map<String, List<ArtifactDependency>> artifacts) {
+        for (def entry : artifacts.entrySet()) {
+            for (ArtifactDependency artifactDependency : entry.value) {
+                String displayName = artifactDependency.displayName
+                if (displayName) {
+                    project.dependencies.add(configuration.name, displayName)
+                }
+            }
+        }
+    }
+
+    /**
+     * Obtains the incoming dependencies from a Configuration.
+     * Updates the dependencies from the Configuration with the passed 'artifactDependencyMap'.
+     *
+     * This is used to prevent adding extra Dependencies to a Configuration,
+     * when the configuration should only contain defined user Dependencies.
+     *
+     * Ex: The 'moduleDeps' config is used to define dependencies to expand, the dependencies are defined by the user.
+     * The incoming dependencies from the 'moduleDeps' are those defined by the user and the transitives ones.
+     * If a user wants to obtain the correct version of a defined Dependency taking into account Etendo modules already installed,
+     * a resolution conflict should be performed, the result should be the correct versions.
+     *
+     * The 'artifactDependencyMap' contains the resolution version result of the dependencies ('moduleDeps', Defined source Etendo Modules, etc.).
+     *
+     * @param project
+     * @param configuration
+     * @param artifactDependencyMap
+     * @param filterCoreDependency
+     * @param updateOnConflicts Prevent updating the dependency if has conflicts (Left the defined user version)
+     * @return
+     */
+    static Configuration updateConfigurationDependencies(Project project, Configuration configuration, Map<String, List<ArtifactDependency>> artifactDependencyMap, boolean filterCoreDependency, boolean updateOnConflicts) {
+        // Obtain the incoming 'requested' dependencies from the Configuration
+        project.logger.info("* Getting incoming dependencies from the configuration '${configuration.name}' to be updated.")
+        def incomingDependencies = ResolutionUtils.getIncomingDependenciesExcludingCore(project, configuration, filterCoreDependency, false)
+
+        // Update the dependencies of the incomingDependencies
+        for (def entry : artifactDependencyMap.entrySet()) {
+            String dependencyName = entry.key
+            List<ArtifactDependency> artifactList = entry.value
+
+            if (!incomingDependencies.containsKey(dependencyName)) {
+                continue
+            }
+
+            // Get the selected dependency
+            ArtifactDependency selectedDependency = null
+
+            if (artifactList && artifactList.size() >= 1 ) {
+                selectedDependency = artifactList.get(0)
+            }
+
+            if (!selectedDependency) {
+                continue
+            }
+
+            if (selectedDependency.hasConflicts && !updateOnConflicts) {
+                continue
+            }
+
+            // Update the dependencies list
+            incomingDependencies.put(dependencyName, artifactList)
+        }
+
+        return createConfigurationFromArtifacts(project, [configuration], incomingDependencies)
+    }
+
+    static void excludeDependencies(Project project, Configuration configuration, List<ArtifactDependency> dependenciesToExclude, boolean removeFromConfiguration) {
+        for (ArtifactDependency dependency : dependenciesToExclude) {
+            String group = dependency.group
+            String name  = dependency.name
+            String artifactName = "${group}:${name}"
+
+            if (removeFromConfiguration) {
+                configuration.dependencies.removeIf({
+                    String dependencyName = "${it.group}:${it.name}"
+                    return dependencyName.contains(artifactName)
+                })
+            }
+
+            // Exclude transitives dependencies
+            configuration.exclude([group : "$group", module: "$name"])
+        }
+    }
+
+    static void excludeCoreDependencies(Project project, Configuration configuration, boolean removeFromConfiguration) {
+        ArtifactDependency defaultCore = new ArtifactDependency(project, CoreMetadata.DEFAULT_ETENDO_CORE_GROUP, CoreMetadata.DEFAULT_ETENDO_CORE_NAME, "1.0.0")
+        ArtifactDependency classicCore = new ArtifactDependency(project, CoreMetadata.CLASSIC_ETENDO_CORE_GROUP, CoreMetadata.CLASSIC_ETENDO_CORE_NAME, "1.0.0")
+        excludeDependencies(project, configuration, [defaultCore, classicCore], removeFromConfiguration)
+    }
+
+    static void excludeCoreFromDependencies(Project project, Configuration configuration) {
+        configuration.dependencies.each {
+            if (it instanceof AbstractModuleDependency) {
+                AbstractModuleDependency dependency = it as AbstractModuleDependency
+                dependency.exclude(group: CoreMetadata.DEFAULT_ETENDO_CORE_GROUP, module: CoreMetadata.DEFAULT_ETENDO_CORE_NAME)
+                dependency.exclude(group: CoreMetadata.CLASSIC_ETENDO_CORE_GROUP, module: CoreMetadata.CLASSIC_ETENDO_CORE_NAME)
+            }
+        }
+    }
+
+    /**
+     * Creates a random Configuration.
+     * If the 'configurationToAdd' is passed has a parameter, loads all the dependencies to the new configuration.
+     * @param project
+     * @param configurationToAdd
+     * @return
+     */
+    static Configuration createRandomConfiguration(Project project, String name = null, Configuration configurationToAdd = null) {
+        String configName = (name) ?: "internal"
+
+        def config = project.configurations.create("${configName}-configuration-" + UUID.randomUUID().toString().replace("-",""))
+        if (configurationToAdd) {
+            DependencyUtils.loadDependenciesFromConfigurations([configurationToAdd], config.dependencies)
+        }
+        return config
+    }
+
+    /**
+     * Obtains the Core dependency from the artifact list
+     * @param project
+     * @param name
+     * @param artifactList
+     * @return
+     */
+    static ArtifactDependency getCoreDependency(Project project, String name, Map<String, List<ArtifactDependency>> artifactListMap) {
+        ArtifactDependency coreArtifact = null
+
+        List<ArtifactDependency> artifactList = artifactListMap.get(name)
+
+        if (artifactList && artifactList.size() >= 1) {
+            coreArtifact = artifactList.get(0)
+        }
+
+        return coreArtifact
+    }
+
+}
