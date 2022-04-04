@@ -65,7 +65,7 @@ class PushTags {
     static void changeGitIgnore(File gitIgnoreFile) {
         String gitText = gitIgnoreFile.text
         gitText += "\n"
-        gitText += "build/* \n"
+        gitText += "build/ \n"
         gitText += "/build/ \n"
         gitText += "etendo.artifact.properties \n"
         gitIgnoreFile.text = gitText
