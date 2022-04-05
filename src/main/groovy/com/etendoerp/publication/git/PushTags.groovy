@@ -34,9 +34,11 @@ class PushTags {
             try {
                 File gitIgnoreFile = new File(moduleNameFileLocation, ".gitignore")
 
-                if (gitIgnoreFile && gitIgnoreFile.exists()) {
-                    changeGitIgnore(gitIgnoreFile)
+                if (!gitIgnoreFile.exists()) {
+                    gitIgnoreFile.createNewFile()
                 }
+
+                changeGitIgnore(gitIgnoreFile)
 
                 Path directory = Paths.get(moduleNameFileLocation)
                 Git.gitStage(project, directory)
@@ -63,12 +65,18 @@ class PushTags {
     }
 
     static void changeGitIgnore(File gitIgnoreFile) {
+        String filesToIgnore = ""
+        filesToIgnore += "\n"
+        filesToIgnore += "build/\n"
+        filesToIgnore += "!build/classes/\n"
+        filesToIgnore += "etendo.artifact.properties\n"
+
         String gitText = gitIgnoreFile.text
-        gitText += "\n"
-        gitText += "build/\n"
-        gitText += "!build/classes/\n"
-        gitText += "etendo.artifact.properties\n"
-        gitIgnoreFile.text = gitText
+
+        if (!gitText.contains(filesToIgnore)) {
+            gitText += filesToIgnore
+            gitIgnoreFile.text = gitText
+        }
     }
 
     /**
