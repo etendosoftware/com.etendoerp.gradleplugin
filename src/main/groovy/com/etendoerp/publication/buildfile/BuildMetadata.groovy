@@ -36,7 +36,7 @@ class BuildMetadata {
     static final String CONFIGURATION = "configuration"
     static final String DEPENDENCIES  = "dependencies"
     static final String MODULENAME    = "modulename"
-    static final String COMMERCIAL    = "commercial"
+    static final String COMMERCIAL    = "iscommercial"
 
     /**
      * Values to set the extension list in the build.gradle.template when the file to build
