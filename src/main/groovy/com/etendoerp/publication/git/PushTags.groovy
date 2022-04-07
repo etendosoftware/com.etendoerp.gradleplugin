@@ -29,8 +29,18 @@ class PushTags {
         modules.each {
             String moduleName = it.key
             String moduleVersion = it.value
+            String moduleNameFileLocation = "${baseModuleFile.absolutePath}${File.separator}${moduleName}"
+
             try {
-                Path directory = Paths.get("${baseModuleFile.absolutePath}${File.separator}${moduleName}")
+                File gitIgnoreFile = new File(moduleNameFileLocation, ".gitignore")
+
+                if (!gitIgnoreFile.exists()) {
+                    gitIgnoreFile.createNewFile()
+                }
+
+                changeGitIgnore(gitIgnoreFile)
+
+                Path directory = Paths.get(moduleNameFileLocation)
                 Git.gitStage(project, directory)
                 Git.gitCommit(project, directory, "Updating module version")
                 Git.gitPush(project, directory)
@@ -51,6 +61,21 @@ class PushTags {
 
         if (errorModules && !errorModules.isEmpty()) {
             throw new IllegalArgumentException("* Error updating git modules repositories.")
+        }
+    }
+
+    static void changeGitIgnore(File gitIgnoreFile) {
+        String filesToIgnore = ""
+        filesToIgnore += "\n"
+        filesToIgnore += "build/\n"
+        filesToIgnore += "!build/classes/\n"
+        filesToIgnore += "etendo.artifact.properties\n"
+
+        String gitText = gitIgnoreFile.text
+
+        if (!gitText.contains(filesToIgnore)) {
+            gitText += filesToIgnore
+            gitIgnoreFile.text = gitText
         }
     }
 
