@@ -36,6 +36,7 @@ class BuildMetadata {
     static final String CONFIGURATION = "configuration"
     static final String DEPENDENCIES  = "dependencies"
     static final String MODULENAME    = "modulename"
+    static final String COMMERCIAL    = "iscommercial"
 
     /**
      * Values to set the extension list in the build.gradle.template when the file to build
@@ -70,6 +71,8 @@ class BuildMetadata {
     String adModuleId
     String repository
     String srcFile
+
+    boolean isCommercial = false
 
     /**
      * Represents the name of the module directory (file)
@@ -171,6 +174,13 @@ class BuildMetadata {
 
         group    = ModulesUtils.splitGroup(javaPackage)
         artifact = ModulesUtils.splitArtifact(javaPackage)
+
+        String commercial = moduleNode[COMMERCIAL.toUpperCase()].text()
+
+        if (commercial.equalsIgnoreCase("Y")) {
+            this.isCommercial = true
+        }
+
     }
 
     void loadBundleProject(Project bundle) {
@@ -192,7 +202,18 @@ class BuildMetadata {
         map.put(ARTIFACT      , artifact)
         map.put(VERSION       , version)
         map.put(DESCRIPTION   , description)
-        map.put(REPOSITORY    , repository)
+
+        String repo = repository
+        String commercialRepo = this.project.findProperty("commercialRepo")
+        String publicRepo = this.project.findProperty("publicRepo")
+
+        if (commercialRepo && isCommercial) {
+            repo = commercialRepo
+        } else if (publicRepo && !isCommercial) {
+            repo = publicRepo
+        }
+
+        map.put(REPOSITORY    , repo)
         map.put(JAVAPACKAGE   , javaPackage)
 
         map.put(APPLY_EXTENSION_FILE_PROPERTY, "")
