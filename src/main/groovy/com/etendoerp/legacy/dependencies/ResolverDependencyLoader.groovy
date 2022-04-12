@@ -29,7 +29,9 @@ class ResolverDependencyLoader {
             project.logger.info("Running GRADLE projectsEvaluated.")
 
             if (project.state.failure) {
-                project.state.rethrowFailure()
+                project.logger.error("* ERROR: ${project.state.failure.getMessage()}")
+                project.state.failure.printStackTrace()
+                return
             }
 
             NexusUtils.configureRepositories(project)
