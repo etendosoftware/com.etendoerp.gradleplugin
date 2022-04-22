@@ -13,6 +13,11 @@ class CompileFilesCheckTest extends EtendoSpecification {
         return testProjectDir
     }
 
+    @Override
+    String getDB() {
+        return this.getClass().getSimpleName().toLowerCase()
+    }
+
     def "compilation fails when missing: #file"() {
         given: "an expanded project"
         addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)

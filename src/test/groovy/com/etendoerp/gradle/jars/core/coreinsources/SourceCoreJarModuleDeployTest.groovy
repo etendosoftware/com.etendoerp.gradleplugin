@@ -26,6 +26,11 @@ class SourceCoreJarModuleDeployTest extends EtendoCoreSourcesSpecificationTest {
         return DBCleanupMode.ONCE
     }
 
+    @Override
+    String getDB() {
+        return this.getClass().getSimpleName().toLowerCase()
+    }
+
     public final static String JAR_MODULE_GROUP = "com.test"
     public final static String JAR_MODULE_NAME  = "dummymodule"
 

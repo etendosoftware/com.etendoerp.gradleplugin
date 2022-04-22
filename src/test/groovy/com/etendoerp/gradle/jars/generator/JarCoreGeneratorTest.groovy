@@ -32,6 +32,11 @@ class JarCoreGeneratorTest extends EtendoMockupSpecificationTest {
         FileUtils.copyDirectory(new File("src/test/resources/jars/environments/core"), testProjectDir)
     }
 
+    @Override
+    String getDB() {
+        return this.getClass().getSimpleName().toLowerCase()
+    }
+
     def isInstalled(TaskOutcome expandOutcome, TaskOutcome setupOutcome, TaskOutcome installOutcome) {
         assert expandOutcome == TaskOutcome.SUCCESS
         assert setupOutcome == TaskOutcome.UP_TO_DATE

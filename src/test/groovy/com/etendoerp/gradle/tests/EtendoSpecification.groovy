@@ -30,12 +30,18 @@ abstract class EtendoSpecification extends Specification implements EtendoSpecif
      */
     abstract File getProjectDir()
 
-    static def getDBConnection() {
+    String getDB() {
+        return System.getProperty('test.bbdd.sid')
+    }
+
+    def getDBConnection() {
         return [
                 url: System.getProperty('test.bbdd.url') + "/",
                 user: System.getProperty('test.bbdd.systemUser'),
                 password: System.getProperty('test.bbdd.systemPassword'),
-                driver: 'org.postgresql.Driver']
+                driver: 'org.postgresql.Driver',
+                unused: getDB()
+        ]
     }
     /**
      * Setups the project required files and arguments to build the project and run tasks
@@ -68,7 +74,7 @@ abstract class EtendoSpecification extends Specification implements EtendoSpecif
         def gradleProperties = new File(projectDir, "gradle.properties")
         gradleProperties << """
         bbdd.url=${System.getProperty('test.bbdd.url')}
-        bbdd.sid=${System.getProperty('test.bbdd.sid')}
+        bbdd.sid=${getDB()}
         bbdd.systemUser=${System.getProperty('test.bbdd.systemUser')}
         bbdd.systemPassword=${System.getProperty('test.bbdd.systemPassword')}
         bbdd.user=${System.getProperty('test.bbdd.user')}
@@ -87,6 +93,7 @@ abstract class EtendoSpecification extends Specification implements EtendoSpecif
      * When the cleanDatabase() method returns ALWAYS, this will delete the created database.
      */
     def cleanup() {
+        String db = getDB()
         if (cleanDatabase() == DBCleanupMode.ALWAYS) {
             dropDatabase()
         }
@@ -105,10 +112,10 @@ abstract class EtendoSpecification extends Specification implements EtendoSpecif
     /**
      * Kill all sessions and drop the database defined in the test.bbdd.sid system property
      */
-    static def dropDatabase() {
+    def dropDatabase() {
         Map dbConnParams = getDBConnection()
-        String killSessionsQuery = "select pg_terminate_backend(pid) from pg_stat_activity where datname = '${System.getProperty('test.bbdd.sid')}'"
-        String dropQuery = "DROP DATABASE IF EXISTS ${System.getProperty('test.bbdd.sid')}"
+        String killSessionsQuery = "select pg_terminate_backend(pid) from pg_stat_activity where datname = '${getDB()}'"
+        String dropQuery = "DROP DATABASE IF EXISTS ${getDB()}"
 
         Sql.withInstance(dbConnParams) {
             Sql sql -> sql.execute killSessionsQuery

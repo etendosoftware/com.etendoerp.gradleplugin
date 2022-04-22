@@ -33,6 +33,11 @@ class JarCoreModulesInstallTest extends EtendoCoreJarSpecificationTest {
     public final static String JAR_MODULE_GROUP = "com.test"
     public final static String JAR_MODULE_NAME  = "dummymodule"
 
+    @Override
+    String getDB() {
+        return this.getClass().getSimpleName().toLowerCase()
+    }
+
     @Issue("EPL-13")
     def "Running install with modules dir and modules dependencies"() {
         if (coreType.equalsIgnoreCase("sources")) {

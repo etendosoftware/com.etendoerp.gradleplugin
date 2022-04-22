@@ -29,6 +29,11 @@ class JarCoreCompilationTasksTest extends EtendoCoreJarSpecificationTest{
         return ETENDO_22q1_VERSION
     }
 
+    @Override
+    String getDB() {
+        return this.getClass().getSimpleName().toLowerCase()
+    }
+
     @Issue("EPL-13")
     def "Running compilation tasks" () {
         given: "A Etendo environment with the Core Jar dependency"
