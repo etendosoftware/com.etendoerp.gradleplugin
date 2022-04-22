@@ -27,16 +27,16 @@ class JarCoreModulesInstallTest extends EtendoCoreJarSpecificationTest {
         return ETENDO_22q1_VERSION
     }
 
+    @Override
+    String getDB() {
+        return this.getClass().getSimpleName().toLowerCase()
+    }
+
     public final static String SOURCE_MODULE_GROUP = "com.test"
     public final static String SOURCE_MODULE_NAME  = "moduletoexpand"
 
     public final static String JAR_MODULE_GROUP = "com.test"
     public final static String JAR_MODULE_NAME  = "dummymodule"
-
-    @Override
-    String getDB() {
-        return this.getClass().getSimpleName().toLowerCase()
-    }
 
     @Issue("EPL-13")
     def "Running install with modules dir and modules dependencies"() {
