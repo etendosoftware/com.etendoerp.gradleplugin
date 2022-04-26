@@ -111,7 +111,7 @@ class JarCoreExportConfigScriptTest extends EtendoCoreJarSpecificationTest {
 
         and: "The users makes some changes in the Application dictionary"
         def nameChange = "new sales order custom name"
-        assert updateADColumn(["name": nameChange])
+        assert updateADColumn(["name": nameChange], getDBConnection())
 
         when: "The users runs the export config script task"
         def exportScriptResult = runTask(":export.config.script")
@@ -131,13 +131,13 @@ class JarCoreExportConfigScriptTest extends EtendoCoreJarSpecificationTest {
         "jar"     | _
     }
 
-    static Boolean updateADColumn(Map valuesMap) {
+    static Boolean updateADColumn(Map valuesMap, Object dbConnection) {
         def values = CoreUtils.generateUpdateQueryValues(valuesMap)
 
         // Update Sales order 'C_Order_ID' column name
         def qry = "update ad_column set ${values} where ad_column_id='2161'"
 
-        def qryResult = CoreUtils.executeQueryUpdate(qry, getDBConnection())
+        def qryResult = CoreUtils.executeQueryUpdate(qry, dbConnection)
 
         if (qryResult == 0) {
             return false
