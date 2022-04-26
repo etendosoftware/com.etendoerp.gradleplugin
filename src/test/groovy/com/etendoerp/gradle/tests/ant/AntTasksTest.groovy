@@ -24,6 +24,11 @@ class AntTasksTest extends EtendoSpecification {
         return DBCleanupMode.ONCE
     }
 
+    @Override
+    String getDB() {
+        return this.getClass().getSimpleName().toLowerCase()
+    }
+
 
     def isInstalled(TaskOutcome expandOutcome, TaskOutcome setupOutcome ,TaskOutcome installOutcome) {
         assert expandOutcome == TaskOutcome.SUCCESS

@@ -31,6 +31,11 @@ class CompilationTasksIgnoreConsistencyVerificationTest extends EtendoCoreResolu
         return ETENDO_21q1_SNAPSHOT
     }
 
+    @Override
+    String getDB() {
+        return this.getClass().getSimpleName().toLowerCase()
+    }
+
     def "The user ignores the consistency verification" () {
         given: "A user wanting to install a JAR module dependency"
         addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)

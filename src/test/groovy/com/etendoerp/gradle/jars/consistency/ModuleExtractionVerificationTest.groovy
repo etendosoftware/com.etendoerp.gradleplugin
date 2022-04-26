@@ -30,6 +30,11 @@ class ModuleExtractionVerificationTest extends EtendoCoreResolutionSpecification
         return ETENDO_21q1_SNAPSHOT
     }
 
+    @Override
+    String getDB() {
+        return this.getClass().getSimpleName().toLowerCase()
+    }
+
     def "Extracting and old version of a module" () {
         given: "A user adding a JAR dependency"
         addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)

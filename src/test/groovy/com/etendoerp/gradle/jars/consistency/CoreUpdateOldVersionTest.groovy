@@ -32,6 +32,11 @@ class CoreUpdateOldVersionTest extends EtendoCoreResolutionSpecificationTest {
         return coreVersionToInstall
     }
 
+    @Override
+    String getDB() {
+        return this.getClass().getSimpleName().toLowerCase()
+    }
+
     def "Update the core JAR to an old version"() {
         given: "The user with an installed version of the CORE in JARs"
         def currentCoreVersion = "22.1.3"

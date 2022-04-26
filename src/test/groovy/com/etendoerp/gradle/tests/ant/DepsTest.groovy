@@ -13,6 +13,11 @@ class DepsTest extends EtendoSpecification {
         return testProjectDir
     }
 
+    @Override
+    String getDB() {
+        return this.getClass().getSimpleName().toLowerCase()
+    }
+
     def "gradle dependency is added to the ant classpath"() {
         given: "an installed project with an additional dependency"
         addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)

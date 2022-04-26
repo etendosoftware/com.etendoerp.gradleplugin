@@ -35,6 +35,11 @@ class CoreRemoveOldVersionInsideWebContentTest extends EtendoCoreResolutionSpeci
         return coreVersionToInstall
     }
 
+    @Override
+    String getDB() {
+        return this.getClass().getSimpleName().toLowerCase()
+    }
+
     def "Removing old version of CORE JAR when updates"() {
         given: "A Etendo core '#coreType'"
         addRepositoryToBuildFile(getCoreRepo())

@@ -31,6 +31,11 @@ class CoreInstallSkipJarToWebContentTest extends EtendoCoreResolutionSpecificati
         return ETENDO_21q1_SNAPSHOT
     }
 
+    @Override
+    String getDB() {
+        return this.getClass().getSimpleName().toLowerCase()
+    }
+
     def "running smartbuild with a transitive dependency already in sources"() {
         given: "A user installing the Etendo environment"
         addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
