@@ -158,7 +158,7 @@ class JarCoreModulesUpdateTest extends EtendoCoreJarSpecificationTest {
         assert CoreUtils.containsModule("${moduleJarGroup}.${moduleJarName}", getDBConnection())
 
         and: "The pre expanded module changes should be updated in the database"
-        assert containsAuthor("${preExpandModGroup}.${preExpandModName}", author)
+        assert containsAuthor("${preExpandModGroup}.${preExpandModName}", author, getDBConnection())
 
         where:
         coreType  | _
@@ -166,9 +166,9 @@ class JarCoreModulesUpdateTest extends EtendoCoreJarSpecificationTest {
         "jar"     | _
     }
 
-    static Boolean containsAuthor(String javapackage, String author) {
+    static Boolean containsAuthor(String javapackage, String author, Object dbConnection) {
         String qry = "select author from ad_module where javapackage = '${javapackage}'"
-        def rowResult = CoreUtils.executeQuery(qry, getDBConnection())
+        def rowResult = CoreUtils.executeQuery(qry, dbConnection)
 
         if (!rowResult) {
             return false

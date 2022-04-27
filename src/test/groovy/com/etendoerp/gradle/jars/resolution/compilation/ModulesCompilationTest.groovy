@@ -36,6 +36,11 @@ class ModulesCompilationTest extends EtendoCoreResolutionSpecificationTest{
         return "22.1.0"
     }
 
+    @Override
+    String getDB() {
+        return this.getClass().getSimpleName().toLowerCase()
+    }
+
     def "Compiling a module does not include the JAR module classpath if is already in Sources"() {
         given: "A Etendo core '#coreType'"
         addRepositoryToBuildFile(getCoreRepo())
@@ -45,6 +50,14 @@ class ModulesCompilationTest extends EtendoCoreResolutionSpecificationTest{
 
         and: "The user resolves the core"
         resolveCore([coreType : "${coreType}", testProjectDir: testProjectDir])
+
+        if (coreType == "sources") {
+            def setupResult = runTask("setup")
+            def installResult = runTask("install")
+
+            setupResult.task(":setup").outcome == TaskOutcome.SUCCESS || TaskOutcome.UP_TO_DATE
+            installResult.task(":install").outcome == TaskOutcome.SUCCESS
+        }
 
         and: "The user adds two dependencies (A and B) where B depends on A to compile "
         def moduleA = "com.test.compilationA"

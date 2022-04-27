@@ -60,6 +60,11 @@ class SourceCoreJarModuleTest extends EtendoCoreSourcesSpecificationTest {
             url 'https://repo.futit.cloud/repository/maven-unsupported-releases'
           }
         }
+        
+        etendo {
+            ignoreConsistencyVerification = true 
+        }
+        
         """
 
         and: "The users runs the expandCustomModule task passing by command line the module to expand"

@@ -96,7 +96,7 @@ class JarCoreExportDatabaseTest extends EtendoCoreJarSpecificationTest {
 
         and: "The users creates a new Module"
         String javapackage = "com.test.modulecustomtoexport"
-        assert createModule(javapackage)
+        assert createModule(javapackage, getDBConnection())
 
         and: "The users modifies the installed expanded module"
         def author = "custom author"
@@ -122,7 +122,7 @@ class JarCoreExportDatabaseTest extends EtendoCoreJarSpecificationTest {
         "jar"     | _
     }
 
-    static Boolean createModule(String javapackage) {
+    static Boolean createModule(String javapackage, Object dbConnection) {
         String qry = """Insert into AD_MODULE (
           AD_MODULE_ID,AD_CLIENT_ID,AD_ORG_ID,ISACTIVE,CREATED,CREATEDBY,UPDATED,UPDATEDBY,
           NAME,VERSION,DESCRIPTION,
@@ -139,7 +139,7 @@ class JarCoreExportDatabaseTest extends EtendoCoreJarSpecificationTest {
           'OtherOS',null,null,null,'N','en_US','N',
           'N','N',null,null,null);"""
 
-        def result = CoreUtils.executeQueryInserts(qry, getDBConnection())
+        def result = CoreUtils.executeQueryInserts(qry, dbConnection)
         // 18 is the javapackage index
         if (result) {
             return result.get(0).get(18).toString() == javapackage
