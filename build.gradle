@@ -87,8 +87,8 @@ test {
     environment 'JAVA_HOME', System.getenv('JAVA_HOME')
 
     maxParallelForks 2
-    forkEvery 100
-    maxHeapSize= '2G'
+    forkEvery 50
+    maxHeapSize = "2048m"
 }
 
 gradlePlugin {
