@@ -70,6 +70,10 @@ class DependencyContainer {
             showUnresolvedArtifactsException(this.project, re)
         }
 
+        // TODO: Improvement, detect the unresolved dependencies if the flag 'ignoreUnresolvedArtifacts'
+        // Use the resolved dependencies  'this.configuration.resolvedConfiguration.lenientConfiguration.getFiles(Specs.satisfyAll())'
+        // Remove from the ':compileClasspath' the unresolved dependencies to prevent failing
+
         for (ResolvedArtifact resolvedArtifact : resolvedArtifacts) {
             ArtifactDependency artifactDependency = getArtifactDependency(project, resolvedArtifact)
 
