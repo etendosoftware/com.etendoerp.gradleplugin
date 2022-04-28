@@ -23,10 +23,10 @@ pipeline {
                 script{
                     withCredentials([usernamePassword(credentialsId: "koodu_credentials", passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
                         try{
-                            sh 'printenv'
-                            sh 'chmod a+x ./pipelines/build-update.sh'
+                            sh "printenv"
+                            sh "chmod a+x ./pipelines/build-update.sh"
                             sh "./pipelines/build-update.sh etendo_gradle_plugin INPROGRESS 'Starting build'"
-                            sh './gradlew --version --info' //run a gradle task
+                            sh "./gradlew --version --info" //run a gradle task
                             sh """
                             echo -e "mavenUser=${NEXUS_USER}\n
                             mavenPassword=${NEXUS_PASSWORD}\n
@@ -41,7 +41,8 @@ pipeline {
                             org.gradle.daemon=false\n
                             org.gradle.jvmargs=-Xmx2g -XX:MaxPermSize=1024m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8" > ./gradle.properties
                             """
-                            sh './gradlew test --info --no-daemon' //run a gradle task
+                            sh "./gradlew test --info --no-daemon" //run a gradle task
+                            currentBuild.result = 'SUCCESS'
                             sh "./pipelines/build-update.sh etendo_gradle_plugin SUCCESSFUL 'Build successful' $GIT_USERNAME $GIT_PASSWORD"
 
                             publishHTML([
