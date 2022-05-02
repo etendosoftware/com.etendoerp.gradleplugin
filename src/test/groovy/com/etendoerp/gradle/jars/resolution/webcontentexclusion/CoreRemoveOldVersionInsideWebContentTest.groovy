@@ -44,14 +44,15 @@ class CoreRemoveOldVersionInsideWebContentTest extends EtendoCoreResolutionSpeci
         given: "A Etendo core '#coreType'"
         addRepositoryToBuildFile(getCoreRepo())
 
-        def oldCoreVersion = "22.1.1-20220117.155542-2"
+        def oldCoreVersion = "22.1.0.1650575649-20220421.211411-1"
         def newCoreVersion = "22.1.1-20220207.171745-5"
 
         coreVersionToInstall = oldCoreVersion
 
         Map pluginVariables = [
                 "coreVersion" : "'${oldCoreVersion}'",
-                "forceResolution": true
+                "forceResolution": true,
+                "ignoredArtifacts" : "['com.etendoerp.platform.etendo-core']"
         ]
         loadCore([coreType : "jar", pluginVariables: pluginVariables])
 
@@ -98,7 +99,8 @@ class CoreRemoveOldVersionInsideWebContentTest extends EtendoCoreResolutionSpeci
 
         pluginVariables = [
                 "coreVersion" : "'${newCoreVersion}'",
-                "forceResolution": true
+                "forceResolution": true,
+                "ignoredArtifacts" : "['com.etendoerp.platform.etendo-core']"
         ]
         loadCore([coreType : "jar", pluginVariables: pluginVariables])
 

@@ -44,6 +44,11 @@ class ModuleRemoveOldVersionInsideWebContentTest extends EtendoCoreResolutionSpe
         dependencies {
             implementation('com.test:${moduleToUpdate}:${oldModuleVersion}')  
         }
+        
+        etendo {
+            ignoreConsistencyVerification = true 
+        }
+        
         """
 
         and: "The user resolves the core"

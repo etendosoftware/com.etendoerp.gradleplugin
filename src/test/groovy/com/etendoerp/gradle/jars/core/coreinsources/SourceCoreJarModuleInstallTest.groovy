@@ -54,6 +54,11 @@ class SourceCoreJarModuleInstallTest extends EtendoCoreSourcesSpecificationTest 
             url 'https://repo.futit.cloud/repository/etendo-test'
           }
         }
+        
+        etendo {
+            ignoreConsistencyVerification = true 
+        }
+        
         """
 
         and: "The users runs the 'dependencies' task"
