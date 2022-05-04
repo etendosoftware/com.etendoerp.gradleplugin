@@ -24,8 +24,6 @@ class ExpandTest extends EtendoSpecification {
 
     String nexusUser = null
     String nexusPassword = null
-    String mavenUser = null
-    String mavenPassword = null
 
     @Override
     File getProjectDir() {
@@ -144,29 +142,19 @@ class ExpandTest extends EtendoSpecification {
         // Save properties to restore them later in the cleanup spec
         nexusUser = System.getProperty("nexusUser")
         nexusPassword = System.getProperty("nexusPassword")
-        mavenUser = System.getProperty("mavenUser")
-        mavenPassword = System.getProperty("mavenPassword")
 
         def nexusUser = System.getProperty("nexusUser")
-        def mavenUser = System.getProperty("mavenUser")
 
         if (nexusUser) {
             buildFile.text = buildFile.text.replace(nexusUser, "")
-        }
-        if (mavenUser) {
-            buildFile.text = buildFile.text.replace(mavenUser, "")
         }
 
         if (credentials != null) {
             System.setProperty("nexusUser", credentials)
             System.setProperty("nexusPassword", credentials)
-            System.setProperty("mavenUser", credentials)
-            System.setProperty("mavenPassword", credentials)
         } else {
             System.clearProperty("nexusUser")
             System.clearProperty("nexusPassword")
-            System.clearProperty("mavenUser")
-            System.clearProperty("mavenPassword")
         }
         def success = true
         def result = null
@@ -197,14 +185,6 @@ class ExpandTest extends EtendoSpecification {
         if (nexusPassword != null) {
             System.setProperty("nexusPassword", nexusPassword)
             nexusPassword = null
-        }
-        if (mavenUser != null) {
-            System.setProperty("mavenUser", mavenUser)
-            mavenUser = null
-        }
-        if (mavenPassword != null) {
-            System.setProperty("mavenPassword", mavenPassword)
-            mavenPassword = null
         }
     }
 }

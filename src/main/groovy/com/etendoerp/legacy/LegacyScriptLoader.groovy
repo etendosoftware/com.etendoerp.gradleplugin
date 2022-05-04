@@ -292,7 +292,7 @@ class LegacyScriptLoader {
                     // Find all properties in gradle.properties and set their value in Openbravo.properties
                     for (Map.Entry<Object, Object> prop : props) {
                         String key = (String) prop.key
-                        if ("bbdd.port" == key || key.startsWith("org.gradle")) {
+                        if ("bbdd.port" == key || key.startsWith("org.gradle") || key == "nexusUser" || key == "nexusPassword") {
                             // Skip helper and gradle props
                             continue
                         }
@@ -515,7 +515,7 @@ class LegacyScriptLoader {
             dependsOn project.tasks.findByName("unzipDockerInstallResources")
             if (new File("dependencies.gradle").exists()) {
                 commandLine "docker-compose", "-f", "build/test-etendo-install/docker-compose.yml", "up", "-d", "etendo_db"
-                commandLine "docker", "build", ".", "-f", "build/test-etendo-install/Dockerfile", "--build-arg", "nexusPassword=" + mavenPassword, "--build-arg", "nexusUser=" + mavenUser, "--network=host", "--rm", "--no-cache"
+                commandLine "docker", "build", ".", "-f", "build/test-etendo-install/Dockerfile", "--build-arg", "nexusPassword=" + nexusPassword, "--build-arg", "nexusUser=" + nexusUser, "--network=host", "--rm", "--no-cache"
             }
         }
 

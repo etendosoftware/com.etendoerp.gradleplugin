@@ -56,8 +56,8 @@ class NexusUtils {
      * Tries to get user credentials from the project extra properties.
      * If the credentials are not found, searches the properties defined in the gradle.properties file or System properties.
      * A user can set his credentials or System properties in the gradle.properties file adding the lines:
-     * mavenUser=mavenuser
-     * mavenPassword=mavenpassword
+     * nexusUser=nexususer
+     * nexusPassword=nexuspassword
      *
      * Or define System properties
      *
@@ -113,9 +113,9 @@ class NexusUtils {
         } else if (System.getProperty("nexusUser") != null && System.getProperty("nexusPassword") != null) {
             nexusUser = System.getProperty("nexusUser")
             nexusPassword = System.getProperty("nexusPassword")
-        } else if (project.hasProperty("mavenUser") && project.hasProperty("mavenPassword")) {
-            nexusUser = project.property("mavenUser")
-            nexusPassword = project.property("mavenPassword")
+        } else if (project.hasProperty("nexusUser") && project.hasProperty("nexusPassword")) {
+            nexusUser = project.property("nexusUser")
+            nexusPassword = project.property("nexusPassword")
         }
 
         return [nexusUser, nexusPassword]
