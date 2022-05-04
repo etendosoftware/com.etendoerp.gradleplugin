@@ -105,6 +105,7 @@ test {
 
     maxParallelForks 2
     forkEvery 50
+    minHeapSize = "512m"
     maxHeapSize = "2048m"
 }
 
