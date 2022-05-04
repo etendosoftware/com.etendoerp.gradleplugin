@@ -103,11 +103,7 @@ test {
     systemProperty 'org.gradle.jvmargs', '-Xmx2g -XX:MaxPermSize=512m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8'
     environment 'JAVA_HOME', System.getenv('JAVA_HOME')
 
-    maxParallelForks 2
-    forkEvery 50
-    minHeapSize = "512m"
     maxHeapSize = "2048m"
-    javaMaxHeapSize "4g"
 }
 
 gradlePlugin {
