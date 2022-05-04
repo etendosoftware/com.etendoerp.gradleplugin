@@ -107,7 +107,7 @@ test {
     forkEvery 50
     minHeapSize = "512m"
     maxHeapSize = "2048m"
-    jvmArgs '-XX:MaxPermSize=256m'
+    javaMaxHeapSize "4g"
 }
 
 gradlePlugin {
