@@ -11,4 +11,4 @@ test.bbdd.systemPassword=
 test.bbdd.user=
 test.bbdd.password=
 org.gradle.daemon=false
-org.gradle.jvmargs=-Xmx2g -XX:MaxPermSize=1024m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8 -Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=n
+org.gradle.jvmargs=-Xmx2g -XX:MaxPermSize=1024m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8
