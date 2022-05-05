@@ -107,7 +107,7 @@ class NexusUtils {
         def nexusUser     = ""
         def nexusPassword = ""
 
-        if (project.ext.get("nexusUser") != null && project.ext.get("nexusPassword") != null) {
+        if (project.findProperty("nexusUser") != null && project.findProperty("nexusPassword") != null) {
             nexusUser = project.ext.get("nexusUser")
             nexusPassword = project.ext.get("nexusPassword")
         } else if (System.getProperty("nexusUser") != null && System.getProperty("nexusPassword") != null) {
