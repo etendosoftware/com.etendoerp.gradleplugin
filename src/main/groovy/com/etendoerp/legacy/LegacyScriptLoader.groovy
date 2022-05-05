@@ -74,8 +74,6 @@ class LegacyScriptLoader {
         ]
 
         project.ext {
-            nexusUser = null
-            nexusPassword = null
             askNexusCredentials = this.&askNexusCredentials
         }
 
