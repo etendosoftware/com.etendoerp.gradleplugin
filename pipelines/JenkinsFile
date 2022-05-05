@@ -1,5 +1,4 @@
 pipeline {
-
     agent {
         label 'etendo_core' //The id of the slave/agent where the build should be executed, if it doesn't matter use "agent any" instead.
     }
@@ -11,7 +10,7 @@ pipeline {
         BBDD_SYSTEMUSER = 'postgres'
         BBDD_SYSTEMPASS = 'syspass'
         BBDD_USER       = 'tad'
-        BBDD_PASSWOR    = 'tad'
+        BBDD_PASSWORD    = 'tad'
         NEXUS_USER      =  credentials('nexus-admin-user')
         NEXUS_PASSWORD  =  credentials('nexus-admin-passwd')
         JAVA_HOME       = '/usr/lib/jvm/java-11-openjdk-amd64'
@@ -20,9 +19,9 @@ pipeline {
     stages {
         stage('Run Tests') {
             steps { //Checking out the repo
-                script{
+                script {
                     withCredentials([usernamePassword(credentialsId: "koodu_credentials", passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
-                        try{
+                        try {
                             sh 'printenv'
                             sh 'chmod a+x ./pipelines/build-update.sh'
                             sh "./pipelines/build-update.sh etendo_gradle_plugin INPROGRESS 'Starting build'"
@@ -37,11 +36,12 @@ pipeline {
                             test.bbdd.systemUser=${BBDD_SYSTEMUSER}\n
                             test.bbdd.systemPassword=${BBDD_SYSTEMPASS}\n
                             test.bbdd.user=${BBDD_USER}\n
-                            test.bbdd.password=${BBDD_PASSWOR}\n
+                            test.bbdd.password=${BBDD_PASSWORD}\n
                             org.gradle.daemon=false\n
                             org.gradle.jvmargs=-Xmx2g -XX:MaxPermSize=1024m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8" > ./gradle.properties
                             """
-                            sh './gradlew test --info --no-daemon' //run a gradle task
+                            sh './gradlew test --info' //run a gradle task
+                            currentBuild.result = 'SUCCESS'
                             sh "./pipelines/build-update.sh etendo_gradle_plugin SUCCESSFUL 'Build successful' $GIT_USERNAME $GIT_PASSWORD"
 
                             publishHTML([
@@ -82,7 +82,7 @@ pipeline {
                 }
             }
             steps {
-             withCredentials([sshUserPrivateKey(credentialsId: 'my-credentials', keyFileVariable: 'keyfile')]) {
+                withCredentials([sshUserPrivateKey(credentialsId: 'my-credentials', keyFileVariable: 'keyfile')]) {
                     withCredentials([usernamePassword(credentialsId: "koodu_credentials", passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
                         sh """
                         git config user.name "$GIT_USERNAME"
@@ -98,7 +98,7 @@ pipeline {
         }
     }
 
-    post{
+    post {
         always {
             cleanWs deleteDirs: true
         }
