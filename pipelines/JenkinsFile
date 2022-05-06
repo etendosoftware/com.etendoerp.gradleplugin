@@ -11,7 +11,7 @@ pipeline {
         BBDD_SYSTEMUSER = 'postgres'
         BBDD_SYSTEMPASS = 'syspass'
         BBDD_USER       = 'tad'
-        BBDD_PASSWOR    = 'tad'
+        BBDD_PASSWORD    = 'tad'
         NEXUS_USER      =  credentials('nexus-admin-user')
         NEXUS_PASSWORD  =  credentials('nexus-admin-passwd')
         JAVA_HOME       = '/usr/lib/jvm/java-11-openjdk-amd64'
@@ -20,13 +20,13 @@ pipeline {
     stages {
         stage('Run Tests') {
             steps { //Checking out the repo
-                script{
+                script {
                     withCredentials([usernamePassword(credentialsId: "koodu_credentials", passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
                         try{
-                            sh 'printenv'
-                            sh 'chmod a+x ./pipelines/build-update.sh'
+                            sh "printenv"
+                            sh "chmod a+x ./pipelines/build-update.sh"
                             sh "./pipelines/build-update.sh etendo_gradle_plugin INPROGRESS 'Starting build'"
-                            sh './gradlew --version --info' //run a gradle task
+                            sh "./gradlew --version --info" //run a gradle task
                             sh """
                             echo -e "mavenUser=${NEXUS_USER}\n
                             mavenPassword=${NEXUS_PASSWORD}\n
@@ -37,11 +37,12 @@ pipeline {
                             test.bbdd.systemUser=${BBDD_SYSTEMUSER}\n
                             test.bbdd.systemPassword=${BBDD_SYSTEMPASS}\n
                             test.bbdd.user=${BBDD_USER}\n
-                            test.bbdd.password=${BBDD_PASSWOR}\n
+                            test.bbdd.password=${BBDD_PASSWORD}\n
                             org.gradle.daemon=false\n
                             org.gradle.jvmargs=-Xmx2g -XX:MaxPermSize=1024m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8" > ./gradle.properties
                             """
-                            sh './gradlew test --info --no-daemon' //run a gradle task
+                            sh "./gradlew test --info" //run a gradle task
+                            currentBuild.result = 'SUCCESS'
                             sh "./pipelines/build-update.sh etendo_gradle_plugin SUCCESSFUL 'Build successful' $GIT_USERNAME $GIT_PASSWORD"
 
                             publishHTML([
@@ -82,22 +83,23 @@ pipeline {
                 }
             }
             steps {
-             withCredentials([sshUserPrivateKey(credentialsId: 'my-credentials', keyFileVariable: 'keyfile')]) {
-                    sh """
-                    git config user.name "koodu_bot"
-                    git config user.email "koodu_bot"
-                    """
-                    sh "echo version.ts=\$(date +\"%s\") > version.properties"
-                    sh "./gradlew publish --info"
-                    sh "git tag \"v\$(grep version.ts version.properties|cut -c 11-)\" -m \"Release SNAPSHOT \$(grep version.tag version.properties|cut -c 13-)\""
-                    // Push changes to repo
-                    sh "GIT_SSH_COMMAND=\"ssh -i ${keyfile}\" git push $GIT_URL \"v\$(grep version.ts version.properties|cut -c 11-)\""
+                withCredentials([sshUserPrivateKey(credentialsId: 'my-credentials', keyFileVariable: 'keyfile')]) {
+                    withCredentials([usernamePassword(credentialsId: "koodu_credentials", passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
+                        sh """
+                        git config user.name "$GIT_USERNAME"
+                        git config user.email "$GIT_USERNAME"
+                        """
+                        sh "echo version.ts=\$(date +\"%s\") > version.properties"
+                        sh "./gradlew publish --info"
+                        sh "git tag \"v\$(grep version.ts version.properties|cut -c 11-)\" -m \"Release SNAPSHOT \$(grep version.tag version.properties|cut -c 13-)\""
+                        sh "GIT_SSH_COMMAND=\"ssh -i ${keyfile}\" git push $GIT_URL \"v\$(grep version.ts version.properties|cut -c 11-)\""
+                    }
                 }
             }
         }
     }
 
-    post{
+    post {
         always {
             cleanWs deleteDirs: true
         }
