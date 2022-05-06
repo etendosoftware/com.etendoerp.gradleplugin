@@ -23,8 +23,8 @@ class DependenciesProcessorUtils {
             repoList += "   maven {                              \n"
             repoList += "       url '${repository}'              \n"
             repoList += "       credentials {                    \n"
-            repoList += "           username \"\$mavenUser\"     \n"
-            repoList += "           password \"\$mavenPassword\" \n"
+            repoList += "           username \"\$nexusUser\"     \n"
+            repoList += "           password \"\$nexusPassword\" \n"
             repoList += "       }                                \n"
             repoList += "   }                                    \n"
         }
@@ -104,8 +104,8 @@ class DependenciesProcessorUtils {
         String repo = ""
         repo += "project.publishing.repositories.maven.url = '${repository}'\n"
         repo += "project.publishing.repositories.maven.credentials {\n"
-        repo += "   username \"\$mavenUser\"                        \n"
-        repo += "   password \"\$mavenPassword\"                    \n"
+        repo += "   username \"\$nexusUser\"                        \n"
+        repo += "   password \"\$nexusPassword\"                    \n"
         repo += "}\n"
         return repo
     }
