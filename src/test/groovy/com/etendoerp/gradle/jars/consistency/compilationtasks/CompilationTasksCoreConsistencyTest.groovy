@@ -31,6 +31,11 @@ class CompilationTasksCoreConsistencyTest extends EtendoCoreResolutionSpecificat
         return coreVersionToInstall
     }
 
+    @Override
+    String getDB() {
+        return this.getClass().getSimpleName().toLowerCase()
+    }
+
     def "Running compilation tasks when the core in JARs is updated"() {
         given: "The user with an installed version of the CORE in JARs"
         def currentCoreVersion = "22.1.2"

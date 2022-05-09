@@ -31,6 +31,11 @@ class CompilationTasksConsistencyVerificationTest extends EtendoCoreResolutionSp
         return ETENDO_21q1_SNAPSHOT
     }
 
+    @Override
+    String getDB() {
+        return this.getClass().getSimpleName().toLowerCase()
+    }
+
     def "Compilation tasks fails when modules are inconsistent"() {
         given: "A user wanting to install a JAR module dependency"
         addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)

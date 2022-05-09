@@ -19,6 +19,11 @@ class ExpandCoreUpdateVersion extends EtendoCoreResolutionSpecificationTest {
         testProjectDir
     }
 
+    @Override
+    String getDB() {
+        return this.getClass().getSimpleName().toLowerCase()
+    }
+
     def "Running the expandCore task to update the core in Sources"() {
         given: "A Etendo core '#coreType'"
         addRepositoryToBuildFile(getCoreRepo())

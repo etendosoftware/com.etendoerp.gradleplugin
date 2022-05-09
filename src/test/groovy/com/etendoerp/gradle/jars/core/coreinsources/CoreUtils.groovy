@@ -28,8 +28,7 @@ class CoreUtils {
         String query = "select javapackage from ad_module where javapackage = '${moduleName}'"
 
         def con = connection
-        con.url = "${con.url}${System.getProperty('test.bbdd.sid')}"
-
+        con.url = "${con.url}${con.unused}"
         Sql.withInstance(con as Map<String, Object>) {
             Sql sql ->  queryResult = sql.rows(query)
         }
@@ -47,7 +46,7 @@ class CoreUtils {
         List<GroovyRowResult> queryResult = null
 
         def con = connection
-        con.url = "${con.url}${System.getProperty('test.bbdd.sid')}"
+        con.url = "${con.url}${con.unused}"
 
         Sql.withInstance(con as Map<String, Object>) {
             Sql sql ->  queryResult = sql.rows(query)
@@ -60,7 +59,7 @@ class CoreUtils {
         def queryResult = null
 
         def con = connection
-        con.url = "${con.url}${System.getProperty('test.bbdd.sid')}"
+        con.url = "${con.url}${con.unused}"
 
         Sql.withInstance(con as Map<String, Object>) {
             Sql sql ->  queryResult = sql.executeInsert(query)
@@ -73,7 +72,7 @@ class CoreUtils {
         int queryResult = 0
 
         def con = connection
-        con.url = "${con.url}${System.getProperty('test.bbdd.sid')}"
+        con.url = "${con.url}${con.unused}"
 
         Sql.withInstance(con as Map<String, Object>) {
             Sql sql ->  queryResult = sql.executeUpdate(query)

@@ -22,6 +22,11 @@ class ModuleRemoveOldVersionInsideWebContentTest extends EtendoCoreResolutionSpe
         return SNAPSHOT_REPOSITORY_URL
     }
 
+    @Override
+    String getDB() {
+        return this.getClass().getSimpleName().toLowerCase()
+    }
+
     def "Removing old version of a Module when updates version" () {
         given: "A Etendo core '#coreType'"
         addRepositoryToBuildFileFirst(getCoreRepo())
@@ -39,6 +44,11 @@ class ModuleRemoveOldVersionInsideWebContentTest extends EtendoCoreResolutionSpe
         dependencies {
             implementation('com.test:${moduleToUpdate}:${oldModuleVersion}')  
         }
+        
+        etendo {
+            ignoreConsistencyVerification = true 
+        }
+        
         """
 
         and: "The user resolves the core"

@@ -68,7 +68,11 @@ class ExpandCore {
                     project.logger.info("***********************************************")
                 }
 
-                coreArtifactDependency = ExpandUtils.collectArtifactDependencyFile(project, displayName, "zip")
+                coreArtifactDependency = ExpandUtils.collectArtifactDependencyFile(project, displayName, "zip", true)
+
+                if (coreArtifactDependency == null) {
+                    throw new IllegalArgumentException("The core dependency '${displayName}' could not be resolved.")
+                }
 
                 if (coreArtifactDependency instanceof EtendoCoreZipArtifact) {
                     def core = coreArtifactDependency as EtendoCoreZipArtifact

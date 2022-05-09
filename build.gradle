@@ -14,7 +14,7 @@ def URL_DEV  = "https://repo.futit.cloud/repository/maven-public-snapshots"
 
 // Default mode
 def mode = DEV
-def pluginVersion = "1.0.0"
+def pluginVersion = "1.0.1"
 
 static def gitBranch() {
     def branch = ""
@@ -103,10 +103,7 @@ test {
     systemProperty 'org.gradle.jvmargs', '-Xmx2g -XX:MaxPermSize=512m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8'
     environment 'JAVA_HOME', System.getenv('JAVA_HOME')
 
-
-    maxParallelForks 2
-    forkEvery 100
-    maxHeapSize= '2G'
+    maxHeapSize = "2048m"
 }
 
 gradlePlugin {

@@ -24,6 +24,11 @@ class ExpandTest extends EtendoCoreResolutionSpecificationTest {
         return ETENDO_21q1_SNAPSHOT
     }
 
+    @Override
+    String getDB() {
+        return this.getClass().getSimpleName().toLowerCase()
+    }
+
     def "Running the expand tasks the core and modules"() {
         given: "A user wanting to expand a Etendo environment"
         addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)

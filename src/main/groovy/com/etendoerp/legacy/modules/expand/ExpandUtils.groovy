@@ -110,7 +110,7 @@ class ExpandUtils {
         return collection
     }
 
-    static ArtifactDependency collectArtifactDependencyFile(Project project, String displayName, String extension) {
+    static ArtifactDependency collectArtifactDependencyFile(Project project, String displayName, String extension, boolean printTrace=false) {
         String dependency = "${displayName}@${extension}"
         ArtifactDependency artifactDependency = null
         try {
@@ -138,6 +138,9 @@ class ExpandUtils {
         } catch (Exception e) {
             project.logger.error("The dependency ${dependency} could not be resolved.")
             project.logger.error(e.getMessage())
+            if (printTrace) {
+                e.printStackTrace()
+            }
         }
 
         return artifactDependency

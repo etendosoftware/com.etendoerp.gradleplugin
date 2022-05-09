@@ -30,6 +30,11 @@ class SourceCoreJarModuleTest extends EtendoCoreSourcesSpecificationTest {
         return DBCleanupMode.ONCE
     }
 
+    @Override
+    String getDB() {
+        return this.getClass().getSimpleName().toLowerCase()
+    }
+
     public final static String SOURCE_MODULE_GROUP = "com.openbravo"
     public final static String SOURCE_MODULE_NAME  = "gps.purchase.pgr"
 
@@ -55,6 +60,11 @@ class SourceCoreJarModuleTest extends EtendoCoreSourcesSpecificationTest {
             url 'https://repo.futit.cloud/repository/maven-unsupported-releases'
           }
         }
+        
+        etendo {
+            ignoreConsistencyVerification = true 
+        }
+        
         """
 
         and: "The users runs the expandCustomModule task passing by command line the module to expand"

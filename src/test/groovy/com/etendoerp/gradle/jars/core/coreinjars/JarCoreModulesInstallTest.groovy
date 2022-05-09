@@ -27,6 +27,11 @@ class JarCoreModulesInstallTest extends EtendoCoreJarSpecificationTest {
         return ETENDO_22q1_VERSION
     }
 
+    @Override
+    String getDB() {
+        return this.getClass().getSimpleName().toLowerCase()
+    }
+
     public final static String SOURCE_MODULE_GROUP = "com.test"
     public final static String SOURCE_MODULE_NAME  = "moduletoexpand"
 

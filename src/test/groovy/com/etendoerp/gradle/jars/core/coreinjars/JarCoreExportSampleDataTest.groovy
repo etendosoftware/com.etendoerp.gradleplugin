@@ -21,6 +21,11 @@ class JarCoreExportSampleDataTest extends EtendoCoreJarSpecificationTest {
         return ETENDO_22q1_VERSION
     }
 
+    @Override
+    String getDB() {
+        return this.getClass().getSimpleName().toLowerCase()
+    }
+
     public final static String PRE_EXPAND_MODULE_GROUP = "com.test"
     public final static String PRE_EXPAND_MODULE_NAME  = "premoduletoexpand"
 

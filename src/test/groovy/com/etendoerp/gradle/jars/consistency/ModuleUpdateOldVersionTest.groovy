@@ -31,6 +31,11 @@ class ModuleUpdateOldVersionTest extends EtendoCoreResolutionSpecificationTest {
         return ETENDO_21q1_SNAPSHOT
     }
 
+    @Override
+    String getDB() {
+        return "ModuleUpdateOldVersionTest".toLowerCase()
+    }
+
     def "Updating an old version of a module in JARs"() {
         given: "A user with an installed environment"
         addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)

@@ -29,6 +29,11 @@ class AntJarTasksTest extends EtendoCoreJarSpecificationTest{
         return DBCleanupMode.ONCE
     }
 
+    @Override
+    String getDB() {
+        return this.getClass().getSimpleName().toLowerCase()
+    }
+
     def isInstalled(TaskOutcome setupOutcome, TaskOutcome installOutcome) {
         assert setupOutcome == TaskOutcome.UP_TO_DATE
         assert (installOutcome == TaskOutcome.UP_TO_DATE) || (installOutcome == TaskOutcome.SUCCESS)

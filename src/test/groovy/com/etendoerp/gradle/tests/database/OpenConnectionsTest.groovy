@@ -22,10 +22,15 @@ class OpenConnectionsTest extends EtendoSpecification {
         return testProjectDir
     }
 
+    @Override
+    String getDB() {
+        return this.getClass().getSimpleName().toLowerCase()
+    }
+
     def "executing a task does not leave postgres open connections"() {
         given: "a certain number of connections accesing the database"
         List<GroovyRowResult> queryResult = null
-        String countQueries = "select count(pid) as queryCount from pg_stat_activity where datname = '${System.getProperty('test.bbdd.sid')}'"
+        String countQueries = "select count(pid) as queryCount from pg_stat_activity where datname = '${getDB()}'"
         Sql.withInstance(getDBConnection()) {
             Sql sql ->  queryResult = sql.rows(countQueries)
         }
