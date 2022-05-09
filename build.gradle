@@ -14,7 +14,7 @@ def URL_DEV  = "https://repo.futit.cloud/repository/maven-public-snapshots"
 
 // Default mode
 def mode = DEV
-def pluginVersion = "1.0.0"
+def pluginVersion = "1.0.1"
 
 static def gitBranch() {
     def branch = ""
