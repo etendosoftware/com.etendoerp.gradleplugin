@@ -11,6 +11,7 @@ import org.gradle.api.logging.LogLevel
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.Delete
 import org.gradle.api.tasks.Exec
+import org.gradle.api.tasks.StopExecutionException
 import org.gradle.api.tasks.Sync
 import org.gradle.api.tasks.bundling.Zip
 import org.gradle.api.publish.maven.MavenPublication
@@ -245,33 +246,43 @@ class LegacyScriptLoader {
 
         /** Copy backup.properties template */
         project.task("createBackupProperties", type: Copy) {
-            if(!project.file("config/backup.properties").exists() && project.file("config/backup.properties.template").exists()) {
-                from project.file("config/backup.properties.template")
-                into project.file("config")
-                rename { String fileName ->
-                    fileName.replace("backup.properties.template", "backup.properties")
+            from project.file("config/backup.properties.template")
+            into project.file("config")
+            rename { String fileName ->
+                fileName.replace("backup.properties.template", "backup.properties")
+            }
+            doFirst {
+                if (!project.file("config/backup.properties.template").exists() || project.file("config/backup.properties").exists()) {
+                    throw new StopExecutionException()
                 }
             }
         }
 
         /** Copy Openbravo.properties template */
         project.task("createOBProperties", type: Copy) {
-            if(!project.file("config/Openbravo.properties").exists() && project.file("config/Openbravo.properties.template").exists()) {
-                from project.file("config/Openbravo.properties.template")
-                into project.file("config")
-                rename { String fileName ->
-                    fileName.replace("Openbravo.properties.template", "Openbravo.properties")
+            from project.file("config/Openbravo.properties.template")
+            into project.file("config")
+            rename { String fileName ->
+                fileName.replace("Openbravo.properties.template", "Openbravo.properties")
+            }
+            doFirst {
+                boolean force = project.findProperty("force") ? true : false
+                if (!project.file("config/Openbravo.properties.template").exists() || (project.file("config/Openbravo.properties").exists() && !force)) {
+                    throw new StopExecutionException()
                 }
             }
         }
 
         /** Copy quartz.properties template */
         project.task("createQuartzProperties", type: Copy) {
-            if(!project.file("config/quartz.properties").exists() && project.file("config/quartz.properties.template").exists()){
-                from project.file("config/quartz.properties.template")
-                into project.file("config")
-                rename { String fileName ->
-                    fileName.replace("quartz.properties.template", "quartz.properties")
+            from project.file("config/quartz.properties.template")
+            into project.file("config")
+            rename { String fileName ->
+                fileName.replace("quartz.properties.template", "quartz.properties")
+            }
+            doFirst {
+                if (project.file("config/quartz.properties").exists() || !project.file("config/quartz.properties.template").exists()) {
+                    throw new StopExecutionException()
                 }
             }
         }

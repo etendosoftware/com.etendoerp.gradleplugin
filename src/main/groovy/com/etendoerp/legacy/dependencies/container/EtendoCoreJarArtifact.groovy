@@ -43,6 +43,7 @@ class EtendoCoreJarArtifact extends ArtifactDependency{
             if (currentCoreJarVersion && currentCoreJarVersion == this.version) {
                 project.logger.info("Etendo core Jar version '${this.version}' already extracted.")
                 this.extracted = true
+                syncCoreConfig()
                 return
             }
         }

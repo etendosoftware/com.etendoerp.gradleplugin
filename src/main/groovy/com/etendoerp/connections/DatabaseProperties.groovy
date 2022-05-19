@@ -47,7 +47,7 @@ class DatabaseProperties {
     boolean loadDatabaseProperties() {
         def propertiesFileLocation = new File(project.rootDir, "config" + File.separator + PROPERTIES_FILE)
         if (!propertiesFileLocation.exists()) {
-            project.logger.error("The properties file ${propertiesFileLocation.absolutePath} does not exists.")
+            project.logger.info("The properties file ${propertiesFileLocation.absolutePath} does not exists.")
             return false
         }
 
