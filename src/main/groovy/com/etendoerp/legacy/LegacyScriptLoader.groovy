@@ -22,6 +22,10 @@ import org.gradle.api.publish.maven.MavenPublication
  */
 class LegacyScriptLoader {
 
+    static final String FORCE_OB_PROPS = "forceObProps"
+    static final String FORCE_BACKUP_PROPS = "forceBackupProps"
+    static final String FORCE_QUARTZ_PROPS = "forceQuartzProps"
+
     static List whiteSyncCoreList = [
             'legal/**',
             'lib/**',
@@ -246,13 +250,16 @@ class LegacyScriptLoader {
 
         /** Copy backup.properties template */
         project.task("createBackupProperties", type: Copy) {
+            outputs.upToDateWhen { return false }
             from project.file("config/backup.properties.template")
             into project.file("config")
             rename { String fileName ->
                 fileName.replace("backup.properties.template", "backup.properties")
             }
             doFirst {
-                if (!project.file("config/backup.properties.template").exists() || project.file("config/backup.properties").exists()) {
+                boolean force = project.findProperty(FORCE_BACKUP_PROPS) ? true : false
+                if (!project.file("config/backup.properties.template").exists() || (project.file("config/backup.properties").exists() && !force)) {
+                    project.logger.info("* Omitting the creation of the 'backup.properties' from the template. To recreate run with '-P${FORCE_BACKUP_PROPS}=true'")
                     throw new StopExecutionException()
                 }
             }
@@ -260,14 +267,16 @@ class LegacyScriptLoader {
 
         /** Copy Openbravo.properties template */
         project.task("createOBProperties", type: Copy) {
+            outputs.upToDateWhen { return false }
             from project.file("config/Openbravo.properties.template")
             into project.file("config")
             rename { String fileName ->
                 fileName.replace("Openbravo.properties.template", "Openbravo.properties")
             }
             doFirst {
-                boolean force = project.findProperty("force") ? true : false
+                boolean force = project.findProperty(FORCE_OB_PROPS) ? true : false
                 if (!project.file("config/Openbravo.properties.template").exists() || (project.file("config/Openbravo.properties").exists() && !force)) {
+                    project.logger.info("* Omitting the creation of the 'Openbravo.properties' from the template. To recreate run with '-P${FORCE_OB_PROPS}=true'")
                     throw new StopExecutionException()
                 }
             }
@@ -275,13 +284,16 @@ class LegacyScriptLoader {
 
         /** Copy quartz.properties template */
         project.task("createQuartzProperties", type: Copy) {
+            outputs.upToDateWhen { return false }
             from project.file("config/quartz.properties.template")
             into project.file("config")
             rename { String fileName ->
                 fileName.replace("quartz.properties.template", "quartz.properties")
             }
             doFirst {
-                if (project.file("config/quartz.properties").exists() || !project.file("config/quartz.properties.template").exists()) {
+                boolean force = project.findProperty(FORCE_QUARTZ_PROPS) ? true : false
+                if (project.file("config/quartz.properties").exists() || (!project.file("config/quartz.properties.template").exists() && !force)) {
+                    project.logger.info("* Omitting the creation of the 'quartz.properties' from the template. To recreate run with '-P${FORCE_QUARTZ_PROPS}=true'")
                     throw new StopExecutionException()
                 }
             }
