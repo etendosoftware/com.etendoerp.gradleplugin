@@ -40,6 +40,7 @@ class ZipTaskGenerator {
                     moduleZip.exclude(excludedFiles)
                     moduleZip.exclude("build/libs")
                     moduleZip.exclude("build/publications")
+                    moduleZip.exclude("build/etendo-classes")
                     moduleZip.exclude("build/generated")
                     moduleZip.exclude("build/tmp")
 
