@@ -2,8 +2,17 @@ package com.etendoerp.gradle.tests.configuration
 
 import com.etendoerp.gradle.jars.resolution.EtendoCoreResolutionSpecificationTest
 import org.gradle.testkit.runner.TaskOutcome
+import spock.lang.Issue
+import spock.lang.Narrative
 import spock.lang.TempDir
+import spock.lang.Title
 
+@Title("Correct creation of the Openbravo.properties")
+@Narrative("""
+Test case to verify that running the 'setup' task when the core is in JAR has first task execution,
+the Openbravo.properties is correctly created.
+""")
+@Issue("EPL-313")
 class SetupCoreJarTest extends EtendoCoreResolutionSpecificationTest {
 
     @TempDir
