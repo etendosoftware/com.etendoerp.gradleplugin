@@ -32,7 +32,16 @@ class ZipTaskGenerator {
                     def destinationDir = PathUtils.createPath(mainProject.buildDir.absolutePath, PublicationUtils.LIB)
                     moduleZip.destinationDirectory = mainProject.file(destinationDir)
 
-                    moduleZip.exclude(PublicationUtils.EXCLUDED_FILES)
+                    def excludedFiles = PublicationUtils.EXCLUDED_FILES
+                    excludedFiles.removeIf({
+                        it.toLowerCase().contains("build")
+                    })
+
+                    moduleZip.exclude(excludedFiles)
+                    moduleZip.exclude("build/libs")
+                    moduleZip.exclude("build/publications")
+                    moduleZip.exclude("build/generated")
+                    moduleZip.exclude("build/tmp")
 
                     // Verify if the build files needs to be changed
                     def parserResult = TaskLoaderUtils.parseFilesToTemporaryDir(mainProject, subProject)
