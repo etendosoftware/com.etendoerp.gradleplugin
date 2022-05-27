@@ -98,7 +98,7 @@ class EtendoArtifactsConsistencyContainer {
     }
 
     void loadInstalledArtifactsMap(Map<String, GroovyRowResult> modulesMap) {
-
+        this.installedArtifacts = new TreeMap<>(String.CASE_INSENSITIVE_ORDER)
         for (def entry in modulesMap) {
             String javaPackage = entry.key
             GroovyRowResult rowResult = entry.value
