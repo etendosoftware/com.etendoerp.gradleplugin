@@ -28,7 +28,7 @@ class BuildDirPublication extends EtendoSpecification {
         PublicationUtils.cleanRepositoryModules(REPOSITORY)
     }
 
-    def "Running the publishVersion task with the recursive flag"() {
+    def "Publishing a module with build/classes files"() {
         given: "The user publishing a version of a module with build/classes dir"
         def modulevalidations = "com.test.modulevalidations"
         def modulesDir = new File(testProjectDir, "modules")
