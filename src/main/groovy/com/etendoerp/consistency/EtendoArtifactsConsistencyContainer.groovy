@@ -90,8 +90,8 @@ class EtendoArtifactsConsistencyContainer {
             this.artifactsLoaded = true
             return true
         } catch (Exception e) {
-            project.logger.error("* Error loading the installed modules.")
-            project.logger.error("* ERROR: ${e.message}")
+            project.logger.info("* Error loading the installed modules.")
+            project.logger.info("* ERROR: ${e.message}")
             this.artifactsLoaded = false
             return false
         }
@@ -336,7 +336,7 @@ class EtendoArtifactsConsistencyContainer {
             // Load core artifact comparator
             loadCoreArtifactComparator()
         } catch (Exception e) {
-            project.logger.error("* Error loading artifacts comparators.")
+            project.logger.error("* Error loading artifacts comparators to perform the artifacts consistency.")
             project.logger.error("* ERROR: ${e.message}")
         }
     }
@@ -545,7 +545,7 @@ class EtendoArtifactsConsistencyContainer {
 
         if (!this.artifactsLoaded) {
             project.logger.info("********************* WARNING *************************")
-            project.logger.info("* The installed modules are NOT loaded.")
+            project.logger.info("* The installed modules are NOT loaded. Ignoring versions consistency verification.")
             project.logger.info("*******************************************************")
             return
         }

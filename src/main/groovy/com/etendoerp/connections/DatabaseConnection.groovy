@@ -20,7 +20,7 @@ class DatabaseConnection {
         // Load the database properties
         DatabaseProperties databaseProperties = new DatabaseProperties(project)
         if (!databaseProperties.loadDatabaseProperties()) {
-            project.logger.error("The database properties could not be loaded.")
+            project.logger.info("The database properties could not be loaded.")
             return false
         }
 
@@ -37,8 +37,8 @@ class DatabaseConnection {
             def x = sql.rows(validationQuery)
             return true
         } catch (SQLException e) {
-            project.logger.error("* Error validating the connection.")
-            project.logger.error("* Error: ${e.message}")
+            project.logger.info("* Error validating the connection.")
+            project.logger.info("* Error: ${e.message}")
             return false
         }
     }
@@ -59,14 +59,14 @@ class DatabaseConnection {
         try {
             rowResult = sql.rows(query)
         } catch (SQLException e) {
-            project.logger.error("* Error executing the query.")
-            project.logger.error("* Error: ${e.message}")
+            project.logger.info("* Error executing the query.")
+            project.logger.info("* Error: ${e.message}")
         } finally {
             try {
                sql.close()
             } catch (SQLException e) {
-                project.logger.error("* Error closing connections.")
-                project.logger.error("* Error: ${e.message}")
+                project.logger.info("* Error closing connections.")
+                project.logger.info("* Error: ${e.message}")
             }
         }
         return rowResult

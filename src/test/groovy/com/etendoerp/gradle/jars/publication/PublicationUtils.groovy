@@ -157,6 +157,50 @@ class PublicationUtils {
         validateAdModuleFile(adModuleFile, moduleVersion)
     }
 
+    static void downloadAndValidateBuildDirFile(String address, File parent, String filename) {
+        def zipFile = download(address, parent, filename)
+        def files = getFilesFromZipType([file:zipFile, pathToSearch: 'build/classes'])
+        assert !files.toList().isEmpty()
+        assert files.each {
+            it.contains("build/classes") && (it.contains('buildvalidation') || it.contains('modulescript'))
+        }
+    }
+
+    static String[] getFilesFromZipType(def map = [:]) {
+
+        File file            = map.file
+        String fileExtension = map.fileExtension ?: ""
+        String pathToIgnore  = map.pathToIgnore  ?: ""
+        String pathToSearch  = map.pathToSearch  ?: ""
+        Boolean ignoreDir    = map.ignoreDir     ?: true
+        String ignoreMatch   = map.ignorematch   ?: ""
+
+        def files = []
+        new ZipFile(file).entries().each {
+            // continue
+            if (ignoreDir && it.isDirectory()) {
+                return
+            }
+
+            if (pathToSearch && !it.name.contains(pathToSearch)) {
+                return
+            }
+
+            if (pathToIgnore && it.name.contains(pathToIgnore)) {
+                return
+            }
+
+            if (ignoreMatch && it.name.matches(ignoreMatch)) {
+                return
+            }
+
+            if (it.name.endsWith(fileExtension)) {
+                files.add(it.name)
+            }
+        }
+        return files
+    }
+
     /**
      * Only has to validate the 'AD_MODULE.xml' file
      * @param address
