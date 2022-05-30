@@ -178,19 +178,10 @@ class PublicationUtils {
         def files = []
         new ZipFile(file).entries().each {
             // continue
-            if (ignoreDir && it.isDirectory()) {
-                return
-            }
-
-            if (pathToSearch && !it.name.contains(pathToSearch)) {
-                return
-            }
-
-            if (pathToIgnore && it.name.contains(pathToIgnore)) {
-                return
-            }
-
-            if (ignoreMatch && it.name.matches(ignoreMatch)) {
+            if ((ignoreDir && it.isDirectory())
+                || (pathToSearch && !it.name.contains(pathToSearch))
+                || (pathToIgnore && it.name.contains(pathToIgnore))
+                || (ignoreMatch && it.name.matches(ignoreMatch))) {
                 return
             }
 
