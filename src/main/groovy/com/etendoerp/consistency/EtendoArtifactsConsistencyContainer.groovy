@@ -52,7 +52,9 @@ class EtendoArtifactsConsistencyContainer {
     Boolean etendoCoreArtifactConsistent
     static final String CORE_ARTIFACT_CONSISTENT_ERROR = "* The CORE artifact must not have inconsistencies between versions."
 
-    static final String CONSISTEN_ERROR_MESSAGE = "* The environment must not have inconsistencies between versions."
+    static final String CONSISTENCY_ERROR_MESSAGE = "* The environment must not have inconsistencies between versions."
+
+    static final String INCONSISTENCY_ERROR_MESSAGE = "*** Local artifacts compared with the installed ones differs on versions. Run with '--info' to obtain more information."
 
     boolean artifactsLoaded = false
 
@@ -88,15 +90,15 @@ class EtendoArtifactsConsistencyContainer {
             this.artifactsLoaded = true
             return true
         } catch (Exception e) {
-            project.logger.error("* Error loading the installed modules.")
-            project.logger.error("* ERROR: ${e.message}")
+            project.logger.info("* Error loading the installed modules.")
+            project.logger.info("* ERROR: ${e.message}")
             this.artifactsLoaded = false
             return false
         }
     }
 
     void loadInstalledArtifactsMap(Map<String, GroovyRowResult> modulesMap) {
-
+        this.installedArtifacts = new TreeMap<>(String.CASE_INSENSITIVE_ORDER)
         for (def entry in modulesMap) {
             String javaPackage = entry.key
             GroovyRowResult rowResult = entry.value
@@ -334,7 +336,7 @@ class EtendoArtifactsConsistencyContainer {
             // Load core artifact comparator
             loadCoreArtifactComparator()
         } catch (Exception e) {
-            project.logger.error("* Error loading artifacts comparators.")
+            project.logger.error("* Error loading artifacts comparators to perform the artifacts consistency.")
             project.logger.error("* ERROR: ${e.message}")
         }
     }
@@ -454,7 +456,7 @@ class EtendoArtifactsConsistencyContainer {
         this.etendoZipModulesConsistent = allModulesConsistent
 
         if (!allModulesConsistent) {
-            project.logger.warn("*** The module in SOURCES contain inconsistencies between versions. ***")
+            project.logger.warn("*** WARNING: The module in SOURCES contain inconsistencies between versions. *** \n${INCONSISTENCY_ERROR_MESSAGE}")
         }
     }
 
@@ -471,7 +473,7 @@ class EtendoArtifactsConsistencyContainer {
         this.etendoJarModulesConsistent = allModulesConsistent
 
         if (!allModulesConsistent) {
-            project.logger.warn("*** The modules in JARs contain inconsistencies between versions. ***")
+            project.logger.warn("*** WARNING: The modules in JARs contain inconsistencies between versions. *** \n${INCONSISTENCY_ERROR_MESSAGE}")
         }
     }
 
@@ -487,7 +489,7 @@ class EtendoArtifactsConsistencyContainer {
         this.etendoCoreArtifactConsistent = isCoreConsistent
 
         if (!isCoreConsistent) {
-            project.getLogger().warn("*** The CORE artifact contain inconsistencies between versions. ***")
+            project.getLogger().warn("*** WARNING: The CORE artifact contain inconsistencies between versions. *** \n${INCONSISTENCY_ERROR_MESSAGE}")
         }
     }
 
@@ -518,7 +520,7 @@ class EtendoArtifactsConsistencyContainer {
     void verifyConsistency(LogLevel logLevel) {
         boolean ignoreVerification = extension.ignoreConsistencyVerification
         boolean inconsistent = false
-        String errorMsg = "${CONSISTEN_ERROR_MESSAGE} \n"
+        String errorMsg = "${CONSISTENCY_ERROR_MESSAGE} \n"
 
         project.logger.info("")
         if (this.etendoCoreArtifactConsistent == Boolean.FALSE) {
@@ -542,9 +544,9 @@ class EtendoArtifactsConsistencyContainer {
         }
 
         if (!this.artifactsLoaded) {
-            project.logger.warn("********************* WARNING *************************")
-            project.logger.warn("* The installed modules are NOT loaded.")
-            project.logger.warn("*******************************************************")
+            project.logger.info("********************* WARNING *************************")
+            project.logger.info("* The installed modules are NOT loaded. Ignoring versions consistency verification.")
+            project.logger.info("*******************************************************")
             return
         }
 

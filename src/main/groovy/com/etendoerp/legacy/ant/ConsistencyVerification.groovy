@@ -24,6 +24,9 @@ class ConsistencyVerification {
 
                 LogLevel logLevel = LogLevel.ERROR
 
+                // Reload the installed artifacts
+                consistencyContainer.loadInstalledArtifacts()
+
                 def ignoreConsistency = project.findProperty(IGNORE_CONSISTENCY)
                 def local = System.getProperty("local")
 

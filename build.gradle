@@ -14,7 +14,9 @@ def URL_DEV  = "https://repo.futit.cloud/repository/maven-public-snapshots"
 
 // Default mode
 def mode = DEV
-def pluginVersion = "1.0.1"
+
+// If the version is updated, make sure to change it in the 'EtendoPlugin' class
+def pluginVersion = "1.0.2"
 
 static def gitBranch() {
     def branch = ""
