@@ -28,7 +28,8 @@ pipeline {
                             sh "./pipelines/build-update.sh etendo_gradle_plugin INPROGRESS 'Starting build'"
                             sh "./gradlew --version --info" //run a gradle task
                             sh """
-                            echo -e "nexusUser=${NEXUS_USER}\n
+                            echo -e "
+                            nexusUser=${NEXUS_USER}\n
                             nexusPassword=${NEXUS_PASSWORD}\n
                             test.bbdd.url=jdbc:postgresql://localhost:5432\n
                             test.bbdd.sid=${BBDD_SID}\n
