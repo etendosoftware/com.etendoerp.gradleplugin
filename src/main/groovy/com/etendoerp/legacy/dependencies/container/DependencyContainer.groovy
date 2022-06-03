@@ -100,9 +100,9 @@ class DependencyContainer {
         // If the extension is 'zip' then could be a Etendo module or Core in zip format
         if (resolvedArtifact.extension == "zip") {
             // TODO - Improvement: Verify that is a Etendo artifact
-            String fileName = resolvedArtifact.file.name
+            String fileName = resolvedArtifact.file.absolutePath
 
-            if (fileName.contains(CoreMetadata.CLASSIC_ETENDO_CORE_NAME) || fileName.contains(CoreMetadata.DEFAULT_ETENDO_CORE_NAME)) {
+            if (fileName.contains(CoreMetadata.CLASSIC_ETENDO_CORE_GROUP) || fileName.contains(CoreMetadata.DEFAULT_ETENDO_CORE_NAME)) {
                 return new EtendoCoreZipArtifact(project, resolvedArtifact)
             }
 
