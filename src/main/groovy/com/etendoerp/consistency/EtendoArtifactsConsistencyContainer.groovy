@@ -66,7 +66,7 @@ class EtendoArtifactsConsistencyContainer {
     }
 
     boolean loadInstalledArtifacts() {
-        project.logger.info("* Starting loading installed modules.")
+        project.logger.info("* Starting loading installed modules for the version consistency verification.")
 
         try {
             this.databaseConnection = new DatabaseConnection(project)
@@ -90,8 +90,8 @@ class EtendoArtifactsConsistencyContainer {
             this.artifactsLoaded = true
             return true
         } catch (Exception e) {
-            project.logger.info("* Error loading the installed modules.")
-            project.logger.info("* ERROR: ${e.message}")
+            project.logger.info("* WARNING: The installed modules could not be loaded. Skipping version consistency verification")
+            project.logger.info("* MESSAGE: ${e.message}")
             this.artifactsLoaded = false
             return false
         }
@@ -336,8 +336,8 @@ class EtendoArtifactsConsistencyContainer {
             // Load core artifact comparator
             loadCoreArtifactComparator()
         } catch (Exception e) {
-            project.logger.error("* Error loading artifacts comparators to perform the artifacts consistency.")
-            project.logger.error("* ERROR: ${e.message}")
+            project.logger.info("* Warning: The artifacts comparators could not be loaded to perform the artifacts consistency.")
+            project.logger.info("* MESSAGE: ${e.message}")
         }
     }
 
@@ -512,8 +512,8 @@ class EtendoArtifactsConsistencyContainer {
         } catch (ArtifactInconsistentException ae) {
           throw ae
         } catch (Exception e) {
-            project.logger.error("* Error running the artifacts consistency verification.")
-            project.logger.error("* ERROR: ${e.message}")
+            project.logger.info("* WARNING: The artifacts consistency verification could not be executed.")
+            project.logger.info("* MESSAGE: ${e.message}")
         }
     }
 
