@@ -9,12 +9,19 @@ plugins {
 }
 
 repositories {
-    jcenter()
     mavenCentral()
 }
 
 dependencies {
     runtime subprojects.findAll { it.getTasksByName("jar", false) }
+}
+
+// Hack to prevent running all tests automatically
+// To run all test use the command line parameter -Drun.all.tests=true
+project.subprojects.each {
+    it.test.onlyIf {
+        Boolean.getBoolean('run.all.tests')
+    }
 }
 ```
 
