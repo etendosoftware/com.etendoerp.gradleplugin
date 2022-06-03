@@ -11,10 +11,32 @@ class ConsistencyVerification {
 
     final static String IGNORE_CONSISTENCY = "ignoreConsistency"
 
+    final static List<String> IGNORE_TASKS = [
+            "install",
+            "update.database",
+            "create.database"
+    ]
+
+    static boolean skipConsistency(List<String> gradleTasks) {
+        for (String taskName : IGNORE_TASKS) {
+            if (gradleTasks.contains(taskName) || gradleTasks.contains(":${taskName}")) {
+                return true
+            }
+        }
+        return false
+    }
+
     static void load(Project project) {
 
         project.tasks.register(CONSISTENCY_VERIFICATION_TASK) {
             doLast {
+
+                // Check if the 'install' or 'update.database' is being run
+                // Identify the tasks being ran
+                if (skipConsistency(project.gradle.startParameter.taskNames)) {
+                    project.logger.info("* Ignoring version consistency verification")
+                    return
+                }
 
                 EtendoArtifactsConsistencyContainer consistencyContainer = project.ext.get(ResolverDependencyLoader.CONSISTENCY_CONTAINER)
                 if (!consistencyContainer) {

@@ -5,6 +5,7 @@ import com.etendoerp.consistency.EtendoArtifactsConsistencyContainer
 import com.etendoerp.core.CoreMetadata
 import com.etendoerp.dependencies.EtendoCoreDependencies
 import com.etendoerp.legacy.ant.AntLoader
+import com.etendoerp.legacy.ant.ConsistencyVerification
 import com.etendoerp.legacy.utils.NexusUtils
 import com.etendoerp.publication.configuration.PublicationConfiguration
 import org.gradle.api.Project
@@ -40,8 +41,11 @@ class ResolverDependencyLoader {
             PublicationConfiguration publicationConfiguration = new PublicationConfiguration(project)
             publicationConfiguration.configurePublication()
 
+            def skipConsistency = ConsistencyVerification.skipConsistency(project.gradle.startParameter.taskNames)
             EtendoArtifactsConsistencyContainer consistencyContainer = new EtendoArtifactsConsistencyContainer(project, coreMetadata)
-            consistencyContainer.loadInstalledArtifacts()
+            if (!skipConsistency) {
+                consistencyContainer.loadInstalledArtifacts()
+            }
 
             // Save the consistency container in the project
             project.ext.set(CONSISTENCY_CONTAINER, consistencyContainer)
@@ -63,9 +67,11 @@ class ResolverDependencyLoader {
             DependencyProcessor dependencyProcessor = new DependencyProcessor(project, coreMetadata)
             List<File> jarFiles = dependencyProcessor.processJarFiles()
 
-            // Run verifications
-            consistencyContainer.runArtifactConsistency()
-            consistencyContainer.verifyConsistency(LogLevel.INFO)
+            if (!skipConsistency) {
+                // Run verifications
+                consistencyContainer.runArtifactConsistency()
+                consistencyContainer.verifyConsistency(LogLevel.INFO)
+            }
 
             // Note: previously the antClassLoader was used to add classes to ant's classpath
             // but when the core is a complete jar (with libs) affecting the class loader can cause collisions
