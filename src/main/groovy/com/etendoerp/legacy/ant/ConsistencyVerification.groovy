@@ -16,6 +16,15 @@ class ConsistencyVerification {
         project.tasks.register(CONSISTENCY_VERIFICATION_TASK) {
             doLast {
 
+                // Check if the 'install' or 'update.database' is being run
+                // Identify the tasks being ran
+                def taskNames = project.gradle.startParameter.taskNames
+
+                if (taskNames.contains(":install") || taskNames.contains("install") || taskNames.contains(":update.database") || taskNames.contains("update.database")) {
+                    project.logger.info("* Ignoring version consistency verification")
+                    return
+                }
+
                 EtendoArtifactsConsistencyContainer consistencyContainer = project.ext.get(ResolverDependencyLoader.CONSISTENCY_CONTAINER)
                 if (!consistencyContainer) {
                     project.logger.error("* The consistency container is not set.")
