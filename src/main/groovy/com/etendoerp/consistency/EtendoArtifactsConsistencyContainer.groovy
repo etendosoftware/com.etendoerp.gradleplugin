@@ -7,6 +7,7 @@ import com.etendoerp.core.CoreType
 import com.etendoerp.legacy.dependencies.EtendoArtifactMetadata
 import com.etendoerp.legacy.dependencies.container.ArtifactDependency
 import com.etendoerp.legacy.dependencies.container.DependencyType
+import com.etendoerp.publication.configuration.pom.PomConfigurationContainer
 import groovy.io.FileType
 import groovy.sql.GroovyRowResult
 import org.gradle.api.Project
@@ -72,7 +73,7 @@ class EtendoArtifactsConsistencyContainer {
             this.databaseConnection = new DatabaseConnection(project)
             def validConnection = databaseConnection.loadDatabaseConnection()
             if (!validConnection) {
-                project.logger.info("* The connection with the database could not be established.")
+                project.logger.info("* The connection with the database could not be established. Skipping version consistency verification.")
                 this.artifactsLoaded = false
                 return this.artifactsLoaded
             }
@@ -80,7 +81,7 @@ class EtendoArtifactsConsistencyContainer {
             Map installedModules = getMapOfModules()
 
             if (!installedModules || installedModules.isEmpty()) {
-                project.logger.info("* The installed modules could not be loaded.")
+                project.logger.info("* The installed modules could not be loaded. Skipping version consistency verification.")
                 this.artifactsLoaded = false
                 return this.artifactsLoaded
             }
@@ -90,7 +91,7 @@ class EtendoArtifactsConsistencyContainer {
             this.artifactsLoaded = true
             return true
         } catch (Exception e) {
-            project.logger.info("* WARNING: The installed modules could not be loaded. Skipping version consistency verification")
+            project.logger.info("* WARNING: The installed modules could not be loaded. Skipping version consistency verification.")
             project.logger.info("* MESSAGE: ${e.message}")
             this.artifactsLoaded = false
             return false
@@ -273,8 +274,6 @@ class EtendoArtifactsConsistencyContainer {
         String name = null
         String version = null
 
-        //
-
         // Load the artifact information from the metadata file
         if (moduleMetadata.loadMetadataFile(artifactLocation.absolutePath)) {
             group = moduleMetadata.group
@@ -285,6 +284,11 @@ class EtendoArtifactsConsistencyContainer {
         // Load the version from the AD_MODULE.xml file
         if (dependencyType == DependencyType.ETENDOCOREJAR || dependencyType == DependencyType.ETENDOCOREZIP) {
             moduleMetadata.loadMetadataUsingXML(artifactLocation.absolutePath)
+            CoreMetadata coreMetadata = this.project.findProperty(CoreMetadata.CORE_METADATA_PROPERTY) as CoreMetadata
+            if (coreMetadata) {
+                group = group ?: coreMetadata.getCoreGroup()
+                name = name ?: coreMetadata.getCoreName()
+            }
             version = moduleMetadata.version
         }
 
@@ -342,21 +346,11 @@ class EtendoArtifactsConsistencyContainer {
     }
 
     void loadJarArtifactsComparator() {
-        // Already loaded
-        if (this.etendoJarModuleArtifactsComparator && !this.etendoJarModuleArtifactsComparator.isEmpty()) {
-            return
-        }
-
         final String location = project.buildDir.absolutePath + File.separator + "etendo" + File.separator + "modules"
         this.etendoJarModuleArtifactsComparator = loadLocalArtifactsComparator(location, DependencyType.ETENDOJARMODULE)
     }
 
     void loadSourceArtifactsComparator() {
-        // Already loaded
-        if (this.etendoZipModuleArtifactsComparator && !this.etendoZipModuleArtifactsComparator.isEmpty()) {
-            return
-        }
-
         final String location = project.rootDir.absolutePath + File.separator + "modules"
         this.etendoZipModuleArtifactsComparator = loadLocalArtifactsComparator(location, DependencyType.ETENDOZIPMODULE)
     }
@@ -365,10 +359,6 @@ class EtendoArtifactsConsistencyContainer {
      * Load the core artifact depending on if is in SOURCES or JAR
      */
     void loadCoreArtifactComparator() {
-        if (this.etendoCoreArtifactComparator != null) {
-            return
-        }
-
         CoreType coreType = coreMetadata.coreType
 
         String location = null
@@ -479,7 +469,7 @@ class EtendoArtifactsConsistencyContainer {
 
     void coreArtifactConsistency() {
         if (!this.etendoCoreArtifactComparator) {
-            project.logger.info("* The core artifact consistency could not be ran because the core comparator is not loaded.")
+            project.logger.info("* The CORE artifact consistency could not be ran because the core comparator is not loaded.")
             return
         }
         project.logger.info("")

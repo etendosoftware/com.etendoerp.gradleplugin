@@ -39,6 +39,7 @@ class ExpandUtils {
 
         def extension = project.extensions.findByType(EtendoPluginExtension)
         def performResolutionConflicts = extension.performResolutionConflicts
+        def onlySourceModules = extension.onlySourceModules
 
         // Adds the classic modules if the Core is an old version
         addClassicModulesToCore(project, configurationToExpand, coreMetadata)
@@ -53,7 +54,7 @@ class ExpandUtils {
         // Filter core dependencies
         ResolverDependencyUtils.excludeCoreDependencies(project, configurationToExpand, true)
 
-        if (supportJars) {
+        if (supportJars && !onlySourceModules) {
             DependencyContainer dependencyContainer = new DependencyContainer(project, coreMetadata)
             dependencyContainer.configuration = configurationToExpand
             dependencyContainer.filterDependenciesFiles()

@@ -35,6 +35,8 @@ class CoreMetadata {
     public final static String DEFAULT_ETENDO_CORE_GROUP = "com.etendoerp.platform"
     public final static String DEFAULT_ETENDO_CORE_NAME  = "etendo-core"
 
+    public static final String CORE_METADATA_PROPERTY = "coreMetadataProperty"
+
     Project project
     CoreType coreType
     CoreStatus coreStatus
@@ -50,6 +52,7 @@ class CoreMetadata {
 
     CoreMetadata(Project project) {
         this.project = project
+        this.project.ext.set(CORE_METADATA_PROPERTY, this)
         this.loadMetadata()
     }
 

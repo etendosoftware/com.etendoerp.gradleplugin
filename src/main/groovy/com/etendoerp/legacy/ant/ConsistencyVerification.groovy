@@ -33,26 +33,27 @@ class ConsistencyVerification {
 
                 // Check if the 'install' or 'update.database' is being run
                 // Identify the tasks being ran
-                if (skipConsistency(project.gradle.startParameter.taskNames)) {
-                    project.logger.info("* Ignoring version consistency verification")
+                def local = System.getProperty("local")
+                if (skipConsistency(project.gradle.startParameter.taskNames) || local == "no") {
+                    project.logger.info("* Ignoring version consistency verification.")
                     return
                 }
 
                 EtendoArtifactsConsistencyContainer consistencyContainer = project.ext.get(ResolverDependencyLoader.CONSISTENCY_CONTAINER)
                 if (!consistencyContainer) {
-                    project.logger.error("* The consistency container is not set.")
+                    project.logger.info("* The consistency container is not set. Ignoring version consistency verification.")
                     return
                 }
 
                 LogLevel logLevel = LogLevel.ERROR
 
                 // Reload the installed artifacts
+                project.logger.info("* Reloading installed artifacts to run the consistency verification.")
                 consistencyContainer.loadInstalledArtifacts()
+                consistencyContainer.runArtifactConsistency()
 
                 def ignoreConsistency = project.findProperty(IGNORE_CONSISTENCY)
-                def local = System.getProperty("local")
-
-                if (ignoreConsistency || local == "no") {
+                if (ignoreConsistency) {
                     logLevel = LogLevel.INFO
                 }
 

@@ -4,7 +4,7 @@ import com.etendoerp.core.CoreMetadata
 import com.etendoerp.legacy.ant.ConsistencyVerification
 
 class EtendoPluginExtension {
-    String coreVersion = '[20.1.2,)' // default core version
+    String coreVersion = '[22.1.0,)' // default core version
     String coreGroup = CoreMetadata.DEFAULT_ETENDO_CORE_GROUP
     String coreName = CoreMetadata.DEFAULT_ETENDO_CORE_NAME
 
@@ -52,6 +52,12 @@ class EtendoPluginExtension {
      *  Default true
      */
     boolean supportJars = true
+
+    /**
+     * Flag used to only expand the modules in source format.
+     * Default false
+     */
+    boolean onlySourceModules = false
 
     /**
      * List of Etendo artifacts to always extract and ignore from the version consistency verification.
