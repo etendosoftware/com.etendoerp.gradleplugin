@@ -78,12 +78,13 @@ class DatabaseProperties {
         Map propertiesValues = new HashMap()
         for (String property : propertiesToSearch) {
             if (this.propertiesFile == null || !this.propertiesFile.containsKey(property) || this.propertiesFile[property] == null) {
-                project.logger.info("* WARNING: Etendo plugin database connection. The file ${this.propertiesFileLocation.absolutePath} does not contain the '${property}' property.")
+                String message = "* WARNING: Etendo plugin database connection. The file ${this.propertiesFileLocation.absolutePath} does not contain the '${property}' property."
+                project.logger.error(message)
+                throw new IllegalArgumentException(message)
             } else {
                 propertiesValues.put(property, this.propertiesFile[property])
             }
         }
         return propertiesValues
     }
-
 }

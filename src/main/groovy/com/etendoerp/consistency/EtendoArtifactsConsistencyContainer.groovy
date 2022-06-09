@@ -7,7 +7,6 @@ import com.etendoerp.core.CoreType
 import com.etendoerp.legacy.dependencies.EtendoArtifactMetadata
 import com.etendoerp.legacy.dependencies.container.ArtifactDependency
 import com.etendoerp.legacy.dependencies.container.DependencyType
-import com.etendoerp.publication.configuration.pom.PomConfigurationContainer
 import groovy.io.FileType
 import groovy.sql.GroovyRowResult
 import org.gradle.api.Project
@@ -126,7 +125,13 @@ class EtendoArtifactsConsistencyContainer {
         }
 
         String qry = "select * from ad_module"
-        def rowResult = databaseConnection.executeSelectQuery(qry)
+        def rowResult
+        try {
+            rowResult = databaseConnection.executeSelectQuery(qry)
+        } catch (Exception e) {
+            project.logger.info("* WARNING: The modules from the database could not be loaded to perform the version consistency verification.")
+            project.logger.info("* MESSAGE: ${e.message}")
+        }
 
         if (rowResult) {
             for (GroovyRowResult row : rowResult) {

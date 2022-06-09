@@ -59,14 +59,16 @@ class DatabaseConnection {
         try {
             rowResult = sql.rows(query)
         } catch (SQLException e) {
-            project.logger.info("* WARNING: The query could not be executed.")
+            project.logger.info("* WARNING: The query '${query}' could not be executed.")
             project.logger.info("* MESSAGE: ${e.message}")
+            throw e
         } finally {
             try {
                sql.close()
             } catch (SQLException e) {
                 project.logger.info("* WARNING: The connection could not be closed.")
                 project.logger.info("* MESSAGE: ${e.message}")
+                throw e
             }
         }
         return rowResult
