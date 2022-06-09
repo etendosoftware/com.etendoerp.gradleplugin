@@ -268,51 +268,40 @@ class ExpandUtils {
     }
 
     static boolean shouldExpandSourceModules(Project project, List<ArtifactDependency> artifactToExtract, List<ArtifactDependency> artifactToIgnore) {
-        def choiceExpand = "1"
-        def options = [
-                (choiceExpand) :"Expand source modules",
-        ]
+        def defaultExpandValue = "Y"
+        StringBuilder preMessage = new StringBuilder(generatePreMessage(project, artifactToExtract, artifactToIgnore))
+        preMessage.append("* CONTINUE ? [${defaultExpandValue}/n]:")
 
-        String preMessage = generatePreMessage(project, artifactToExtract, artifactToIgnore)
-
-        def userChoice = AntMenuHelper.antMenu(
-                project,
-                "Select an option",
-                options,
-                preMessage,
-                null,
-                "The modules will not be expanded."
-        )
-
-        return userChoice == choiceExpand
+        def userChoice = AntMenuHelper.antUserInput(project, preMessage.toString(), defaultExpandValue)
+        return userChoice == defaultExpandValue
     }
 
     static String generatePreMessage(Project project, List<ArtifactDependency> artifactToExtract, List<ArtifactDependency> artifactToIgnore) {
-        String preMessage = "\n"
+        StringBuilder preMessage = new StringBuilder("\n")
 
-        preMessage += "********** SOURCE MODULES TO NOT EXPAND: ${artifactToIgnore ? artifactToIgnore.size() : "0"} ********** \n"
-        preMessage += generateListOfModulesNames(artifactToIgnore)
-        preMessage += EtendoPluginExtension.sourceModulesInDevelopMessage()
-        preMessage += "***************************************************** \n"
-        preMessage += "- \n"
-        preMessage += "************ SOURCE MODULES TO EXPAND: ${artifactToExtract ? artifactToExtract.size() : "0"} ************ \n"
-        preMessage += generateListOfModulesNames(artifactToExtract)
-        preMessage += "***************************************************** \n"
+        preMessage.append("********** SOURCE MODULES TO NOT EXPAND: ${artifactToIgnore ? artifactToIgnore.size() : "0"} ********** \n")
+        preMessage.append(generateListOfModulesNames(artifactToIgnore))
+        preMessage.append(EtendoPluginExtension.sourceModulesInDevelopMessage())
+        preMessage.append("***************************************************** \n")
+        preMessage.append("- \n")
+        preMessage.append("************ SOURCE MODULES TO EXPAND: ${artifactToExtract ? artifactToExtract.size() : "0"} ************ \n")
+        preMessage.append(generateListOfModulesNames(artifactToExtract))
+        preMessage.append("***************************************************** \n")
 
-        preMessage += "*** WARNING: The expanded modules will overwrite the sources ones. \n"
-        return preMessage
+        preMessage.append("*** WARNING: The expanded modules will overwrite the sources ones. \n")
+        return preMessage.toString()
     }
 
     static String generateListOfModulesNames(List<ArtifactDependency> artifacts) {
-        String moduleList = ""
+        StringBuilder moduleList = new StringBuilder()
 
         if (artifacts && !artifacts.isEmpty()) {
             artifacts.stream().forEach({ artifact ->
-                moduleList += "* Module: ${artifact.moduleName} ${artifact.version ? "- Version: ${artifact.version}" : ""}\n"
+                moduleList.append("* Module: ${artifact.moduleName} ${artifact.version ? "- Version: ${artifact.version}" : ""}\n")
             })
         }
 
-        return moduleList
+        return moduleList.toString()
     }
 
     /**
