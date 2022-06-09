@@ -3,6 +3,7 @@ package com.etendoerp.legacy.modules.expand
 import com.etendoerp.EtendoPluginExtension
 import com.etendoerp.core.CoreMetadata
 import com.etendoerp.jars.modules.metadata.DependencyUtils
+import com.etendoerp.legacy.ant.AntMenuHelper
 import com.etendoerp.legacy.dependencies.ResolutionUtils
 import com.etendoerp.legacy.dependencies.ResolverDependencyUtils
 import com.etendoerp.legacy.dependencies.container.ArtifactDependency
@@ -36,6 +37,8 @@ class ExpandUtils {
 
     static List<ArtifactDependency> getSourceModulesFiles(Project project, Configuration configuration, CoreMetadata coreMetadata) {
         def configurationToExpand = ResolverDependencyUtils.createRandomConfiguration(project,"expand", configuration)
+
+        // TODO - Improvement: Exclude from the 'configuration' the modules specified by the user in the 'development' list. This will prevent downloading the sources.
 
         def extension = project.extensions.findByType(EtendoPluginExtension)
         def performResolutionConflicts = extension.performResolutionConflicts
@@ -198,30 +201,38 @@ class ExpandUtils {
         Function<String, Boolean> filterFunction = generateFilterFunction(project, configuration)
 
         List extractedArtifacts = []
+        List<ArtifactDependency> artifactToExtract = []
+        List<ArtifactDependency> artifactToIgnore = []
 
         artifactDependencies.stream().filter({artifact ->
-                artifact.type == DependencyType.ETENDOZIPMODULE
-        }).filter({
-            return filterFunction.apply(it.moduleName)
+            artifact.type == DependencyType.ETENDOZIPMODULE
         }).forEach({artifact ->
-            artifact.extract()
-            extractedArtifacts.add(artifact.moduleName)
+            if (filterFunction.apply(artifact.moduleName)) {
+                artifactToExtract.add(artifact)
+            } else {
+                artifactToIgnore.add(artifact)
+            }
         })
 
-        project.logger.info("************** Extracted modules **************")
+        if (shouldExpandSourceModules(project, artifactToExtract, artifactToIgnore)) {
+            artifactToExtract.stream().forEach({ artifact ->
+                artifact.extract()
+                extractedArtifacts.add(artifact.moduleName)
+            })
+        }
+
+        project.logger.info("************** Extracted modules: ${extractedArtifacts.size()} **************")
         extractedArtifacts.stream().forEach({ String name ->
             project.logger.info("* Module: ${name}")
         })
-        project.logger.info("***********************************************")
+        project.logger.info("**************************************************")
 
         // Verify pkg property passed by the user
         String pkgName = project.findProperty(PACKAGE_PROPERTY)
         if (pkgName && !(extractedArtifacts.stream().anyMatch({String name -> name.equalsIgnoreCase(pkgName)}))) {
             throw new IllegalArgumentException("${MODULE_NOT_FOUND_MESSAGE} - '${pkgName}'")
         }
-
     }
-
 
     static Function<String, Boolean> generateFilterFunction(Project project, Configuration configuration) {
         def dependencyMap = ResolverDependencyUtils.loadDependenciesMap(project, configuration)
@@ -231,16 +242,17 @@ class ExpandUtils {
         String pkgName = project.findProperty(PACKAGE_PROPERTY)
         String forceProp = project.findProperty(FORCE_PROPERTY)
         Boolean overwrite = project.extensions.findByType(EtendoPluginExtension).overwriteTransitiveExpandModules
+        List<String> sourceModulesInDevelopment = project.extensions.findByType(EtendoPluginExtension).sourceModulesInDevelopment
 
         Function<String, Boolean> filterFunction
 
         if (pkgName) {
             filterFunction = filterArtifactByPackage(pkgName, dependencyMap)
         } else {
-            filterFunction = filterArtifact(dependencyMap, sourceModulesMap, forceProp, overwrite)
+            filterFunction = filterArtifact(dependencyMap, sourceModulesMap, sourceModulesInDevelopment, forceProp, overwrite)
         }
 
-       return filterFunction
+        return filterFunction
     }
 
     /**
@@ -253,6 +265,54 @@ class ExpandUtils {
         return { moduleName ->
             return moduleName.equalsIgnoreCase(pkgName) && dependencyMap.containsKey(moduleName)
         }
+    }
+
+    static boolean shouldExpandSourceModules(Project project, List<ArtifactDependency> artifactToExtract, List<ArtifactDependency> artifactToIgnore) {
+        def choiceExpand = "1"
+        def options = [
+                (choiceExpand) :"Expand source modules",
+        ]
+
+        String preMessage = generatePreMessage(project, artifactToExtract, artifactToIgnore)
+
+        def userChoice = AntMenuHelper.antMenu(
+                project,
+                "Select an option",
+                options,
+                preMessage,
+                null,
+                "The modules will not be expanded."
+        )
+
+        return userChoice == choiceExpand
+    }
+
+    static String generatePreMessage(Project project, List<ArtifactDependency> artifactToExtract, List<ArtifactDependency> artifactToIgnore) {
+        String preMessage = "\n"
+
+        preMessage += "********** SOURCE MODULES TO NOT EXPAND: ${artifactToIgnore ? artifactToIgnore.size() : "0"} ********** \n"
+        preMessage += generateListOfModulesNames(artifactToIgnore)
+        preMessage += EtendoPluginExtension.sourceModulesInDevelopMessage()
+        preMessage += "***************************************************** \n"
+        preMessage += "- \n"
+        preMessage += "************ SOURCE MODULES TO EXPAND: ${artifactToExtract ? artifactToExtract.size() : "0"} ************ \n"
+        preMessage += generateListOfModulesNames(artifactToExtract)
+        preMessage += "***************************************************** \n"
+
+        preMessage += "*** WARNING: The expanded modules will overwrite the sources ones. \n"
+        return preMessage
+    }
+
+    static String generateListOfModulesNames(List<ArtifactDependency> artifacts) {
+        String moduleList = ""
+
+        if (artifacts && !artifacts.isEmpty()) {
+            artifacts.stream().forEach({ artifact ->
+                moduleList += "* Module: ${artifact.moduleName} ${artifact.version ? "- Version: ${artifact.version}" : ""}\n"
+            })
+        }
+
+        return moduleList
     }
 
     /**
@@ -271,10 +331,16 @@ class ExpandUtils {
      * @param overwrite
      * @return
      */
-    static Function<String, Boolean> filterArtifact(Map<String, Dependency> dependencyMap, Map<String, File> sourceModuleMap, String force, Boolean overwrite) {
+    static Function<String, Boolean> filterArtifact(Map<String, Dependency> dependencyMap, Map<String, File> sourceModuleMap, List<String> sourceModulesInDevelopment, String force, Boolean overwrite) {
         return { moduleName ->
             def isInSources = sourceModuleMap.containsKey(moduleName)
             def isInModuleDeps = dependencyMap.containsKey(moduleName)
+            def isInWhiteList = sourceModulesInDevelopment.stream().anyMatch({String name -> name.equalsIgnoreCase(moduleName)})
+
+            if (isInWhiteList) {
+                return false
+            }
+
             def extract = false
 
             // If the module is not in sources then should be extracted
@@ -282,9 +348,7 @@ class ExpandUtils {
                 extract = true
             } else {
                 if (isInModuleDeps) {
-                    if (force) {
-                        extract = true
-                    }
+                    extract = true
                 } else {
                     // Transitive (not defined in the 'moduleDeps' config)
                     if (overwrite) {
