@@ -111,14 +111,14 @@ class EtendoPluginExtension {
     }
 
     static String sourceModulesInDevelopMessage() {
-        String message = ""
-        message += "--------------------------------------------------------------------- \n"
-        message += "* To ignore the expansion of a custom module add it to the plugin extension. \n"
-        message += "* Example: \n"
-        message += "* etendo { \n"
-        message += "*    sourceModulesInDevelopment = ['com.test.custommodule'] \n"
-        message += "* } \n"
-        return message
+        return  """
+        |----------------------------------------------------------------------------
+        |* To ignore the expansion of a custom module add it to the plugin extension.
+        |* Example:
+        |* etendo {
+        |*    sourceModulesInDevelopment = ['com.test.custommodule']
+        |* }
+        |""".stripMargin()
     }
 
 }
