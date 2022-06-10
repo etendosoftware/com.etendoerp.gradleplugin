@@ -1,19 +1,15 @@
 package com.etendoerp.legacy
 
-import com.etendoerp.jars.modules.metadata.ModuleMetadata
-import com.etendoerp.legacy.utils.DependenciesUtils
+
 import com.etendoerp.legacy.utils.ModulesUtils
 import com.etendoerp.legacy.utils.NexusUtils
 import com.etendoerp.publication.PublicationUtils
-import org.gradle.api.GradleException
 import org.gradle.api.Project
-import org.gradle.api.logging.LogLevel
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.Delete
 import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.StopExecutionException
 import org.gradle.api.tasks.Sync
-import org.gradle.api.tasks.bundling.Zip
 import org.gradle.api.publish.maven.MavenPublication
 
 /**
@@ -22,7 +18,7 @@ import org.gradle.api.publish.maven.MavenPublication
  */
 class LegacyScriptLoader {
 
-    static final String FORCE_OB_PROPS = "forceObProps"
+    static final String FORCE_DEFAULT_PROPS = "forceDefaultProps"
     static final String FORCE_BACKUP_PROPS = "forceBackupProps"
     static final String FORCE_QUARTZ_PROPS = "forceQuartzProps"
 
@@ -274,9 +270,9 @@ class LegacyScriptLoader {
                 fileName.replace("Openbravo.properties.template", "Openbravo.properties")
             }
             doFirst {
-                boolean force = project.findProperty(FORCE_OB_PROPS) ? true : false
+                boolean force = project.findProperty(FORCE_DEFAULT_PROPS) ? true : false
                 if (!project.file("config/Openbravo.properties.template").exists() || (project.file("config/Openbravo.properties").exists() && !force)) {
-                    project.logger.info("* Omitting the creation of the 'Openbravo.properties' from the template. To recreate run with '-P${FORCE_OB_PROPS}=true'")
+                    project.logger.info("* Omitting the creation of the 'Openbravo.properties' from the template. To recreate run with '-P${FORCE_DEFAULT_PROPS}=true'")
                     throw new StopExecutionException()
                 }
             }
