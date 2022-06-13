@@ -77,6 +77,12 @@ class EtendoPluginExtension {
      */
     boolean ignoreUnresolvedArtifacts = false
 
+    /**
+     * The list of modules that should not be re expanded.
+     * Default empty.
+     */
+    List<String> sourceModulesInDevelopment = []
+
     /************************ MESSAGES ************************/
 
     static String ignoredArtifactsMessage(String exampleModule) {
@@ -108,6 +114,17 @@ class EtendoPluginExtension {
         message += "    forceResolution = true \n"
         message += "} \n"
         return message
+    }
+
+    static String sourceModulesInDevelopMessage() {
+        return  """
+        |----------------------------------------------------------------------------
+        |* To ignore the expansion of a custom module add it to the plugin extension.
+        |* Example:
+        |* etendo {
+        |*    sourceModulesInDevelopment = ['com.test.custommodule']
+        |* }
+        |""".stripMargin()
     }
 
 }

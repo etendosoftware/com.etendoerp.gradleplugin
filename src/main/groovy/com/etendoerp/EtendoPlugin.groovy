@@ -25,7 +25,7 @@ class EtendoPlugin implements Plugin<Project> {
     void apply(Project project) {
 
         System.out.println("**********************************************")
-        System.out.println("*** ETENDO PLUGIN VERSION: ${PLUGIN_VERSION}")
+        System.out.println("* ETENDO PLUGIN VERSION: ${PLUGIN_VERSION}")
         System.out.println("**********************************************")
 
         def extension = project.extensions.create('etendo', EtendoPluginExtension)
