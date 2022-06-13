@@ -214,7 +214,7 @@ class ExpandUtils {
             }
         })
 
-        if (shouldExpandSourceModules(project, artifactToExtract, artifactToIgnore)) {
+        if (!artifactToExtract.isEmpty() && shouldExpandSourceModules(project, artifactToExtract, artifactToIgnore)) {
             artifactToExtract.stream().forEach({ artifact ->
                 artifact.extract()
                 extractedArtifacts.add(artifact.moduleName)
@@ -273,7 +273,7 @@ class ExpandUtils {
         preMessage.append("* CONTINUE ? [${defaultExpandValue}/n]:")
 
         def userChoice = AntMenuHelper.antUserInput(project, preMessage.toString(), defaultExpandValue)
-        return userChoice == defaultExpandValue
+        return defaultExpandValue.equalsIgnoreCase(userChoice as String)
     }
 
     static String generatePreMessage(Project project, List<ArtifactDependency> artifactToExtract, List<ArtifactDependency> artifactToIgnore) {
