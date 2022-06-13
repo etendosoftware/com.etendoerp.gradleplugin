@@ -37,8 +37,8 @@ class DatabaseConnection {
             def x = sql.rows(validationQuery)
             return true
         } catch (SQLException e) {
-            project.logger.info("* Error validating the connection.")
-            project.logger.info("* Error: ${e.message}")
+            project.logger.info("* WARNING: Etendo plugin database connection. The connection is not valid.")
+            project.logger.info("* MESSAGE: ${e.message}")
             return false
         }
     }
@@ -59,14 +59,16 @@ class DatabaseConnection {
         try {
             rowResult = sql.rows(query)
         } catch (SQLException e) {
-            project.logger.info("* Error executing the query.")
-            project.logger.info("* Error: ${e.message}")
+            project.logger.info("* WARNING: The query '${query}' could not be executed.")
+            project.logger.info("* MESSAGE: ${e.message}")
+            throw e
         } finally {
             try {
                sql.close()
             } catch (SQLException e) {
-                project.logger.info("* Error closing connections.")
-                project.logger.info("* Error: ${e.message}")
+                project.logger.info("* WARNING: The connection could not be closed.")
+                project.logger.info("* MESSAGE: ${e.message}")
+                throw e
             }
         }
         return rowResult
