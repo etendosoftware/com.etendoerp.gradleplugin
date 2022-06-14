@@ -4,7 +4,7 @@ import com.etendoerp.core.CoreMetadata
 import com.etendoerp.legacy.ant.ConsistencyVerification
 
 class EtendoPluginExtension {
-    String coreVersion = '[20.1.2,)' // default core version
+    String coreVersion = '[22.1.0,)' // default core version
     String coreGroup = CoreMetadata.DEFAULT_ETENDO_CORE_GROUP
     String coreName = CoreMetadata.DEFAULT_ETENDO_CORE_NAME
 
@@ -54,6 +54,12 @@ class EtendoPluginExtension {
     boolean supportJars = true
 
     /**
+     * Flag used to only expand the modules in source format.
+     * Default false
+     */
+    boolean onlySourceModules = false
+
+    /**
      * List of Etendo artifacts to always extract and ignore from the version consistency verification.
      */
     List<String> ignoredArtifacts = []
@@ -70,6 +76,12 @@ class EtendoPluginExtension {
      * Default false
      */
     boolean ignoreUnresolvedArtifacts = false
+
+    /**
+     * The list of modules that should not be re expanded.
+     * Default empty.
+     */
+    List<String> sourceModulesInDevelopment = []
 
     /************************ MESSAGES ************************/
 
@@ -102,6 +114,17 @@ class EtendoPluginExtension {
         message += "    forceResolution = true \n"
         message += "} \n"
         return message
+    }
+
+    static String sourceModulesInDevelopMessage() {
+        return  """
+        |----------------------------------------------------------------------------
+        |* To ignore the expansion of a custom module add it to the plugin extension.
+        |* Example:
+        |* etendo {
+        |*    sourceModulesInDevelopment = ['com.test.custommodule']
+        |* }
+        |""".stripMargin()
     }
 
 }

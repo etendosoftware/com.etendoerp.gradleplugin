@@ -1,5 +1,6 @@
 package com.etendoerp.legacy.dependencies.container
 
+import com.etendoerp.EtendoPluginExtension
 import com.etendoerp.consistency.EtendoArtifactsConsistencyContainer
 import com.etendoerp.jars.PathUtils
 import com.etendoerp.legacy.dependencies.EtendoArtifactMetadata
@@ -23,6 +24,12 @@ class EtendoJarModuleArtifact extends ArtifactDependency{
     @Override
     void extract() {
         // TODO: Improvement - Use the result of the 'resolutionConflicts' to verify if the module contains conflicts.
+
+        def extension = project.extensions.findByType(EtendoPluginExtension)
+        if (extension.onlySourceModules) {
+            project.logger.info("The JAR module '${moduleName}' will not be extracted because the flag 'onlySourceModules' is set to true. Skipping extraction. Artifact '${this.group}:${this.name}:${this.version}")
+            return
+        }
 
         // Extract only the Etendo jar file if the module is not already in sources - 'modules/' dir
         File modulesLocation = new File("${project.rootDir.absolutePath}${File.separator}${PublicationUtils.BASE_MODULE_DIR}")

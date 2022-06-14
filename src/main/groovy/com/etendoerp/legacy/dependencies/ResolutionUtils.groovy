@@ -121,11 +121,11 @@ class ResolutionUtils {
             for (DependencyResult dependency: it.resolutionResult.allDependencies) {
                 if (dependency instanceof  DefaultUnresolvedDependencyResult) {
                     DefaultUnresolvedDependencyResult unresolved = dependency as DefaultUnresolvedDependencyResult
-                    project.logger.error("*************************************************")
-                    project.logger.error("The requested dependency '${unresolved.requested.displayName}' could not be resolved.")
-                    project.logger.error("Attempted reason: ${unresolved.attemptedReason}")
-                    project.logger.error("Failure: ${unresolved.failure}")
-                    project.logger.error("*************************************************")
+                    project.logger.info("********************* ERROR *********************")
+                    project.logger.info("The requested dependency '${unresolved.requested.displayName}' could not be resolved.")
+                    project.logger.info("Attempted reason: ${unresolved.attemptedReason}")
+                    project.logger.info("Failure: ${unresolved.failure}")
+                    project.logger.info("*************************************************")
                     continue
                 }
 

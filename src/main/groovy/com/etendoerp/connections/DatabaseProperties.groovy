@@ -47,7 +47,7 @@ class DatabaseProperties {
     boolean loadDatabaseProperties() {
         def propertiesFileLocation = new File(project.rootDir, "config" + File.separator + PROPERTIES_FILE)
         if (!propertiesFileLocation.exists()) {
-            project.logger.error("The properties file ${propertiesFileLocation.absolutePath} does not exists.")
+            project.logger.info("* WARNING: Etendo plugin database connection. The properties file ${propertiesFileLocation.absolutePath} does not exists.")
             return false
         }
 
@@ -78,12 +78,13 @@ class DatabaseProperties {
         Map propertiesValues = new HashMap()
         for (String property : propertiesToSearch) {
             if (this.propertiesFile == null || !this.propertiesFile.containsKey(property) || this.propertiesFile[property] == null) {
-                project.logger.error("The file ${this.propertiesFileLocation.absolutePath} does not contain the '${property}' property.")
+                String message = "* WARNING: Etendo plugin database connection. The file ${this.propertiesFileLocation.absolutePath} does not contain the '${property}' property."
+                project.logger.error(message)
+                throw new IllegalArgumentException(message)
             } else {
                 propertiesValues.put(property, this.propertiesFile[property])
             }
         }
         return propertiesValues
     }
-
 }

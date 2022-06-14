@@ -20,7 +20,7 @@ class DatabaseConnection {
         // Load the database properties
         DatabaseProperties databaseProperties = new DatabaseProperties(project)
         if (!databaseProperties.loadDatabaseProperties()) {
-            project.logger.error("The database properties could not be loaded.")
+            project.logger.info("The database properties could not be loaded.")
             return false
         }
 
@@ -37,8 +37,8 @@ class DatabaseConnection {
             def x = sql.rows(validationQuery)
             return true
         } catch (SQLException e) {
-            project.logger.error("* Error validating the connection.")
-            project.logger.error("* Error: ${e.message}")
+            project.logger.info("* WARNING: Etendo plugin database connection. The connection is not valid.")
+            project.logger.info("* MESSAGE: ${e.message}")
             return false
         }
     }
@@ -59,14 +59,16 @@ class DatabaseConnection {
         try {
             rowResult = sql.rows(query)
         } catch (SQLException e) {
-            project.logger.error("* Error executing the query.")
-            project.logger.error("* Error: ${e.message}")
+            project.logger.info("* WARNING: The query '${query}' could not be executed.")
+            project.logger.info("* MESSAGE: ${e.message}")
+            throw e
         } finally {
             try {
                sql.close()
             } catch (SQLException e) {
-                project.logger.error("* Error closing connections.")
-                project.logger.error("* Error: ${e.message}")
+                project.logger.info("* WARNING: The connection could not be closed.")
+                project.logger.info("* MESSAGE: ${e.message}")
+                throw e
             }
         }
         return rowResult

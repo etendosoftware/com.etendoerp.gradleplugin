@@ -1,18 +1,15 @@
 package com.etendoerp.legacy
 
-import com.etendoerp.jars.modules.metadata.ModuleMetadata
-import com.etendoerp.legacy.utils.DependenciesUtils
+
 import com.etendoerp.legacy.utils.ModulesUtils
 import com.etendoerp.legacy.utils.NexusUtils
 import com.etendoerp.publication.PublicationUtils
-import org.gradle.api.GradleException
 import org.gradle.api.Project
-import org.gradle.api.logging.LogLevel
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.Delete
 import org.gradle.api.tasks.Exec
+import org.gradle.api.tasks.StopExecutionException
 import org.gradle.api.tasks.Sync
-import org.gradle.api.tasks.bundling.Zip
 import org.gradle.api.publish.maven.MavenPublication
 
 /**
@@ -20,6 +17,10 @@ import org.gradle.api.publish.maven.MavenPublication
  *  following the same order.
  */
 class LegacyScriptLoader {
+
+    static final String FORCE_DEFAULT_PROPS = "forceDefaultProps"
+    static final String FORCE_BACKUP_PROPS = "forceBackupProps"
+    static final String FORCE_QUARTZ_PROPS = "forceQuartzProps"
 
     static List whiteSyncCoreList = [
             'legal/**',
@@ -245,33 +246,51 @@ class LegacyScriptLoader {
 
         /** Copy backup.properties template */
         project.task("createBackupProperties", type: Copy) {
-            if(!project.file("config/backup.properties").exists() && project.file("config/backup.properties.template").exists()) {
-                from project.file("config/backup.properties.template")
-                into project.file("config")
-                rename { String fileName ->
-                    fileName.replace("backup.properties.template", "backup.properties")
+            outputs.upToDateWhen { return false }
+            from project.file("config/backup.properties.template")
+            into project.file("config")
+            rename { String fileName ->
+                fileName.replace("backup.properties.template", "backup.properties")
+            }
+            doFirst {
+                boolean force = project.findProperty(FORCE_BACKUP_PROPS) ? true : false
+                if (!project.file("config/backup.properties.template").exists() || (project.file("config/backup.properties").exists() && !force)) {
+                    project.logger.info("* Omitting the creation of the 'backup.properties' from the template. To recreate run with '-P${FORCE_BACKUP_PROPS}=true'")
+                    throw new StopExecutionException()
                 }
             }
         }
 
         /** Copy Openbravo.properties template */
         project.task("createOBProperties", type: Copy) {
-            if(!project.file("config/Openbravo.properties").exists() && project.file("config/Openbravo.properties.template").exists()) {
-                from project.file("config/Openbravo.properties.template")
-                into project.file("config")
-                rename { String fileName ->
-                    fileName.replace("Openbravo.properties.template", "Openbravo.properties")
+            outputs.upToDateWhen { return false }
+            from project.file("config/Openbravo.properties.template")
+            into project.file("config")
+            rename { String fileName ->
+                fileName.replace("Openbravo.properties.template", "Openbravo.properties")
+            }
+            doFirst {
+                boolean force = project.findProperty(FORCE_DEFAULT_PROPS) ? true : false
+                if (!project.file("config/Openbravo.properties.template").exists() || (project.file("config/Openbravo.properties").exists() && !force)) {
+                    project.logger.info("* Omitting the creation of the 'Openbravo.properties' from the template. To recreate run with '-P${FORCE_DEFAULT_PROPS}=true'")
+                    throw new StopExecutionException()
                 }
             }
         }
 
         /** Copy quartz.properties template */
         project.task("createQuartzProperties", type: Copy) {
-            if(!project.file("config/quartz.properties").exists() && project.file("config/quartz.properties.template").exists()){
-                from project.file("config/quartz.properties.template")
-                into project.file("config")
-                rename { String fileName ->
-                    fileName.replace("quartz.properties.template", "quartz.properties")
+            outputs.upToDateWhen { return false }
+            from project.file("config/quartz.properties.template")
+            into project.file("config")
+            rename { String fileName ->
+                fileName.replace("quartz.properties.template", "quartz.properties")
+            }
+            doFirst {
+                boolean force = project.findProperty(FORCE_QUARTZ_PROPS) ? true : false
+                if (project.file("config/quartz.properties").exists() || (!project.file("config/quartz.properties.template").exists() && !force)) {
+                    project.logger.info("* Omitting the creation of the 'quartz.properties' from the template. To recreate run with '-P${FORCE_QUARTZ_PROPS}=true'")
+                    throw new StopExecutionException()
                 }
             }
         }

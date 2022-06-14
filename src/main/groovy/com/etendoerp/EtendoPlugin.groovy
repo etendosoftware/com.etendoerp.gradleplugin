@@ -18,8 +18,16 @@ import org.gradle.api.publish.plugins.PublishingPlugin
 import com.etendoerp.publication.git.CloneDependencies
 
 class EtendoPlugin implements Plugin<Project> {
+
+    final static String PLUGIN_VERSION = "1.0.2"
+
     @Override
     void apply(Project project) {
+
+        System.out.println("**********************************************")
+        System.out.println("* ETENDO PLUGIN VERSION: ${PLUGIN_VERSION}")
+        System.out.println("**********************************************")
+
         def extension = project.extensions.create('etendo', EtendoPluginExtension)
         project.getPluginManager().apply(JavaBasePlugin.class)
         project.getPluginManager().apply(PublishingPlugin.class)
