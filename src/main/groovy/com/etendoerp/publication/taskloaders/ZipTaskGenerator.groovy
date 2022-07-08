@@ -32,10 +32,7 @@ class ZipTaskGenerator {
                     def destinationDir = PathUtils.createPath(mainProject.buildDir.absolutePath, PublicationUtils.LIB)
                     moduleZip.destinationDirectory = mainProject.file(destinationDir)
 
-                    def excludedFiles = PublicationUtils.EXCLUDED_FILES
-                    excludedFiles.removeIf({
-                        it.toLowerCase().contains("build")
-                    })
+                    def excludedFiles = PublicationUtils.EXCLUDED_FILES.findAll({!it.toLowerCase().contains("build")})
 
                     moduleZip.exclude(excludedFiles)
                     moduleZip.exclude("build/libs")
