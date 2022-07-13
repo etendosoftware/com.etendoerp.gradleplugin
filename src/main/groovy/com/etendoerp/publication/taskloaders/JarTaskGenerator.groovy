@@ -39,8 +39,6 @@ class JarTaskGenerator {
                     // in the 'META-INF/etendo/modules' dir.
                     String destinationDir = PathUtils.createPath(PublicationUtils.META_INF, PublicationUtils.ETENDO, PublicationUtils.BASE_MODULE_DIR, moduleName)
 
-                    TaskLoaderUtils.parseFilesToTemporaryDir(mainProject, subProject)
-
                     // Verify if the build files needs to be changed
                     def parserResult = TaskLoaderUtils.parseFilesToTemporaryDir(mainProject, subProject)
                     if (parserResult && parserResult.isPresent()) {
