@@ -8,6 +8,7 @@ import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.Dependency
 import org.gradle.api.artifacts.DependencySet
 import org.gradle.api.internal.artifacts.dependencies.AbstractModuleDependency
+import org.gradle.api.internal.artifacts.dependencies.DefaultExternalModuleDependency
 import org.gradle.api.internal.artifacts.dependencies.DefaultProjectDependency
 
 class ResolverDependencyUtils {
@@ -95,16 +96,39 @@ class ResolverDependencyUtils {
         DependencyUtils.loadDependenciesFromConfigurations(configurations, configurationDependencySet)
 
         // Load the Artifact dependencies
-        loadConfigurationWithArtifacts(project, configurationContainer, artifactDependencyMap)
+        loadConfigurationWithArtifacts(project, configurationContainer, artifactDependencyMap, true)
 
         return configurationContainer
     }
 
-    static void loadConfigurationWithArtifacts(Project project, Configuration configuration, Map<String, List<ArtifactDependency>> artifacts) {
+    /**
+     * Loads a Configuration with artifacts or updates the dependencies if they are already present.
+     *
+     * This is used by the 'conflict resolution' to add all the Etendo dependencies and verify if the CORE has conflicts.
+     * Also is used to update the 'final' configuration which will be expanded (sources or jar files). Each version dependency
+     * is updated based on the result of the resolution conflict.
+     *
+     * @param project
+     * @param configuration
+     * @param artifacts
+     * @param updateConstrains
+     * @param addMissingArtifact
+     */
+    static void loadConfigurationWithArtifacts(Project project, Configuration configuration, Map<String, List<ArtifactDependency>> artifacts, boolean updateConstrains = false, boolean addMissingArtifact = true) {
         for (def entry : artifacts.entrySet()) {
             for (ArtifactDependency artifactDependency : entry.value) {
                 String displayName = artifactDependency.displayName
-                if (displayName) {
+                Set<DefaultExternalModuleDependency> dependencies = configuration.dependencies.findAll {
+                    it instanceof DefaultExternalModuleDependency && it.group == artifactDependency.group && it.name == artifactDependency.name
+                } as Set<DefaultExternalModuleDependency>
+
+                if (dependencies && !dependencies.isEmpty()) {
+                    if (updateConstrains) {
+                        dependencies.each {
+                            it.versionConstraint.requiredVersion = artifactDependency.dependencyResult.selected.getModuleVersion().version
+                        }
+                    }
+                } else if (displayName && addMissingArtifact) {
                     project.dependencies.add(configuration.name, displayName)
                 }
             }

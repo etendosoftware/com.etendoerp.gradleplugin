@@ -150,6 +150,9 @@ class ResolutionUtils {
 
                     }
 
+                    artifactDependency.dependencyResult = dependencyResult
+                    artifactDependency.artifactName = artifactName
+
                     String conflicts = ""
 
                     // Check if the artifact has conflicts
@@ -248,6 +251,9 @@ class ResolutionUtils {
         return sourcesModulesContainer
     }
 
+    // TODO: Perform two resolutions: One to verify the core and another to prevent excluding constrains
+    // The reason to use 'getIncomingDependenciesExcludingCore' is to obtain all the transitives dependencies
+    // to perform the resolution and verify if the core is in conflicts (this is because in the pom the transitive dependencies exclude the core)
     static Map<String, List<ArtifactDependency>> performResolutionConflicts(Project project, Configuration configToPerformResolution, boolean filterCoreDependency, boolean obtainSelectedArtifacts) {
 
         // Obtain all the incoming 'requested' dependencies (Core dependencies will be not included)
