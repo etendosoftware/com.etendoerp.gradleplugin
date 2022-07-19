@@ -74,6 +74,16 @@ class CoreMetadata {
         resolveCoreSupportJars()
 
         inform()
+        validate()
+    }
+
+    void validate() {
+        def extension = project.extensions.findByType(EtendoPluginExtension)
+        // The CORE jar dependency is in the build.gradle of the root project
+        if (coreType == CoreType.SOURCES && getCoreDependency(this.project) && !extension.ignoreCoreJarDependency) {
+            throw new IllegalStateException("* Core in SOURCES." +
+                                            EtendoPluginExtension.ignoreCoreJarDependencyMessage())
+        }
     }
 
     void inform() {
