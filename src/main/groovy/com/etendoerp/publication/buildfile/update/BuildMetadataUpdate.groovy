@@ -103,10 +103,10 @@ class BuildMetadataUpdate {
 
     static String updateVersionRanges(Project project, String version) {
         String lowerBound = project.findProperty(LOWER_BOUND_PROP)
-        String lowerBoundInclusive = project.findProperty(LOWER_BOUND_INCLUSIVE)
+        String lowerBoundInclusive = project.findProperty(LOWER_BOUND_INCLUSIVE) ?: "false"
 
         String upperBound = project.findProperty(UPPER_PROP)
-        String upperBoundInclusive = project.findProperty(UPPER_BOUND_INCLUSIVE)
+        String upperBoundInclusive = project.findProperty(UPPER_BOUND_INCLUSIVE) ?: "false"
 
         String exactVersion = project.findProperty(EXACT_VERSION)
 
@@ -114,8 +114,8 @@ class BuildMetadataUpdate {
             return exactVersion
         }
 
-        String lowerBoundSymbol = lowerBoundInclusive ? "[" : "("
-        String upperBoundSymbol = upperBoundInclusive ? "]" : ")"
+        String lowerBoundSymbol = (lowerBoundInclusive.toBoolean()) ? "[" : "("
+        String upperBoundSymbol = (upperBoundInclusive.toBoolean()) ? "]" : ")"
 
         if (lowerBound) {
             if (version.contains(",")) {
