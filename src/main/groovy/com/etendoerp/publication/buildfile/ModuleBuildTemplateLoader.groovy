@@ -1,6 +1,7 @@
 package com.etendoerp.publication.buildfile
 
 import com.etendoerp.publication.PublicationUtils
+import com.etendoerp.publication.buildfile.update.BuildMetadataUpdate
 import org.gradle.api.Project
 
 class ModuleBuildTemplateLoader {
@@ -13,6 +14,7 @@ class ModuleBuildTemplateLoader {
     static final String ALL_COMMAND_PROPERTY = "all"
 
     static void load(Project project) {
+        BuildMetadataUpdate.load(project)
 
         /**
          * Task to create build.gradle from a module
