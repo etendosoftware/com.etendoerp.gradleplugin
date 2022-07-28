@@ -19,8 +19,7 @@ class UninstallModuleLoader {
                 def baseModuleProject = project.findProject(":${PublicationUtils.BASE_MODULE_DIR}")
 
                 if (!baseModuleProject) {
-                    project.logger.error("* The project is missing the base module dir subproject")
-                    return
+                    throw new IllegalStateException("* The project :${PublicationUtils.BASE_MODULE_DIR} does not exists.")
                 }
 
                 // Filter the valid Etendo modules.
