@@ -34,19 +34,7 @@ class EtendoCoreJarArtifact extends ArtifactDependency{
         consistencyContainer.validateArtifact(this)
 
         // Prevent extracting if the Core JAR already exists and is the same version
-        EtendoArtifactMetadata coreMetadata = new EtendoArtifactMetadata(project, DependencyType.ETENDOCOREJAR)
         final String coreJarLocation = "${project.buildDir.absolutePath}${File.separator}etendo"
-
-        if (coreMetadata.loadMetadataFile(coreJarLocation)) {
-            def currentCoreJarVersion = coreMetadata.version
-
-            if (currentCoreJarVersion && currentCoreJarVersion == this.version) {
-                project.logger.info("Etendo core Jar version '${this.version}' already extracted.")
-                this.extracted = true
-                syncCoreConfig()
-                return
-            }
-        }
 
         project.logger.info("Extracting the Etendo core JAR - ${this.group}:${this.name}:${this.version}")
 

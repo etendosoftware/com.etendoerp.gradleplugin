@@ -1,6 +1,7 @@
 package com.etendoerp.legacy.ant
 
-
+import com.etendoerp.EtendoPluginExtension
+import com.etendoerp.legacy.dependencies.container.ArtifactDependency
 import org.gradle.api.Project
 
 class AntMenuHelper {
@@ -48,6 +49,20 @@ class AntMenuHelper {
 
     static generateRandomAntProp() {
         return "randomAntProp${UUID.randomUUID().toString()}"
+    }
+
+
+    static boolean confirmationMenu(Project project, String message) {
+        if (project.extensions.findByType(EtendoPluginExtension).ignoreDisplayMenu) {
+            return true
+        }
+
+        def defaultValue = "Y"
+        StringBuilder preMessage = new StringBuilder(message)
+        preMessage.append("* CONTINUE ? [${defaultValue}/n]:")
+
+        def userChoice = antUserInput(project, preMessage.toString(), defaultValue)
+        return defaultValue.equalsIgnoreCase(userChoice as String)
     }
 
 }
