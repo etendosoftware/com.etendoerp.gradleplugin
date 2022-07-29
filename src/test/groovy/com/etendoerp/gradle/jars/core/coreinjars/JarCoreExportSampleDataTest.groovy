@@ -8,6 +8,12 @@ import org.gradle.testkit.runner.TaskOutcome
 import spock.lang.Issue
 import spock.lang.TempDir
 
+/**
+ * This test should use the latest CORE snapshot
+ *  // TODO: This test should resolve from EtendoCoreResolutionSpecificationTest
+ // TODO: Use latest snapshot
+ */
+
 class JarCoreExportSampleDataTest extends EtendoCoreJarSpecificationTest {
     @TempDir File testProjectDir
 
@@ -56,6 +62,8 @@ class JarCoreExportSampleDataTest extends EtendoCoreJarSpecificationTest {
             def expandCoreMockResult = runTask(":expandCoreMock")
             assert expandCoreMockResult.task(":expandCoreMock").outcome == TaskOutcome.SUCCESS
         }
+
+        // TODO: Republish 'premoduletoexpand'
 
         and: "The users adds a sources module dependency before running the install"
         def preExpandModGroup = PRE_EXPAND_MODULE_GROUP

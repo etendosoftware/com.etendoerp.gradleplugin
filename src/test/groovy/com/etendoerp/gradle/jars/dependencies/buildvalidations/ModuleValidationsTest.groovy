@@ -18,7 +18,7 @@ class ModuleValidationsTest extends EtendoCoreResolutionSpecificationTest {
 
     @Override
     String getCoreVersion() {
-        return ETENDO_21q1_SNAPSHOT
+        return ETENDO_LATEST_SNAPSHOT
     }
 
     @Override
@@ -30,7 +30,9 @@ class ModuleValidationsTest extends EtendoCoreResolutionSpecificationTest {
         given: "A user wanting to install a JAR module dependency"
         addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
 
-        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", forceResolution: true]
+        // TODO: re publish module validations Rdy
+
+        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", forceResolution: true,  ignoreExpandMenu : true]
         loadCore([coreType : "${coreType}", pluginVariables: pluginVariables])
 
         and: "The user resolves the core"

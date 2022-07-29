@@ -9,6 +9,10 @@ import spock.lang.Narrative
 import spock.lang.TempDir
 import spock.lang.Title
 
+/**
+ * This test should use the latest CORE snapshot
+ */
+
 @Issue("EPL-123")
 @Title("The compilations tasks fails when there is modules not updated in the database (not EQUAL version)")
 @Narrative("""
@@ -28,7 +32,7 @@ class CompilationTasksConsistencyVerificationTest extends EtendoCoreResolutionSp
 
     @Override
     String getCoreVersion() {
-        return ETENDO_21q1_SNAPSHOT
+        return ETENDO_LATEST_SNAPSHOT
     }
 
     @Override

@@ -28,8 +28,10 @@ class ExpandCoreUpdateVersion extends EtendoCoreResolutionSpecificationTest {
         given: "A Etendo core '#coreType'"
         addRepositoryToBuildFile(getCoreRepo())
 
+        // TODO: Use the release versions
+
         Map pluginVariables = [
-                "coreVersion" : "'11.4.0'",
+                "coreVersion" : "'22.1.3'",
         ]
         loadCore([coreType : "${coreType}", pluginVariables: pluginVariables])
 
@@ -39,7 +41,7 @@ class ExpandCoreUpdateVersion extends EtendoCoreResolutionSpecificationTest {
         and: "The version resolved will be the one specified by the user"
         def artifactPropertiesLocation = new File(testProjectDir, "${EtendoArtifactMetadata.METADATA_FILE}")
         assert artifactPropertiesLocation.exists()
-        assert artifactPropertiesLocation.text.contains("11.4.0")
+        assert artifactPropertiesLocation.text.contains("22.1.3")
 
         and: "The user install the Environment"
         def setupResult = runTask("setup")
@@ -56,11 +58,11 @@ class ExpandCoreUpdateVersion extends EtendoCoreResolutionSpecificationTest {
         def coreModule = modules.get(coreJavaPackage)
 
         assert coreModule
-        assert coreModule.get("version") == "3.0.114000"
+        assert coreModule.get("version") == "22.1.3"
 
         when: "The users wants to update the version of the core in Sources"
         pluginVariables = [
-                "coreVersion" : "'12.1.0'",
+                "coreVersion" : "'22.2.0'",
         ]
         loadCore([coreType : "${coreType}", pluginVariables: pluginVariables])
 
@@ -69,7 +71,7 @@ class ExpandCoreUpdateVersion extends EtendoCoreResolutionSpecificationTest {
 
         and: "The resolved version will be the new one specified by the user"
         assert artifactPropertiesLocation.exists()
-        assert artifactPropertiesLocation.text.contains("12.1.0")
+        assert artifactPropertiesLocation.text.contains("22.2.0")
 
         and: "The user runs the 'update.database' task"
         def updateResult = runTask(":update.database")
@@ -82,7 +84,7 @@ class ExpandCoreUpdateVersion extends EtendoCoreResolutionSpecificationTest {
         def coreModuleUpdated = modulesUpdated.get(coreJavaPackage)
 
         assert coreModuleUpdated
-        assert coreModuleUpdated.get("version") == "3.0.121000"
+        assert coreModuleUpdated.get("version") == "22.2.0"
 
         where:
         coreType  | _

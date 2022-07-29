@@ -6,6 +6,12 @@ import spock.lang.Narrative
 import spock.lang.TempDir
 import spock.lang.Title
 
+/**
+ * This test should use the latest CORE snapshot
+ *  // TODO: This test should resolve from EtendoCoreResolutionSpecificationTest
+ // TODO: Use latest snapshot
+ */
+
 @Title("Series of tests to verify that the task 'prepareConfig' creates the 'Openbravo.properties' file correctly.")
 @Narrative("""TODO: Currently this test will fail because the gradle ant class loader is adding the Etendo core library.
 This causes problems because the 'Etendo core' contains classes that are already defined in the 'Gradle project'""")

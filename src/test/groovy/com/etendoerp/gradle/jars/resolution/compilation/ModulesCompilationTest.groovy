@@ -31,9 +31,10 @@ class ModulesCompilationTest extends EtendoCoreResolutionSpecificationTest{
         testProjectDir
     }
 
+    // TODO: Use latest snapshot
     @Override
     String getCoreVersion() {
-        return "22.1.0"
+        return ETENDO_LATEST_SNAPSHOT
     }
 
     @Override
@@ -43,9 +44,10 @@ class ModulesCompilationTest extends EtendoCoreResolutionSpecificationTest{
 
     def "Compiling a module does not include the JAR module classpath if is already in Sources"() {
         given: "A Etendo core '#coreType'"
+        addRepositoryToBuildFile(SNAPSHOT_REPOSITORY_URL)
         addRepositoryToBuildFile(getCoreRepo())
 
-        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", forceResolution: true]
+        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", forceResolution: true, ignoreExpandMenu : true]
         loadCore([coreType : "${coreType}", pluginVariables: pluginVariables])
 
         and: "The user resolves the core"
@@ -69,6 +71,8 @@ class ModulesCompilationTest extends EtendoCoreResolutionSpecificationTest{
               moduleDeps('com.test:compilationB:1.0.0@zip')
             }
         """
+
+        // TODO: Add flag menu RDY
 
         and: "The user runs the 'expandModules' task"
         def expandTaskResult = runTask(":expandModules", "-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")

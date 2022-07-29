@@ -11,6 +11,12 @@ import spock.lang.Shared
 import spock.lang.TempDir
 import spock.lang.Title
 
+/**
+ * This test should use the latest CORE snapshot
+ *  // TODO: This test should resolve from EtendoCoreResolutionSpecificationTest
+ // TODO: Use latest snapshot
+ */
+
 @Title("Running the export config script with a new template created.")
 @Narrative(""" Having a new template created and
 running the 'export.config.script' task creates the new template dir in the 'root/modules'""")
@@ -31,6 +37,8 @@ class JarCoreExportConfigScriptTest extends EtendoCoreJarSpecificationTest {
     String getDB() {
         return this.getClass().getSimpleName().toLowerCase()
     }
+
+    // TODO: Republish
 
     public final static String PRE_EXPAND_MODULE_GROUP = "com.test"
     public final static String PRE_EXPAND_MODULE_NAME  = "premoduletoexpand"

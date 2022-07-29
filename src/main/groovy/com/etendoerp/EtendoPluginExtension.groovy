@@ -83,6 +83,13 @@ class EtendoPluginExtension {
      */
     List<String> sourceModulesInDevelopment = []
 
+
+    /**
+     * Flag used to prevent the display of the expand modules menu.
+     * Default false.
+     */
+    boolean ignoreExpandMenu = false
+
     /************************ MESSAGES ************************/
 
     static String ignoredArtifactsMessage(String exampleModule) {

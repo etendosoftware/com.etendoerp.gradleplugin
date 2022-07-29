@@ -116,6 +116,8 @@ class ExpandCoreWithResolution extends EtendoCoreResolutionSpecificationTest {
         given: "A Etendo core '#coreType'"
         addRepositoryToBuildFile(getCoreRepo())
 
+        // TODO: Use release versions
+
         Map pluginVariables = [
                 "coreVersion" : "'21.4.0'",
         ]

@@ -39,7 +39,7 @@ class CoreExpandTransitiveModulesTest extends EtendoCoreResolutionSpecificationT
     def "Expanding transitive modules extract the correct version"() {
         given: "A Etendo core '#coreType'"
 
-        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", supportJars: supportJars]
+        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", supportJars: supportJars, ignoreExpandMenu : true]
         loadCore([coreType : "${coreType}", pluginVariables: pluginVariables])
 
         and: "The user resolves the core"
@@ -56,6 +56,8 @@ class CoreExpandTransitiveModulesTest extends EtendoCoreResolutionSpecificationT
               }
             }
         """
+
+        // TODO: Add flag menu RDY
 
         and: "The user runs the 'expandModules' task"
         def expandTaskResult = runTask(":expandModules", "-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")

@@ -31,6 +31,8 @@ class ModuleRemoveOldVersionInsideWebContentTest extends EtendoCoreResolutionSpe
         given: "A Etendo core '#coreType'"
         addRepositoryToBuildFileFirst(getCoreRepo())
 
+        // TODO: Republish moduleToUpdate
+
         String moduleToUpdate = "moduleToUpdate"
         String oldModuleVersion = "1.0.0"
         String newModuleVersion = "1.0.1"

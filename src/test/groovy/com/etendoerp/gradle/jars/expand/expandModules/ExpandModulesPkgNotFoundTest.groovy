@@ -25,13 +25,14 @@ class ExpandModulesPkgNotFoundTest extends EtendoCoreResolutionSpecificationTest
 
     @Override
     String getCoreVersion() {
-        return "22.1.0"
+        return ETENDO_LATEST_SNAPSHOT
     }
 
     def "Running expandModules task multiple times"() {
         given: "The users adds a moduleDeps dependency"
+        addRepositoryToBuildFile(SNAPSHOT_REPOSITORY_URL)
 
-        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'"]
+        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", ignoreExpandMenu : true, forceResolution : true]
         loadCore([coreType : "${coreType}", pluginVariables: pluginVariables])
 
         def moduleGroup = "com.test"
@@ -57,6 +58,8 @@ class ExpandModulesPkgNotFoundTest extends EtendoCoreResolutionSpecificationTest
 
         and: "The user resolves the core"
         resolveCore([coreType : "${coreType}", testProjectDir: testProjectDir])
+
+        // TODO: Add flag to ignore menu Rdy
 
         when: "The user runs the expandModule task"
         def expandTaskResult = runTask(":expandModules", "-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")

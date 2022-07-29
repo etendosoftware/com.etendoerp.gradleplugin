@@ -23,13 +23,15 @@ class SetupCoreJarTest extends EtendoCoreResolutionSpecificationTest {
         testProjectDir
     }
 
+    // TODO: Change version for snapshot
     @Override
     String getCoreVersion() {
-        return "[21.4.0, 22.1.0]"
+        return ETENDO_LATEST_SNAPSHOT
     }
 
     def "Running the setup task when the core is in JAR"() {
         given: "A Etendo core '#coreType'"
+        addRepositoryToBuildFile(SNAPSHOT_REPOSITORY_URL)
         addRepositoryToBuildFile(getCoreRepo())
 
         Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'"]

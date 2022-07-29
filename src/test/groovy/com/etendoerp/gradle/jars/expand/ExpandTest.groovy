@@ -21,7 +21,7 @@ class ExpandTest extends EtendoCoreResolutionSpecificationTest {
 
     @Override
     String getCoreVersion() {
-        return ETENDO_21q1_SNAPSHOT
+        return ETENDO_LATEST_SNAPSHOT
     }
 
     @Override
@@ -32,9 +32,10 @@ class ExpandTest extends EtendoCoreResolutionSpecificationTest {
     def "Running the expand tasks the core and modules"() {
         given: "A user wanting to expand a Etendo environment"
         addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
-
+        // TODO: Add flag to ignore menu
         Map pluginVariables = [
                 "coreVersion" : "'${getCoreVersion()}'",
+                ignoreExpandMenu : true
         ]
         loadCore([coreType : "sources", pluginVariables: pluginVariables])
 

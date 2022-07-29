@@ -9,6 +9,12 @@ import spock.lang.Stepwise
 import spock.lang.TempDir
 import spock.lang.Title
 
+/**
+ * This test should use the latest CORE snapshot
+ *  // TODO: This test should resolve from EtendoCoreResolutionSpecificationTest
+ // TODO: Use latest snapshot
+ */
+
 @Title("Running compilation tasks using a Etendo core JAR")
 @Stepwise
 class JarCoreCompilationTasksTest extends EtendoCoreJarSpecificationTest{

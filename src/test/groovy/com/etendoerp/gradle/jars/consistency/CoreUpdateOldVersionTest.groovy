@@ -10,6 +10,11 @@ import spock.lang.Narrative
 import spock.lang.TempDir
 import spock.lang.Title
 
+/**
+ * Is not necessary to use the latest core version for this test.
+ * The CORE dependency should be obtained from the "https://repo.futit.cloud/repository/etendo-resolution-test/" repo
+ */
+
 @Issue("EPL-123")
 @Title("Update the core in JARs to an old version")
 @Narrative("""
@@ -39,11 +44,11 @@ class CoreUpdateOldVersionTest extends EtendoCoreResolutionSpecificationTest {
 
     def "Update the core JAR to an old version"() {
         given: "The user with an installed version of the CORE in JARs"
-        def currentCoreVersion = "22.1.3"
-        def currentCoreVersionXML = "3.0.221300"
+        def currentCoreVersion = "22.2.0"
+        def currentCoreVersionXML = "22.2.0"
 
-        def newCoreVersion = "22.1.2"
-        def newCoreVersionXML = "3.0.221200"
+        def newCoreVersion = "22.1.3"
+        def newCoreVersionXML = "22.1.3"
 
         coreVersionToInstall = currentCoreVersion
 

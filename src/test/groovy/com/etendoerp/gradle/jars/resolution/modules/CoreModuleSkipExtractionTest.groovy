@@ -41,7 +41,7 @@ class CoreModuleSkipExtractionTest extends EtendoCoreResolutionSpecificationTest
     def "Skipping extraction of a JAR module already in sources"() {
         given: "A Etendo core '#coreType'"
 
-        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", supportJars: supportJars]
+        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", supportJars: supportJars, ignoreExpandMenu : true, forceResolution : true]
         loadCore([coreType : "${coreType}", pluginVariables: pluginVariables])
 
         and: "The user resolves the core"
@@ -55,6 +55,8 @@ class CoreModuleSkipExtractionTest extends EtendoCoreResolutionSpecificationTest
               }
             }
         """
+
+        // TODO: Add flag menu RDY
 
         and: "The user runs the 'expandModules' task to obtain the module B"
         def expandTaskResult = runTask(":expandModules", "-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")

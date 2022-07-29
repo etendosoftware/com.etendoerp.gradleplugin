@@ -9,6 +9,12 @@ import spock.lang.Stepwise
 import spock.lang.TempDir
 import spock.lang.Title
 
+/**
+ * This test should use the latest CORE snapshot
+ *  // TODO: This test should resolve from EtendoCoreResolutionSpecificationTest
+ // TODO: Use latest snapshot
+ */
+
 @Title("Test to verify the correct deploy and extraction of resources from a module jar")
 @Narrative("""This test adds a module in jar dependency, runs an install and smartbuild to
 see if the resources of the jar ('.html, .xml, etc') are deployed in the WebContent folder.""")
@@ -36,9 +42,12 @@ class SourceCoreJarModuleDeployTest extends EtendoCoreSourcesSpecificationTest {
 
     def "Installing Etendo sources core with a module in Jar"() {
         given: "A Etendo sources core environment"
+        // TODO: Use the 'resolve core'
         expandMock()
         def expandResult = runTask(":expandCoreMock")
         assert expandResult.task(":expandCoreMock").outcome == TaskOutcome.SUCCESS
+
+        // TODO: Re publish 'dummymodule'
 
         and: "The users adds a jar module dependency"
         def moduleGroup = JAR_MODULE_GROUP

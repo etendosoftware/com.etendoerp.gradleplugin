@@ -15,7 +15,7 @@ abstract class EtendoCoreResolutionSpecificationTest extends EtendoSpecification
     public final static String CORE = "${ETENDO_CORE_GROUP}:${ETENDO_CORE_NAME}:${ETENDO_CORE_VERSION}"
 
     public final static String ETENDO_22q1_VERSION = "[22.1.+, 22.2.0)"
-    public final static String ETENDO_21q1_SNAPSHOT = "22.1.1-SNAPSHOT"
+    public final static String ETENDO_LATEST_SNAPSHOT = "22.2.0-SNAPSHOT"
 
 
     String getCore() {

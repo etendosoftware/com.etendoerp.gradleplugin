@@ -11,6 +11,10 @@ import spock.lang.Narrative
 import spock.lang.TempDir
 import spock.lang.Title
 
+/**
+ * This test should use the latest CORE snapshot
+ */
+
 @Issue("EPL-123")
 @Title("Ignoring the consistency verification")
 @Narrative("""
@@ -28,7 +32,7 @@ class CompilationTasksIgnoreConsistencyVerificationTest extends EtendoCoreResolu
 
     @Override
     String getCoreVersion() {
-        return ETENDO_21q1_SNAPSHOT
+        return ETENDO_LATEST_SNAPSHOT
     }
 
     @Override

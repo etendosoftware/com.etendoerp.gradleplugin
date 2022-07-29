@@ -44,8 +44,10 @@ class CoreRemoveOldVersionInsideWebContentTest extends EtendoCoreResolutionSpeci
         given: "A Etendo core '#coreType'"
         addRepositoryToBuildFile(getCoreRepo())
 
-        def oldCoreVersion = "22.1.0.1650575649-20220421.211411-1"
-        def newCoreVersion = "22.1.1-20220207.171745-5"
+        // TODO: Use the release versions
+
+        def oldCoreVersion = "22.1.3"
+        def newCoreVersion = "22.2.0"
 
         coreVersionToInstall = oldCoreVersion
 

@@ -11,6 +11,12 @@ import spock.lang.Narrative
 import spock.lang.TempDir
 import spock.lang.Title
 
+/**
+ * This test should use the latest CORE snapshot
+ *  // TODO: This test should resolve from EtendoCoreResolutionSpecificationTest
+ // TODO: Use latest snapshot
+ */
+
 @Title("Running the update.database task after adding source and jar modules")
 @Narrative(""" After adding a source module and a jar module and running the 'update.database' task,
 the modules should be imported to the database and updated correctly.""")
@@ -31,6 +37,8 @@ class JarCoreModulesUpdateTest extends EtendoCoreJarSpecificationTest {
     String getDB() {
         return this.getClass().getSimpleName().toLowerCase()
     }
+
+    // TODO: Republish
 
     public final static String PRE_EXPAND_MODULE_GROUP = "com.test"
     public final static String PRE_EXPAND_MODULE_NAME  = "premoduletoexpand"

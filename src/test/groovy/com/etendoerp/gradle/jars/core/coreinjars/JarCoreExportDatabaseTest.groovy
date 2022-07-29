@@ -11,6 +11,12 @@ import spock.lang.Narrative
 import spock.lang.TempDir
 import spock.lang.Title
 
+/**
+ * This test should use the latest CORE snapshot
+ *  // TODO: This test should resolve from EtendoCoreResolutionSpecificationTest
+ // TODO: Use latest snapshot
+ */
+
 @Title("Running the export database with a new module created and other having changes.")
 @Narrative(""" Having a new module created and another with some changes,
 running the 'export.database' task creates the new module dir in the 'root/modules' and export
@@ -32,6 +38,8 @@ class JarCoreExportDatabaseTest extends EtendoCoreJarSpecificationTest {
     String getDB() {
         return this.getClass().getSimpleName().toLowerCase()
     }
+
+    // TODO: Republish
 
     public final static String PRE_EXPAND_MODULE_GROUP = "com.test"
     public final static String PRE_EXPAND_MODULE_NAME  = "premoduletoexpand"

@@ -28,7 +28,7 @@ class CoreInstallSkipJarToWebContentTest extends EtendoCoreResolutionSpecificati
 
     @Override
     String getCoreVersion() {
-        return ETENDO_21q1_SNAPSHOT
+        return ETENDO_LATEST_SNAPSHOT
     }
 
     @Override
@@ -40,7 +40,7 @@ class CoreInstallSkipJarToWebContentTest extends EtendoCoreResolutionSpecificati
         given: "A user installing the Etendo environment"
         addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
 
-        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", forceResolution : true]
+        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", forceResolution : true, ignoreExpandMenu : true]
         loadCore([coreType : "${coreType}", pluginVariables: pluginVariables])
 
         and: "The user resolves the core"
@@ -56,6 +56,8 @@ class CoreInstallSkipJarToWebContentTest extends EtendoCoreResolutionSpecificati
               }
             }
         """
+
+        // TODO: RDY
 
         and: "The user runs the 'expandModules' task to obtain the module B"
         def expandTaskResult = runTask(":expandModules", "-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")

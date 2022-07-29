@@ -12,7 +12,7 @@ import spock.lang.Title
 Expanding a source modules should delete the JAR version in the 'build/etendo/modules' dir
 """)
 @Issue("EPL-104")
-class CoreExpandDeleteJarModuleTest extends EtendoCoreResolutionSpecificationTest{
+class CoreExpandDeleteJarModuleTest extends EtendoCoreResolutionSpecificationTest {
 
     @TempDir File testProjectDir
 
@@ -23,16 +23,16 @@ class CoreExpandDeleteJarModuleTest extends EtendoCoreResolutionSpecificationTes
 
     @Override
     String getCoreVersion() {
-        return "1.0.0"
+        return ETENDO_LATEST_SNAPSHOT
     }
 
     def "Deleting the extracted JAR module when working with sources"() {
         given: "A Etendo core '#coreType'"
+        addRepositoryToBuildFile(SNAPSHOT_REPOSITORY_URL)
         addRepositoryToBuildFile(getCoreRepo())
 
-        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'"]
+        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", ignoreExpandMenu : true, forceResolution : true]
         loadCore([coreType : "${coreType}", pluginVariables: pluginVariables])
-
 
         and: "The user resolves the core"
         resolveCore([coreType : "${coreType}", testProjectDir: testProjectDir])
@@ -60,6 +60,8 @@ class CoreExpandDeleteJarModuleTest extends EtendoCoreResolutionSpecificationTes
               }
             }
         """
+
+        // TODO: Add flag menu Rdy
 
         and: "The user runs the ‘expandModules’ tasks"
         def expandTaskResult = runTask(":expandModules", "-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")

@@ -10,6 +10,12 @@ import spock.lang.Stepwise
 import spock.lang.TempDir
 import spock.lang.Title
 
+/**
+ * This test should use the latest CORE snapshot
+ *  // TODO: This test should resolve from EtendoCoreResolutionSpecificationTest
+ // TODO: Use latest snapshot
+ */
+
 @Title("Test with Sources core - sources modules - jar modules.")
 @Narrative(""" This test uses the core in sources with a module in sources.
 The module in sources has a dependency of a module in Jar. The test verify that

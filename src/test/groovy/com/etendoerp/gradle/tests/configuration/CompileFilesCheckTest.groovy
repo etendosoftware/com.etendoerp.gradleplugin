@@ -85,55 +85,56 @@ class CompileFilesCheckTest extends EtendoSpecification {
         "config/log4j2-web.xml"         | 'export.database'
     }
 
-    @Ignore
-    def "compilation succeeds (#task) when #file is not missing"() {
-        given: "an installed project"
-        addRepositoryToBuildFile(SNAPSHOT_REPOSITORY_URL)
-
-        def expandResult = runTask("expandCore")
-        expandResult.task(":expandCore").outcome == TaskOutcome.SUCCESS
-
-        def setup = runTask("setup")
-        setup.task(":setup").outcome == TaskOutcome.UP_TO_DATE
-        def install = runTask("install")
-        install.task(":install").outcome == TaskOutcome.UP_TO_DATE || install.task(":install").outcome == TaskOutcome.SUCCESS
-
-        expect: "compilation succeeds (#task)"
-        def compilationResult = runTask(task)
-        compilationResult.task(":compileFilesCheck").outcome == TaskOutcome.SUCCESS
-
-        where:
-        file                            | task
-        "gradle.properties"             | 'smartbuild'
-        "gradle.properties"             | 'compile.complete'
-        "gradle.properties"             | 'compile.complete.deploy'
-        "gradle.properties"             | 'update.database'
-        "gradle.properties"             | 'export.database'
-
-        "config/Openbravo.properties"   | 'smartbuild'
-        "config/Openbravo.properties"   | 'compile.complete'
-        "config/Openbravo.properties"   | 'compile.complete.deploy'
-        "config/Openbravo.properties"   | 'update.database'
-        "config/Openbravo.properties"   | 'export.database'
-
-        "config/Format.xml"             | 'smartbuild'
-        "config/Format.xml"             | 'compile.complete'
-        "config/Format.xml"             | 'compile.complete.deploy'
-        "config/Format.xml"             | 'update.database'
-        "config/Format.xml"             | 'export.database'
-
-        "config/log4j2.xml"             | 'smartbuild'
-        "config/log4j2.xml"             | 'compile.complete'
-        "config/log4j2.xml"             | 'compile.complete.deploy'
-        "config/log4j2.xml"             | 'update.database'
-        "config/log4j2.xml"             | 'export.database'
-
-        "config/log4j2-web.xml"         | 'smartbuild'
-        "config/log4j2-web.xml"         | 'compile.complete'
-        "config/log4j2-web.xml"         | 'compile.complete.deploy'
-        "config/log4j2-web.xml"         | 'update.database'
-        "config/log4j2-web.xml"         | 'export.database'
-    }
+    // TODO: DELETE TEST (5h to run)
+//    @Ignore
+//    def "compilation succeeds (#task) when #file is not missing"() {
+//        given: "an installed project"
+//        addRepositoryToBuildFile(SNAPSHOT_REPOSITORY_URL)
+//
+//        def expandResult = runTask("expandCore")
+//        expandResult.task(":expandCore").outcome == TaskOutcome.SUCCESS
+//
+//        def setup = runTask("setup")
+//        setup.task(":setup").outcome == TaskOutcome.UP_TO_DATE
+//        def install = runTask("install")
+//        install.task(":install").outcome == TaskOutcome.UP_TO_DATE || install.task(":install").outcome == TaskOutcome.SUCCESS
+//
+//        expect: "compilation succeeds (#task)"
+//        def compilationResult = runTask(task)
+//        compilationResult.task(":compileFilesCheck").outcome == TaskOutcome.SUCCESS
+//
+//        where:
+//        file                            | task
+//        "gradle.properties"             | 'smartbuild'
+//        "gradle.properties"             | 'compile.complete'
+//        "gradle.properties"             | 'compile.complete.deploy'
+//        "gradle.properties"             | 'update.database'
+//        "gradle.properties"             | 'export.database'
+//
+//        "config/Openbravo.properties"   | 'smartbuild'
+//        "config/Openbravo.properties"   | 'compile.complete'
+//        "config/Openbravo.properties"   | 'compile.complete.deploy'
+//        "config/Openbravo.properties"   | 'update.database'
+//        "config/Openbravo.properties"   | 'export.database'
+//
+//        "config/Format.xml"             | 'smartbuild'
+//        "config/Format.xml"             | 'compile.complete'
+//        "config/Format.xml"             | 'compile.complete.deploy'
+//        "config/Format.xml"             | 'update.database'
+//        "config/Format.xml"             | 'export.database'
+//
+//        "config/log4j2.xml"             | 'smartbuild'
+//        "config/log4j2.xml"             | 'compile.complete'
+//        "config/log4j2.xml"             | 'compile.complete.deploy'
+//        "config/log4j2.xml"             | 'update.database'
+//        "config/log4j2.xml"             | 'export.database'
+//
+//        "config/log4j2-web.xml"         | 'smartbuild'
+//        "config/log4j2-web.xml"         | 'compile.complete'
+//        "config/log4j2-web.xml"         | 'compile.complete.deploy'
+//        "config/log4j2-web.xml"         | 'update.database'
+//        "config/log4j2-web.xml"         | 'export.database'
+//    }
 
     def "compilation succeeds when #file is not missing"() {
         given: "an installed project"

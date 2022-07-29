@@ -11,6 +11,12 @@ import spock.lang.Narrative
 import spock.lang.TempDir
 import spock.lang.Title
 
+/**
+ * This test should use the latest CORE snapshot
+ *  // TODO: This test should resolve from EtendoCoreResolutionSpecificationTest
+ // TODO: Use latest snapshot
+ */
+
 @Title("Running the install task with modules dirs and dependencies.")
 @Narrative("""When having modules directories in the root dir and modules jar dependencies, running
 the 'install' task creates the modules correctly""")
@@ -32,6 +38,7 @@ class JarCoreModulesInstallTest extends EtendoCoreJarSpecificationTest {
         return this.getClass().getSimpleName().toLowerCase()
     }
 
+    // TODO: Republish
     public final static String SOURCE_MODULE_GROUP = "com.test"
     public final static String SOURCE_MODULE_NAME  = "moduletoexpand"
 

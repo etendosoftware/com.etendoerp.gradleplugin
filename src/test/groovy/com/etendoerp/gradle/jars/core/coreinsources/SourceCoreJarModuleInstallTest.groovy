@@ -9,6 +9,12 @@ import spock.lang.Stepwise
 import spock.lang.TempDir
 import spock.lang.Title
 
+/**
+ * This test should use the latest CORE snapshot
+ *  // TODO: This test should resolve from EtendoCoreResolutionSpecificationTest
+ // TODO: Use latest snapshot
+ */
+
 @Title("Test to verify that a Etendo module Jar dependency is installed correctly")
 @Narrative("""This test adds a Etendo module jar dependency 
 and runs the Ant install tasks to verify that the module is correctly installed""")
@@ -37,6 +43,7 @@ class SourceCoreJarModuleInstallTest extends EtendoCoreSourcesSpecificationTest 
 
     def "Installing Etendo sources core with a module in Jar"() {
         given: "A Etendo sources core environment"
+        // TODO: Use the resolve core
         expandMock()
         def expandResult = runTask(":expandCoreMock")
         assert expandResult.task(":expandCoreMock").outcome == TaskOutcome.SUCCESS

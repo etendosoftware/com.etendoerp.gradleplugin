@@ -269,6 +269,10 @@ class ExpandUtils {
     }
 
     static boolean shouldExpandSourceModules(Project project, List<ArtifactDependency> artifactToExtract, List<ArtifactDependency> artifactToIgnore) {
+        if (project.extensions.findByType(EtendoPluginExtension).ignoreExpandMenu) {
+            return true
+        }
+
         def defaultExpandValue = "Y"
         StringBuilder preMessage = new StringBuilder(generatePreMessage(project, artifactToExtract, artifactToIgnore))
         preMessage.append("* CONTINUE ? [${defaultExpandValue}/n]:")
