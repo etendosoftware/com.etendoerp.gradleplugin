@@ -11,6 +11,7 @@ import com.etendoerp.legacy.modules.expand.ExpandUtils
 import com.etendoerp.publication.PublicationUtils
 import com.etendoerp.publication.configuration.EntryProjects
 import com.etendoerp.publication.configuration.PublicationConfigurationUtils
+import groovy.io.FileType
 import org.gradle.api.Project
 
 class ModuleUtils {
@@ -180,6 +181,18 @@ class ModuleUtils {
             mainProject.logger.info("* Cleaning directory: ${buildModulesDir.absolutePath}")
             mainProject.delete(buildModulesDir)
         }
+    }
+
+    static Map<String, File> getJarModules(Project mainProject) {
+        Map<String, File> jarModules = new TreeMap<>(String.CASE_INSENSITIVE_ORDER)
+        File jarModulesLocation = new File(mainProject.buildDir, "etendo" + File.separator + "modules")
+
+        if (jarModulesLocation.exists()) {
+            jarModulesLocation.traverse(type: FileType.DIRECTORIES, maxDepth: 0) {
+                jarModules.put(it.name, it)
+            }
+        }
+        return jarModules
     }
 
 }
