@@ -96,7 +96,8 @@ class ResolverDependencyUtils {
         DependencyUtils.loadDependenciesFromConfigurations(configurations, configurationDependencySet)
 
         // Load the Artifact dependencies
-        loadConfigurationWithArtifacts(project, configurationContainer, artifactDependencyMap, true)
+        loadConfigurationWithArtifacts(project, configurationContainer, artifactDependencyMap,
+                true, true, false, false)
 
         return configurationContainer
     }
@@ -114,25 +115,40 @@ class ResolverDependencyUtils {
      * @param updateConstrains
      * @param addMissingArtifact
      */
-    static void loadConfigurationWithArtifacts(Project project, Configuration configuration, Map<String, List<ArtifactDependency>> artifacts, boolean updateConstrains = false, boolean addMissingArtifact = true) {
+    static void loadConfigurationWithArtifacts(Project project, Configuration configuration, Map<String, List<ArtifactDependency>> artifacts,
+                                               boolean updateConstrains=false, boolean addMissingArtifact=true, boolean isTransitive=false, boolean reloadArtifact=false) {
         for (def entry : artifacts.entrySet()) {
             for (ArtifactDependency artifactDependency : entry.value) {
                 String displayName = artifactDependency.displayName
-                Set<DefaultExternalModuleDependency> dependencies = configuration.dependencies.findAll {
-                    it instanceof DefaultExternalModuleDependency && it.group == artifactDependency.group && it.name == artifactDependency.name
-                } as Set<DefaultExternalModuleDependency>
-
-                if (dependencies && !dependencies.isEmpty()) {
+                Set<DefaultExternalModuleDependency> dependencies = filterDependenciesByName(project, configuration, artifactDependency.group, artifactDependency.name)
+                if (dependencies && !dependencies.isEmpty() && !reloadArtifact) {
                     if (updateConstrains) {
-                        dependencies.each {
-                            it.versionConstraint.requiredVersion = artifactDependency.dependencyResult.selected.getModuleVersion().version
-                        }
+                        updateDependenciesVersion(project, dependencies, artifactDependency.dependencyResult.selected.getModuleVersion().version)
                     }
-                } else if (displayName && addMissingArtifact) {
-                    project.dependencies.add(configuration.name, displayName)
+                } else if (displayName && (addMissingArtifact || reloadArtifact)) {
+                    project.dependencies.add(configuration.name, displayName, {
+                        transitive = isTransitive
+                    })
                 }
             }
         }
+    }
+
+    static void updateDependenciesVersion(Project project, Set<DefaultExternalModuleDependency> dependencies, String version, boolean overwrite=false) {
+        dependencies.each {
+            def versionConstraint = it.versionConstraint
+            if (overwrite || (!it.force && versionConstraint.strictVersion.isBlank()
+                    && versionConstraint.preferredVersion.isBlank()
+                    && !(version in versionConstraint.rejectedVersions))) {
+                it.versionConstraint.requiredVersion = version
+            }
+        }
+    }
+
+    static Set<DefaultExternalModuleDependency> filterDependenciesByName(Project project, Configuration configuration, String group, String name) {
+        return configuration.dependencies.findAll {
+            it instanceof DefaultExternalModuleDependency && it.group == group && it.name == name
+        } as Set<DefaultExternalModuleDependency>
     }
 
     /**

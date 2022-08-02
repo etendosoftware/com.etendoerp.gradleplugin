@@ -14,6 +14,7 @@ import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.Dependency
 import org.gradle.api.artifacts.DependencySet
 import org.gradle.api.artifacts.result.DependencyResult
+import org.gradle.api.internal.artifacts.dependencies.DefaultExternalModuleDependency
 
 /**
  * Class used to contain and process the Maven and Etendo dependencies.
@@ -218,7 +219,8 @@ class DependencyProcessor {
             project.logger.info("***********************************************")
             project.logger.info("* Core dependency resolved to use '${coreArtifactDependency.displayName}'")
             project.logger.info("***********************************************")
-            project.dependencies.add(container.name, coreArtifactDependency.displayName)
+            Set<DefaultExternalModuleDependency> dependencies = ResolverDependencyUtils.filterDependenciesByName(project, container, coreArtifactDependency.group, coreArtifactDependency.name)
+            ResolverDependencyUtils.updateDependenciesVersion(project, dependencies, coreArtifactDependency.version)
         }
     }
 

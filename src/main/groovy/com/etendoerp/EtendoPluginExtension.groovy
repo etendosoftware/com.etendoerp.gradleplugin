@@ -13,9 +13,9 @@ class EtendoPluginExtension {
 
     /**
      * Flag used to ignore loading the source modules to perform resolution conflicts.
-     * Default false
+     * Default true
      */
-    boolean ignoreSourceModulesResolution = false
+    boolean ignoreSourceModulesResolution = true
 
     /**
      * Flag used to perform or not the resolution conflicts.
