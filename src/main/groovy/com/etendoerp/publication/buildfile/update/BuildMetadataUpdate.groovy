@@ -27,6 +27,10 @@ class BuildMetadataUpdate {
                 String dependencyName = project.findProperty(DEPENDENCY_PROP) ?: "${CoreMetadata.DEFAULT_ETENDO_CORE_GROUP}.${CoreMetadata.DEFAULT_ETENDO_CORE_NAME}"
 
                 def moduleProject = project.findProject(":${PublicationUtils.BASE_MODULE_DIR}")
+                if (!moduleProject) {
+                    throw new IllegalStateException("* The project :${PublicationUtils.BASE_MODULE_DIR} does not exists.")
+                }
+
                 List<Project> moduleSubprojects = moduleProject.subprojects.toList()
 
                 for (Project subProject : moduleSubprojects) {

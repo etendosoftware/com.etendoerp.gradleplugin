@@ -90,6 +90,12 @@ class EtendoPluginExtension {
      */
     boolean ignoreCoreJarDependency = false
 
+    /**
+     * Flag used to prevent the display of the multiple menus.
+     * Default false.
+     */
+    boolean ignoreDisplayMenu = false
+
     /************************ MESSAGES ************************/
 
     static String ignoredArtifactsMessage(String exampleModule) {
