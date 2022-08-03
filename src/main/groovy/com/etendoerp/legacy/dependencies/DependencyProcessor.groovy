@@ -8,12 +8,10 @@ import com.etendoerp.legacy.dependencies.container.ArtifactDependency
 import com.etendoerp.legacy.dependencies.container.DependencyContainer
 import com.etendoerp.legacy.dependencies.container.DependencyType
 import com.etendoerp.legacy.dependencies.container.EtendoJarModuleArtifact
-import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.Dependency
 import org.gradle.api.artifacts.DependencySet
-import org.gradle.api.artifacts.result.DependencyResult
 import org.gradle.api.internal.artifacts.dependencies.DefaultExternalModuleDependency
 
 /**
@@ -145,7 +143,7 @@ class DependencyProcessor {
      */
     void loadDependenciesFiles(boolean addCoreToResolution, boolean performResolutionConflicts , boolean filterCoreDependency) {
         // Load all project and subproject dependencies in a custom configuration container
-        Configuration container = ResolverDependencyUtils.loadAllDependencies(project)
+        Configuration container = ResolverDependencyUtils.loadAllDependencies(project).copyRecursive()
         ArtifactDependency coreArtifactDependency = null
 
         if (performResolutionConflicts) {
