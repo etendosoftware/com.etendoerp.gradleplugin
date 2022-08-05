@@ -15,6 +15,8 @@ import org.gradle.api.tasks.Sync
 
 class ExpandCore {
 
+    static final String FORCE_EXPAND_PROP = "forceExpand"
+
     static void load(Project project) {
 
         project.tasks.register("cleanTempCoreDir", Delete) {
@@ -32,6 +34,14 @@ class ExpandCore {
                 coreMetadata.loadMetadataFromExtension()
 
                 def extension = project.extensions.findByType(EtendoPluginExtension)
+
+                // Verify if the core is already in JAR
+                // The core is in JAR and neither the force property or the ignore Core Jar Dependency is set to true.
+                if (coreMetadata.isCoreInJars() && !(project.findProperty(FORCE_EXPAND_PROP) || extension.ignoreCoreJarDependency)) {
+                    throw new IllegalStateException("* The CORE can not be expanded." +
+                                                    "${EtendoPluginExtension.ignoreCoreJarDependencyMessage()} \n" +
+                                                    "* To force the expansion use the command line parameter '-P${FORCE_EXPAND_PROP}=true'")
+                }
 
                 def performResolutionConflicts = extension.performResolutionConflicts
                 def supportJars = extension.supportJars
