@@ -16,7 +16,7 @@ def URL_DEV  = "https://repo.futit.cloud/repository/maven-public-snapshots"
 def mode = DEV
 
 // If the version is updated, make sure to change it in the 'EtendoPlugin' class
-def pluginVersion = "1.0.2"
+def pluginVersion = "1.0.3"
 
 static def gitBranch() {
     def branch = ""
@@ -64,6 +64,9 @@ dependencies {
 
     // https://mvnrepository.com/artifact/org.postgresql/postgresql
     implementation group: 'org.postgresql', name: 'postgresql', version: '42.3.2'
+
+    // https://mvnrepository.com/artifact/com.oracle.database.jdbc/ojdbc8
+    implementation 'com.oracle.database.jdbc:ojdbc8:21.6.0.0.1'
 
     // https://mvnrepository.com/artifact/org.jdom/jdom2
     implementation("org.jdom:jdom2:2.0.5") {
