@@ -195,4 +195,28 @@ class ModuleUtils {
         return jarModules
     }
 
+    static Map<String, Project> loadValidSubprojectDependencies(Project mainProject) {
+       return GradleUtils.loadProjectProperty(mainProject, mainProject, ProjectProperty.VALID_SOURCE_MODULES, getValidSubprojectDependencies(mainProject))
+    }
+
+    static Map<String, Project> getValidSubprojectDependencies(Project mainProject) {
+        Map<String, Project> validSubprojects = new TreeMap<>(String.CASE_INSENSITIVE_ORDER)
+
+        // Load module subprojects
+        def baseModuleProject = mainProject.findProject(":${PublicationUtils.BASE_MODULE_DIR}")
+
+        if (baseModuleProject) {
+            // Filter the valid Etendo modules.
+            validSubprojects = PublicationConfigurationUtils.generateProjectMap(baseModuleProject.subprojects.findAll({
+                PublicationUtils.loadModuleName(mainProject, it).isPresent()
+            }).collect())
+        }
+
+        return validSubprojects
+    }
+
+    static boolean isValidSubproject(Project mainProject, Project subProject) {
+        return PublicationUtils.loadModuleName(mainProject, subProject).isPresent()
+    }
+
 }
