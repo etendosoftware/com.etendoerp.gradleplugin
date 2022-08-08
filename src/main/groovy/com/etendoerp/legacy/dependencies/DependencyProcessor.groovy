@@ -8,6 +8,7 @@ import com.etendoerp.legacy.dependencies.container.ArtifactDependency
 import com.etendoerp.legacy.dependencies.container.DependencyContainer
 import com.etendoerp.legacy.dependencies.container.DependencyType
 import com.etendoerp.legacy.dependencies.container.EtendoJarModuleArtifact
+import com.etendoerp.modules.ModuleUtils
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.Dependency
@@ -67,6 +68,9 @@ class DependencyProcessor {
         def applyDependenciesToMainProject = extension.applyDependenciesToMainProject
 
         def rootProjectConfigurations = DependencyUtils.loadListOfConfigurations(project)
+
+        // Clean the 'build/etendo/modules/' dir
+        ModuleUtils.cleanBuildModules(project)
 
         if (coreMetadata.coreType == CoreType.SOURCES) {
             // Exclude from the root project the Core JAR dependency (included also from transitivity)
