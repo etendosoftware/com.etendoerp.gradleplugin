@@ -7,8 +7,10 @@ import org.gradle.api.Project
 import org.gradle.api.artifacts.Dependency
 import org.gradle.api.artifacts.ModuleVersionIdentifier
 import org.gradle.api.artifacts.ResolvedArtifact
+import org.gradle.api.artifacts.result.DependencyResult
 import org.gradle.api.file.FileTree
 import org.gradle.api.internal.artifacts.DefaultModuleVersionIdentifier
+import org.gradle.api.internal.artifacts.result.DefaultResolvedDependencyResult
 
 class ArtifactDependency {
 
@@ -43,6 +45,10 @@ class ArtifactDependency {
 
     // 'jar' or 'zip'
     String extension
+
+    DefaultResolvedDependencyResult dependencyResult
+    // Contains the name (group:name)
+    String artifactName
 
     ArtifactDependency(Project project, ResolvedArtifact resolvedArtifact) {
         this.project = project
