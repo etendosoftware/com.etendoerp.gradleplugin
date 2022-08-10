@@ -427,12 +427,12 @@ class LegacyScriptLoader {
                 // Creating permission to publish
                 try {
                     def base_url = "https://api.futit.cloud/migrations"
-                    URL url = new URL(base_url + "/createPrivilegeToUpload?group=" + javaPackage + "&repository=" + repoVar + "&nexusUser=" + nexusUser + "&nexusPassword=" + nexusPassword)
+                    URL url = new URL(base_url + "/createPrivilegeToUpload?group=" + javaPackage + "&repository=" + repoVar)
                     uc = url.openConnection();
                     uc.setRequestMethod("POST")
-                    String userpass = nexusUser + ":" + nexusPassword;
-                    String basicAuth = "Basic " + new String(Base64.getEncoder().encode(userpass.getBytes()));
-                    uc.setRequestProperty("Authorization", basicAuth);
+                    String userPass = nexusUser + ":" + nexusPassword;
+                    def auth = userPass.bytes.encodeBase64()
+                    uc.setRequestProperty("Authorization", "Basic ${auth}")
                     print "*****************************************************************************\n"
                     print "* This task only obtains permissions to publish a module for the first time *\n"
                     print "* to publish the module you must run the following command                  *\n"
