@@ -161,7 +161,7 @@ class ResolutionUtils {
                         }
                     }
 
-                    if (artifactDependency) {
+                    if (artifactDependency != null) {
                         artifactDependency.dependencyResult = dependencyResult
                         artifactDependency.artifactName = artifactName
 
@@ -305,7 +305,7 @@ class ResolutionUtils {
             coreArtifactDependency = ResolverDependencyUtils.getCoreDependency(project, currentCoreDependency, coreResolutionDependencies)
 
             // Update the CORE version
-            if (!coreArtifactDependency.hasConflicts) {
+            if (coreArtifactDependency != null && !coreArtifactDependency.hasConflicts) {
                 Set<DefaultExternalModuleDependency> dependencies = ResolverDependencyUtils.filterDependenciesByName(project, configToPerformResolution, coreArtifactDependency.group, coreArtifactDependency.name)
                 ResolverDependencyUtils.updateDependenciesVersion(project, dependencies, coreArtifactDependency.version)
             }
