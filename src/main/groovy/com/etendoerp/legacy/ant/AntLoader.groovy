@@ -151,11 +151,6 @@ class AntLoader {
             def task = project.tasks.findByName(it)
             if (task != null) {
                 task.dependsOn(project.tasks.findByName("compileFilesCheck"))
-
-                def compileJavaDummy = project.tasks.findByName(CompileJavaLoader.TASK_NAME)
-                if (compileJavaDummy) {
-                    task.dependsOn(compileJavaDummy)
-                }
             }
         }
 
@@ -167,6 +162,13 @@ class AntLoader {
             }
         }
 
+        // Adding java dummy task to prevent deleting 'build/classes' dir when
+        // the task 'compileJava' is executed for first time.
+        def antInitTask = project.tasks.findByName("antInit")
+        def compileJavaDummy = project.tasks.findByName(CompileJavaLoader.TASK_NAME)
+        if (antInitTask != null && compileJavaDummy != null) {
+            antInitTask.dependsOn(compileJavaDummy)
+        }
 
         /** Call ant setup to prepare environment */
         project.task("setup") {
