@@ -9,7 +9,6 @@ import com.etendoerp.legacy.ant.AntLoader
 import com.etendoerp.modules.ModulesConfigurationLoader
 import com.etendoerp.modules.uninstall.UninstallModuleLoader
 import com.etendoerp.publication.PublicationLoader
-import com.etendoerp.publication.git.GitLoader
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaBasePlugin
