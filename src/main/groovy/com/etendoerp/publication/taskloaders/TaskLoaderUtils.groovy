@@ -8,10 +8,18 @@ class TaskLoaderUtils {
     static final String DUMMY_TASK_TEMPORARY_DIR = "DUMMY_TASK_TEMPORARY_DIR"
 
     static Optional<File> parseFilesToTemporaryDir(Project mainProject, Project subProject, File temporaryDir=null) {
-        PomConfigurationContainer pomContainer = subProject.findProperty(PomConfigurationContainer.POM_CONTAINER_PROPERTY) as PomConfigurationContainer
+        PomConfigurationContainer pomContainer = null
+
+        if (subProject.ext.has(PomConfigurationContainer.POM_CONTAINER_PROPERTY)) {
+            pomContainer = subProject.ext.get(PomConfigurationContainer.POM_CONTAINER_PROPERTY)
+        }
 
         if (!pomContainer) {
             mainProject.logger.info("* The POM container is not defined for the '${subProject}'.")
+            return Optional.empty()
+        }
+
+        if (!pomContainer.recursivePublication) {
             return Optional.empty()
         }
 

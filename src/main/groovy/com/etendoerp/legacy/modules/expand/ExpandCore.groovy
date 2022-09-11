@@ -2,14 +2,11 @@ package com.etendoerp.legacy.modules.expand
 
 import com.etendoerp.EtendoPluginExtension
 import com.etendoerp.core.CoreMetadata
-import com.etendoerp.core.CoreType
 import com.etendoerp.legacy.LegacyScriptLoader
-import com.etendoerp.legacy.dependencies.ResolutionUtils
 import com.etendoerp.legacy.dependencies.ResolverDependencyUtils
 import com.etendoerp.legacy.dependencies.container.ArtifactDependency
 import com.etendoerp.legacy.dependencies.container.EtendoCoreZipArtifact
 import org.gradle.api.Project
-import org.gradle.api.artifacts.Dependency
 import org.gradle.api.tasks.Delete
 import org.gradle.api.tasks.Sync
 
@@ -56,11 +53,11 @@ class ExpandCore {
 
                 if (performResolutionConflicts) {
                     project.logger.info("* Running the resolution of conflicts of the 'expandCore' task.")
-                    def artifactDependencies = ExpandUtils.performExpandResolutionConflicts(project, coreMetadata, true, supportJars, false, true)
+                    def artifactDependencies = ExpandUtils.performExpandCoreResolutionConflicts(project, coreMetadata)
 
                     // Obtain the 'selected' Core version
                     String currentCoreDependency = "${coreMetadata.coreGroup}:${coreMetadata.coreName}"
-                    coreArtifactDependency = ResolverDependencyUtils.getCoreDependency(project, currentCoreDependency ,artifactDependencies)
+                    coreArtifactDependency = ResolverDependencyUtils.getCoreDependency(project, currentCoreDependency , artifactDependencies)
                 }
 
                 // Check the version to expand

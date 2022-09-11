@@ -123,10 +123,21 @@ class PublicationConfigurationUtils {
         // Store a Project dependency
         moduleSubproject.dependencies.add(configurationContainerProperty, subProjectToAdd)
 
-        // Store the Project dependency with the version declared in the 'build.gradle', used later to be replaced.
-        String currentDeclaredVersion = dependency.version
+        String dependencyName = "${dependency.group}:${dependency.name}"
         def pomContainer = PomConfigurationContainer.getPomContainer(mainProject, moduleSubproject, pomType)
-        pomContainer.putSubproject(new PomProjectContainer(subProjectToAdd, currentDeclaredVersion, dependency))
+
+        def subprojectDep = pomContainer.subprojectDependencies.get(dependencyName)
+
+        // Store the Project dependency with the version declared in the 'build.gradle', used later to be replaced.
+        if (!subprojectDep) {
+            String currentDeclaredVersion = dependency.version
+            subprojectDep = new PomProjectContainer(subProjectToAdd, currentDeclaredVersion, dependency)
+            subprojectDep.isProjectDependency = true
+            subprojectDep.setArtifactName(dependencyName)
+            pomContainer.putSubproject(subprojectDep)
+        }
+
+        subprojectDep.recursivePublication = true
     }
 
     static Map<String, Project> generateProjectMap(List<Project> projectList) {

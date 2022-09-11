@@ -4,6 +4,7 @@ import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.DependencySet
 import org.gradle.api.internal.artifacts.dependencies.DefaultExternalModuleDependency
+import org.gradle.api.internal.artifacts.dependencies.DefaultProjectDependency
 
 class DependencyUtils {
 
@@ -75,7 +76,7 @@ class DependencyUtils {
                 // Used to prevent adding dependencies related to /lib/runtime
                 // when needs to be load to the ANT classpath
                 if (onlyExternalDependencies) {
-                    if (it instanceof DefaultExternalModuleDependency) {
+                    if (it instanceof DefaultExternalModuleDependency || it instanceof DefaultProjectDependency) {
                         set.add(it)
                     }
                 } else {

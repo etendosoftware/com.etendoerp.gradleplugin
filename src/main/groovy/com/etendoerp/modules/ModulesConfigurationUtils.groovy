@@ -3,37 +3,53 @@ package com.etendoerp.modules
 import com.etendoerp.gradleutils.GradleUtils
 import com.etendoerp.gradleutils.ProjectProperty
 import com.etendoerp.jars.modules.metadata.DependencyUtils
+import com.etendoerp.legacy.dependencies.container.ArtifactDependency
 import com.etendoerp.publication.PublicationUtils
 import com.etendoerp.publication.configuration.pom.PomConfigurationContainer
 import com.etendoerp.publication.configuration.pom.PomProjectContainer
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
+import org.gradle.api.internal.artifacts.configurations.DefaultConfiguration
+import org.gradle.api.internal.artifacts.dependencies.DefaultExternalModuleDependency
 import org.gradle.api.internal.artifacts.dependencies.DefaultProjectDependency
 
 class ModulesConfigurationUtils {
 
     static final String DEFAULT_CONFIG_COPY = "defaultCopy"
 
+    /**
+     * Configure each subproject with the POM container which holds the defined dependencies,
+     * the copy of the 'default' configuration and the 'ProjectDependency' used later to perform the resolution of conflicts.
+     * @param mainProject
+     */
     static void configureSubprojects(Project mainProject) {
         def moduleProject = mainProject.findProject(":${PublicationUtils.BASE_MODULE_DIR}")
 
+        // Contains a map between the subproject name "group:artifact" and the subproject
+        def subprojectNames = loadSubprojectsNames(mainProject)
+
+        // Configure the main project
+        configureMainProject(mainProject, subprojectNames)
+
         if (moduleProject) {
-            // Contains a map between the subproject name "group:artifact" and the subproject
-            def subprojectNames = loadSubprojectsNames(mainProject)
+            // Configure subprojects
             moduleProject.subprojects.each {
                 configureSubproject(mainProject, it, subprojectNames)
             }
         }
     }
 
+    static void configureMainProject(Project mainProject, Map<String, Project> subprojectNamesMap) {
+        DefaultConfiguration defaultCopy = mainProject.configurations.default.copyRecursive() as DefaultConfiguration
+        mainProject.configurations.add(defaultCopy)
+
+        configurePomContainer(mainProject, mainProject, subprojectNamesMap)
+    }
+
     static void configureSubproject(Project mainProject, Project subProject, Map<String, Project> subprojectNamesMap) {
         configurePomContainer(mainProject, subProject, subprojectNamesMap)
 
-        DependencyUtils.VALID_CONFIGURATIONS
-
-        def validConfigs = subProject.configurations.findAll {
-            it.name in DependencyUtils.VALID_CONFIGURATIONS || it.name == DEFAULT_CONFIG_COPY
-        }.collect()
+        def validConfigs = subProject.configurations.findAll().collect()
 
         configureSubstitutions(mainProject, validConfigs, subprojectNamesMap, "Source module already present.")
     }
@@ -55,6 +71,36 @@ class ModulesConfigurationUtils {
         }
     }
 
+    /**
+     * Configures each subproject to use a common dependency version to prevent downloading unused dependencies.
+     * @param mainProject
+     * @param dependencyMap
+     */
+    static void configureVersionReplacer(Project mainProject, Map<String, ArtifactDependency> dependencyMap) {
+        // Contains a map between the subproject name "group:artifact" and the subproject
+        Map<String, Project> subprojectNames = getSubprojectNames(mainProject)
+
+        subprojectNames.each {
+            Project subProject = it.value
+            def validConfigs = subProject.configurations.findAll {
+                it.name in DependencyUtils.VALID_CONFIGURATIONS
+            }.collect()
+            configureVersionReplacer(mainProject, validConfigs, dependencyMap)
+        }
+    }
+
+    static void configureVersionReplacer(Project mainProject, List<Configuration> configurations, Map<String, ArtifactDependency> dependencyMap) {
+        configurations.each {
+            it.resolutionStrategy.eachDependency({details ->
+                String dependencyName = "${details.requested.group}:${details.requested.name}"
+                if (dependencyMap.containsKey(dependencyName)) {
+                    details.useVersion(dependencyMap.get(dependencyName).version)
+                    details.because("Dependency resolution.")
+                }
+            })
+        }
+    }
+
     static void configurePomContainer(Project mainProject, Project subProject, Map<String, Project> subprojectNamesMap) {
         def pomContainer = PomConfigurationContainer.getPomContainer(mainProject, subProject)
 
@@ -63,8 +109,19 @@ class ModulesConfigurationUtils {
 
         if (defaultConfig) {
             pomContainer.defaultCopyConfiguration = defaultConfig
-            List<Configuration> configs = [defaultConfig,
-                                           subProject.configurations.findByName(PomConfigurationContainer.SUBPROJECT_DEPENDENCIES_CONFIGURATION_CONTAINER)] as List<Configuration>
+
+            // Only allow user declared dependencies or project dependencies
+            defaultConfig.dependencies.removeIf({
+                !(it instanceof DefaultExternalModuleDependency || it instanceof DefaultProjectDependency)
+            })
+
+            List<Configuration> configs = [defaultConfig] as List<Configuration>
+
+            def subConfContainer = subProject.configurations.findByName(PomConfigurationContainer.SUBPROJECT_DEPENDENCIES_CONFIGURATION_CONTAINER)
+            if (subConfContainer) {
+                configs.add(subConfContainer)
+            }
+
             loadPomSubprojectDependencies(mainProject, pomContainer, configs, subprojectNamesMap)
 
             // Create the 'DefaultProjectDependency'
@@ -80,7 +137,6 @@ class ModulesConfigurationUtils {
             configuration.allDependencies.each {
                 String name = it.group + ":" + it.name
                 String version = it.version
-
                 PomProjectContainer projectContainer = new PomProjectContainer(it, name, version)
 
                 if (subprojectNamesMap.containsKey(name)) {
@@ -116,18 +172,50 @@ class ModulesConfigurationUtils {
 
         if (moduleProject) {
             moduleProject.subprojects.each {
-                if (ModuleUtils.isValidSubproject(mainProject, it)) {
-                    subprojectNames.put("${it.group}:${it.artifact}".toString(), it)
-                } else {
-                    def subprojectName = parseSubprojectName(mainProject, it)
-                    if (subprojectName.isPresent()) {
-                        subprojectNames.put(subprojectName.get(), it)
-                    }
+                def subprojectNameOptional = getSubprojectName(mainProject, it)
+                if (subprojectNameOptional.isPresent()) {
+                    subprojectNames.put(subprojectNameOptional.get(), it)
                 }
             }
         }
 
         return subprojectNames
+    }
+
+    /**
+     * Returns a Map between the project name (group:name) and the Project itself
+     * @param mainProject
+     * @return
+     */
+    static Map<String, Project> getSubprojectNames(Project mainProject) {
+        // Contains a map between the subproject name "group:artifact" and the subproject
+        Map<String, Project> subprojectNames
+
+        def subprojectNamesOptional = GradleUtils.getProjectProperty(mainProject, mainProject, ProjectProperty.SOURCE_MODULES_MAP)
+        if (subprojectNamesOptional.isPresent()) {
+            subprojectNames = subprojectNamesOptional.get() as Map<String, Project>
+        } else {
+            subprojectNames = loadSubprojectsNames(mainProject)
+        }
+        return subprojectNames
+    }
+
+    static Optional<String> getSubprojectName(Project mainProject, Project subProject) {
+        if (ModuleUtils.isValidSubproject(mainProject, subProject)) {
+            return Optional.of("${subProject.group}:${subProject.artifact}".toString())
+        }
+        return parseSubprojectName(mainProject, subProject)
+    }
+
+    static Optional<String> getSubprojectNameFromPath(Project mainProject, String subProjectPath) {
+        def subProject = mainProject.findProject(subProjectPath)
+        if (subProject) {
+            if (ModuleUtils.isValidSubproject(mainProject, subProject)) {
+                return Optional.of("${subProject.group}:${subProject.artifact}".toString())
+            }
+            return parseSubprojectName(mainProject, subProject)
+        }
+        return Optional.empty()
     }
 
     static Optional<String> parseSubprojectName(Project mainProject, Project subProject) {

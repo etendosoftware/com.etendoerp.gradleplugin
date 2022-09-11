@@ -2,14 +2,16 @@ package com.etendoerp.legacy.modules.expand
 
 import com.etendoerp.EtendoPluginExtension
 import com.etendoerp.core.CoreMetadata
-import com.etendoerp.jars.modules.metadata.DependencyUtils
+import com.etendoerp.core.CoreType
 import com.etendoerp.legacy.ant.AntMenuHelper
 import com.etendoerp.legacy.dependencies.ResolutionUtils
 import com.etendoerp.legacy.dependencies.ResolverDependencyUtils
 import com.etendoerp.legacy.dependencies.container.ArtifactDependency
 import com.etendoerp.legacy.dependencies.container.DependencyContainer
 import com.etendoerp.legacy.dependencies.container.DependencyType
+import com.etendoerp.modules.ModulesConfigurationUtils
 import com.etendoerp.publication.PublicationUtils
+import com.etendoerp.publication.configuration.pom.PomConfigurationContainer
 import groovy.io.FileType
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
@@ -36,7 +38,7 @@ class ExpandUtils {
     ]
 
     static List<ArtifactDependency> getSourceModulesFiles(Project project, Configuration configuration, CoreMetadata coreMetadata) {
-        def configurationToExpand = ResolverDependencyUtils.createRandomConfiguration(project,"expand", configuration)
+        def configurationToExpand = configuration.copyRecursive()
 
         // TODO - Improvement: Exclude from the 'configuration' the modules specified by the user in the 'development' list. This will prevent downloading the sources.
 
@@ -50,8 +52,16 @@ class ExpandUtils {
         def supportJars = coreMetadata.supportJars
 
         if (performResolutionConflicts) {
-           def artifactDependencies = performExpandResolutionConflicts(project, coreMetadata, true, supportJars, true, true)
-           configurationToExpand = ResolverDependencyUtils.updateConfigurationDependencies(project, configurationToExpand, artifactDependencies, true, false)
+            def artifactDependencies = performExpandModulesResolutionConflicts(project, coreMetadata, configurationToExpand, supportJars, onlySourceModules)
+
+            Map<String, ArtifactDependency> artifacts = new TreeMap(String.CASE_INSENSITIVE_ORDER)
+            artifactDependencies.each {
+                if (!it.value.isEmpty()) {
+                    artifacts.put(it.key, it.value[0])
+                }
+            }
+
+            ModulesConfigurationUtils.configureVersionReplacer(project, [configurationToExpand], artifacts)
         }
 
         // Filter core dependencies
@@ -150,39 +160,99 @@ class ExpandUtils {
         return artifactDependency
     }
 
-    static Map<String, List<ArtifactDependency>> performExpandResolutionConflicts(Project project, CoreMetadata coreMetadata, boolean addCoreDependency, boolean addProjectDependencies, boolean filterCoreDependency, boolean obtainSelectedArtifacts) {
-        // Create custom configuration container
-        def resolutionContainer = ResolverDependencyUtils.createRandomConfiguration(project, EXPAND_SOURCES_RESOLUTION_CONTAINER)
-        def resolutionDependencySet = resolutionContainer.dependencies
+    static Map<String, List<ArtifactDependency>> performExpandModulesResolutionConflicts(Project project, CoreMetadata coreMetadata,
+                                                                                         Configuration expandModulesConfig, boolean supportJars, boolean onlySourceModules) {
+        def expandModulesConfigCopy = expandModulesConfig.copyRecursive()
 
-        if (addCoreDependency) {
-            // Add the current core version
-            def core = "${coreMetadata.coreGroup}:${coreMetadata.coreName}:${coreMetadata.coreVersion}"
-            project.logger.info("* Adding the core dependency to perform resolution conflicts. ${core}")
-            project.dependencies.add(resolutionContainer.name, core)
+        def requestedDependencies = ResolutionUtils.getIncomingDependencies(project, expandModulesConfigCopy.copyRecursive(), true, true, LogLevel.DEBUG)
+        def subprojectNames = ModulesConfigurationUtils.getSubprojectNames(project)
+        def moduleDependencies = ResolverDependencyUtils.loadDependenciesMap(project, expandModulesConfigCopy, ":")
+
+        def filteredSubprojects = [:]
+        boolean removeSourceModules = false
+
+        if (supportJars && !onlySourceModules) {
+            removeSourceModules = true
+            // Filter the source modules (project dependency) that are not defined in the 'moduleDeps' configuration
+            filteredSubprojects = subprojectNames.findAll {
+                !moduleDependencies.containsKey(it.key)
+            }
+
+            // Add the CORE dependencies that are not in sources or defined in the 'moduleDep'
+            def mainPom = PomConfigurationContainer.getPomContainer(project, project)
+            if (mainPom.defaultCopyConfiguration) {
+                mainPom.defaultCopyConfiguration.dependencies.each {
+                    String dependencyName = "${it.group}:${it.name}"
+                    if (!subprojectNames.containsKey(dependencyName) && !moduleDependencies.containsKey(dependencyName)) {
+                        expandModulesConfigCopy.dependencies.add(it)
+                    }
+                }
+            }
+
+            // Configure the resolutionConfiguration to substitute all the dependencies already in sources.
+            ModulesConfigurationUtils.configureSubstitutions(project, [expandModulesConfig, expandModulesConfigCopy], filteredSubprojects)
+
+        } else {
+            // Filter the source projects that not will be expanded
+            filteredSubprojects = subprojectNames.findAll {
+                !requestedDependencies.containsKey(it.key)
+            }
         }
 
-        def configurationsToLoad = []
-
-        // Load user defined dependencies
-        def moduleDepConfig = project.configurations.getByName("moduleDeps")
-        configurationsToLoad.add(moduleDepConfig)
-
-        // Load source modules dependencies to perform resolution.
-        def sourceDepConfig = ResolutionUtils.loadSourceModulesDependenciesResolution(project)
-        configurationsToLoad.add(sourceDepConfig)
-
-        if (addProjectDependencies) {
-            // Load project dependencies
-            def projectDependencies = ResolverDependencyUtils.loadAllDependencies(project)
-            configurationsToLoad.add(projectDependencies)
+        // Add the source projects (project dependency) to perform the resolution.
+        filteredSubprojects.each {
+            def subprojectPom = PomConfigurationContainer.getPomContainer(project, it.value)
+            if (subprojectPom.projectDependency) {
+                expandModulesConfigCopy.dependencies.add(subprojectPom.projectDependency)
+            }
         }
 
-        // Add the defined dependencies to the resolution container
-        DependencyUtils.loadDependenciesFromConfigurations(configurationsToLoad, resolutionDependencySet)
+        // Add the current core version
+        def core = "${coreMetadata.coreGroup}:${coreMetadata.coreName}:${coreMetadata.coreVersion}"
+        project.logger.info("* Adding the core dependency to perform resolution conflicts. ${core}")
+        expandModulesConfigCopy.dependencies.add(project.dependencies.create(core))
 
         // Perform resolution
-        return ResolutionUtils.performResolutionConflicts(project, resolutionContainer, filterCoreDependency, obtainSelectedArtifacts)
+        return ResolutionUtils.performResolutionConflicts(project, expandModulesConfigCopy.copyRecursive(), true, true, removeSourceModules)
+    }
+
+    static Map<String, List<ArtifactDependency>> performExpandCoreResolutionConflicts(Project project, CoreMetadata coreMetadata) {
+        // Create custom configuration container
+        def resolutionContainer = ResolverDependencyUtils.createRandomConfiguration(project, EXPAND_SOURCES_RESOLUTION_CONTAINER)
+
+        // Add the current core version
+        def core = "${coreMetadata.coreGroup}:${coreMetadata.coreName}:${coreMetadata.coreVersion}"
+        project.logger.info("* Adding the core dependency to perform resolution conflicts. ${core}")
+        resolutionContainer.dependencies.add(project.dependencies.create(core))
+
+        // Load source modules dependencies to perform resolution.
+        def subprojectNames = ModulesConfigurationUtils.getSubprojectNames(project)
+        subprojectNames.each {
+            def subprojectPom = PomConfigurationContainer.getPomContainer(project, it.value)
+            if (subprojectPom.projectDependency) {
+                resolutionContainer.dependencies.add(subprojectPom.projectDependency)
+            }
+        }
+
+        if (coreMetadata.supportJars || coreMetadata.coreType == CoreType.UNDEFINED) {
+            // Load project dependencies
+            // Add the CORE dependencies that are not in sources
+            def mainPom = PomConfigurationContainer.getPomContainer(project, project)
+            if (mainPom.defaultCopyConfiguration) {
+                mainPom.defaultCopyConfiguration.dependencies.each {
+                    String dependencyName = "${it.group}:${it.name}"
+                    if (!subprojectNames.containsKey(dependencyName)) {
+                        resolutionContainer.dependencies.add(it)
+                    }
+                }
+            }
+        }
+
+        // Configure the resolutionConfiguration to substitute all the dependencies already in sources.
+        ModulesConfigurationUtils.configureSubstitutions(project, [resolutionContainer], subprojectNames)
+
+        // Perform resolution
+        return ResolutionUtils.performResolutionConflicts(project, resolutionContainer, false, true)
     }
 
     static String getModuleName(String dependency) {

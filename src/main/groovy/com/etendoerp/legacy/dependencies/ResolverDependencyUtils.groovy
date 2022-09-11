@@ -1,8 +1,13 @@
 package com.etendoerp.legacy.dependencies
 
 import com.etendoerp.core.CoreMetadata
+import com.etendoerp.gradleutils.GradleUtils
+import com.etendoerp.gradleutils.ProjectProperty
 import com.etendoerp.jars.modules.metadata.DependencyUtils
 import com.etendoerp.legacy.dependencies.container.ArtifactDependency
+import com.etendoerp.modules.ModulesConfigurationUtils
+import com.etendoerp.publication.PublicationUtils
+import com.etendoerp.publication.configuration.pom.PomConfigurationContainer
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.Dependency
@@ -10,8 +15,74 @@ import org.gradle.api.artifacts.DependencySet
 import org.gradle.api.internal.artifacts.dependencies.AbstractModuleDependency
 import org.gradle.api.internal.artifacts.dependencies.DefaultExternalModuleDependency
 import org.gradle.api.internal.artifacts.dependencies.DefaultProjectDependency
+import org.gradle.api.internal.artifacts.ivyservice.resolutionstrategy.DefaultResolutionStrategy
 
 class ResolverDependencyUtils {
+
+    static Configuration loadResolutionDependencies(Project mainProject) {
+        Configuration resolutionConfiguration = createRandomConfiguration(mainProject, "resolution")
+
+        // Contains a map between the subproject name "group:artifact" and the subproject
+        Map<String, Project> subprojectNames = ModulesConfigurationUtils.getSubprojectNames(mainProject)
+
+        // Obtain the main project dependencies
+        def mainConf = mainProjectDependencies(mainProject, subprojectNames)
+        if (mainConf) {
+            resolutionConfiguration.extendsFrom(mainConf)
+            resolutionConfiguration.dependencies.addAll(mainConf.dependencies)
+        }
+
+        // Obtain the subproject dependencies
+        def moduleProject = mainProject.findProject(":${PublicationUtils.BASE_MODULE_DIR}")
+
+        if (moduleProject) {
+            moduleProject.subprojects.each {
+                def subprojectPom = PomConfigurationContainer.getPomContainer(mainProject, it)
+
+                // Add the 'projectDependency' to the resolutionConfiguration
+                if (subprojectPom.projectDependency) {
+                    resolutionConfiguration.dependencies.add(subprojectPom.projectDependency)
+                }
+            }
+        }
+
+        // Configure the resolutionConfiguration to substitute all the dependencies
+        // already in sources.
+        ModulesConfigurationUtils.configureSubstitutions(mainProject, [resolutionConfiguration], subprojectNames)
+
+        return resolutionConfiguration
+    }
+
+    static Configuration mainProjectDependencies(Project mainProject, Map<String, Project> subprojectNames) {
+        Configuration configuration = null
+
+        // Obtain the main project dependencies
+        def mainPom = PomConfigurationContainer.getPomContainer(mainProject, mainProject)
+        if (mainPom.defaultCopyConfiguration) {
+            configuration = mainPom.defaultCopyConfiguration
+        }
+
+        // Exclude from the root configurations the dependencies already in sources
+        def validConfigs = mainProject.configurations.findAll {
+            it.name in DependencyUtils.VALID_CONFIGURATIONS || it.name == ModulesConfigurationUtils.DEFAULT_CONFIG_COPY
+        }.collect()
+
+        validConfigs.each { Configuration conf ->
+            conf.dependencies.removeIf({
+                String dependencyName = "${it.group}:${it.name}"
+                return subprojectNames.containsKey(dependencyName)
+            })
+
+            subprojectNames.each {
+                def nameSplit = it.key.split(":")
+                if (nameSplit.size() >= 2) {
+                    conf.exclude([group: nameSplit[0], module: nameSplit[1]])
+                }
+            }
+        }
+
+        return configuration
+    }
 
     /**
      * Loads all the dependencies of the project and subproject in a custom Configuration
@@ -61,7 +132,7 @@ class ResolverDependencyUtils {
      * Loads the dependencies map with the module name has key and the Dependency has value.
      * @param container
      */
-    static Map<String, Dependency> loadDependenciesMap(Project project, Configuration container) {
+    static Map<String, Dependency> loadDependenciesMap(Project project, Configuration container, String separator=".") {
         Map<String, Dependency> dependenciesMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER)
         for (Dependency dependency : container.dependencies) {
             def group = dependency.group
@@ -73,7 +144,7 @@ class ResolverDependencyUtils {
                     name = artifact
                 }
             }
-            String moduleName = "${group}.${name}"
+            String moduleName = "${group}${separator}${name}"
             dependenciesMap.put(moduleName, dependency)
         }
         return dependenciesMap
@@ -126,9 +197,9 @@ class ResolverDependencyUtils {
                         updateDependenciesVersion(project, dependencies, artifactDependency.dependencyResult.selected.getModuleVersion().version)
                     }
                 } else if (displayName && (addMissingArtifact || reloadArtifact)) {
-                    project.dependencies.add(configuration.name, displayName, {
+                    configuration.dependencies.add(project.dependencies.create(displayName, {
                         transitive = isTransitive
-                    })
+                    }))
                 }
             }
         }
@@ -256,6 +327,27 @@ class ResolverDependencyUtils {
         if (configurationToAdd) {
             DependencyUtils.loadDependenciesFromConfigurations([configurationToAdd], config.dependencies)
         }
+        return config
+    }
+
+    static Configuration createExtendedConfiguration(Project project, String name=null, Configuration confToExtend=null,
+                                                     boolean addSubstitutionsRules=true, boolean addDependencies=true) {
+        String configName = (name) ?: "internal"
+        def config = project.configurations.create("${configName}-configuration-" + UUID.randomUUID().toString().replace("-",""))
+
+        if (confToExtend) {
+            config.extendsFrom(confToExtend)
+            if (addSubstitutionsRules && confToExtend.resolutionStrategy instanceof DefaultResolutionStrategy ) {
+                config.resolutionStrategy.dependencySubstitution.all(
+                        (confToExtend.resolutionStrategy as DefaultResolutionStrategy ).getDependencySubstitutionRule()
+                )
+            }
+
+            if (addDependencies) {
+                DependencyUtils.loadDependenciesFromConfigurations([confToExtend], config.dependencies)
+            }
+        }
+
         return config
     }
 

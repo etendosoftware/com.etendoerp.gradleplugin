@@ -9,12 +9,10 @@ import com.etendoerp.legacy.dependencies.container.DependencyContainer
 import com.etendoerp.legacy.dependencies.container.DependencyType
 import com.etendoerp.legacy.dependencies.container.EtendoJarModuleArtifact
 import com.etendoerp.modules.ModuleUtils
-import com.etendoerp.publication.PublicationUtils
+import com.etendoerp.modules.ModulesConfigurationUtils
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.Dependency
-import org.gradle.api.artifacts.DependencySet
-import org.gradle.api.artifacts.result.DependencyResult
 import org.gradle.api.internal.artifacts.dependencies.DefaultExternalModuleDependency
 
 /**
@@ -113,27 +111,16 @@ class DependencyProcessor {
 
     Map<String, List<ArtifactDependency>> performResolutionConflict(Configuration container, boolean addCoreToResolution, boolean filterCoreDependency) {
         // Create a temporal configuration container used to perform resolution conflicts
-        def resolutionContainer = project.configurations.create(RESOLUTION_CONTAINER)
+        def resolutionContainer = container.copyRecursive()
 
-        List<Configuration> configurationsToLoad = new ArrayList<>()
-        configurationsToLoad.add(container)
         // Add the core dependency when is in Sources and supports Jars
         if (addCoreToResolution) {
             def group = coreMetadata.coreGroup
             def name = coreMetadata.coreName
             def version = coreMetadata.coreVersion
             def core = "${group}:${name}:${version}"
-            project.dependencies.add(RESOLUTION_CONTAINER, core)
+            resolutionContainer.dependencies.add(project.dependencies.create(core))
         }
-
-        DependencySet resolutionDependencySet = resolutionContainer.dependencies
-
-        // Load source modules dependencies
-        Configuration sourceModules = ResolutionUtils.loadSourceModulesDependenciesResolution(project)
-        configurationsToLoad.add(sourceModules)
-
-        // Load all the dependencies from the container and sourceModules to the created resolutionContainer
-        DependencyUtils.loadDependenciesFromConfigurations(configurationsToLoad, resolutionDependencySet)
 
         // Perform the resolution conflict versions
         return ResolutionUtils.performResolutionConflicts(project, resolutionContainer, filterCoreDependency, true)
@@ -149,7 +136,8 @@ class DependencyProcessor {
      */
     void loadDependenciesFiles(boolean addCoreToResolution, boolean performResolutionConflicts , boolean filterCoreDependency) {
         // Load all project and subproject dependencies in a custom configuration container
-        Configuration container = ResolverDependencyUtils.loadAllDependencies(project)
+        Configuration container = ResolverDependencyUtils.loadResolutionDependencies(project)
+
         ArtifactDependency coreArtifactDependency = null
 
         if (performResolutionConflicts) {
@@ -162,14 +150,7 @@ class DependencyProcessor {
             // Obtain the 'selected' Core version
             String currentCoreDependency = "${this.coreMetadata.coreGroup}:${this.coreMetadata.coreName}"
             coreArtifactDependency = ResolverDependencyUtils.getCoreDependency(project, currentCoreDependency ,artifactDependencies)
-
-            // TODO: Improvement - Filter the modules already in sources (using a exclude in the configuration)
-
-            // Update the configuration container with the 'selected' dependencies
-            container = ResolverDependencyUtils.updateConfigurationDependencies(project, container, artifactDependencies, false, false)
         }
-
-        // TODO: Improvement - Filter the dependencies in the root 'modules' dir to prevent downloading it
 
         if (this.coreMetadata.coreType == CoreType.SOURCES) {
             updateContainerPreFilterCoreSources(container, coreArtifactDependency)
@@ -177,9 +158,24 @@ class DependencyProcessor {
             updateContainerPreFilterCoreJar(container, coreArtifactDependency)
         }
 
+        // Contains a map between the subproject name "group:artifact" and the subproject
+        Map<String, Project> subprojectNames = ModulesConfigurationUtils.getSubprojectNames(project)
+
+        // Configure the container to substitute all the dependencies already in sources.
+        ModulesConfigurationUtils.configureSubstitutions(project, [container], subprojectNames)
+
         // Filter maven and Etendo dependencies
         this.dependencyContainer.configuration = container
         this.dependencyContainer.filterDependenciesFiles()
+
+        // Configure the subprojects to use the filtered dependencies
+        def artifacts = this.dependencyContainer.etendoDependenciesJarFiles.entrySet().collect({
+            it.value
+        }) + this.dependencyContainer.mavenDependenciesFiles.entrySet().collect({
+            it.value
+        })
+
+        ModulesConfigurationUtils.configureVersionReplacer(project, DependencyContainer.parseArtifactDependency(project, artifacts))
     }
 
     void updateContainerPreFilterCoreSources(Configuration container, ArtifactDependency coreArtifactDependency) {
@@ -212,6 +208,7 @@ class DependencyProcessor {
                 project.logger.info("* Core dependency '${coreDependency.group}:${coreDependency.name}:${coreDependency.version}'")
                 project.logger.info("***********************************************")
                 container.dependencies.add(coreDependency)
+                selectCoreVersion(project, container, coreDependency.group, coreDependency.name, coreDependency.version)
             } else {
                 project.logger.info("***********************************************")
                 project.logger.info("* The core dependency is not defined.")
@@ -223,11 +220,18 @@ class DependencyProcessor {
             project.logger.info("***********************************************")
             project.logger.info("* Core dependency resolved to use '${coreArtifactDependency.displayName}'")
             project.logger.info("***********************************************")
-            Set<DefaultExternalModuleDependency> dependencies = ResolverDependencyUtils.filterDependenciesByName(project, container, coreArtifactDependency.group, coreArtifactDependency.name)
-            ResolverDependencyUtils.updateDependenciesVersion(project, dependencies, coreArtifactDependency.version)
+            selectCoreVersion(project, container, coreArtifactDependency.group, coreArtifactDependency.name, coreArtifactDependency.version)
         }
     }
 
+    static void selectCoreVersion(Project project, Configuration container, String coreGroup, String coreName, String version) {
+        container.resolutionStrategy.eachDependency({details ->
+            if (details.requested.group == coreGroup && details.requested.name == coreName) {
+                details.useVersion(version)
+                details.because("CORE dependency resolution.")
+            }
+        })
+    }
 
     /**
      * Collect the files mapped to a dependency (JARs files).
