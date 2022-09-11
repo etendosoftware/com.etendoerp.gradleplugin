@@ -179,7 +179,9 @@ class ModuleUtils {
 
         if (buildModulesDir.exists()) {
             mainProject.logger.info("* Cleaning directory: ${buildModulesDir.absolutePath}")
-            mainProject.delete(buildModulesDir)
+            buildModulesDir.traverse(type: FileType.DIRECTORIES, maxDepth: 0) {
+                mainProject.delete(it)
+            }
         }
     }
 
