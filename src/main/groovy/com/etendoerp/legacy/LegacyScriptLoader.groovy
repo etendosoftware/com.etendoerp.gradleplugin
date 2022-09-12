@@ -334,7 +334,7 @@ class LegacyScriptLoader {
                         if (database && database == "ORACLE") {
                             def sid = props.getProperty("bbdd.sid", "etendo")
                             port = props.getProperty("bbdd.port", "1521")
-                            urlValue = "jdbc:oracle:thin:@" + host + ":" + port + ":" + sid + "?oracle.net.disableOob=true"
+                            urlValue = "jdbc:oracle:thin:@" + host + ":" + port + ":" + sid
                         } else {
                             urlValue = "jdbc:postgresql://" + host + ":" + port
                         }
