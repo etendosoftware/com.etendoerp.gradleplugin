@@ -155,6 +155,7 @@ class ResolutionUtils {
                         ModuleVersionIdentifier identifier = dependencyResult.getSelected().moduleVersion
                         String displayName = dependencyResult.getSelected().getId().displayName
                         artifactDependency = new ArtifactDependency(project, identifier, displayName)
+                        artifactName = "${identifier.group}:${identifier.name}"
                         if (dependencyResult.getSelected().getId() instanceof DefaultProjectComponentIdentifier) {
                             DefaultProjectComponentIdentifier projectIdentifier = dependencyResult.getSelected().getId() as DefaultProjectComponentIdentifier
                             artifactDependency.isProjectDependency = true
@@ -163,9 +164,6 @@ class ResolutionUtils {
                             if (subprojectNameOpt.isPresent()) {
                                 artifactName = subprojectNameOpt.get()
                             }
-
-                        } else {
-                            artifactName = "${identifier.group}:${identifier.name}"
                         }
                     } else {
                         def requested = dependencyResult.getRequested()
