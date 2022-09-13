@@ -39,14 +39,14 @@ class GradleUtils {
         return task
     }
 
-    static void loadProjectProperty(Project mainProject, Project subProject, ProjectProperty property, Object value) {
+    static <T> T loadProjectProperty(Project mainProject, Project subProject, ProjectProperty property, T value) {
         subProject.ext.set(property.toString(), value)
+        return value
     }
 
     static Optional getProjectProperty(Project mainProject, Project subProject, ProjectProperty property) {
-        def value = subProject.ext.get(property.toString())
-        if (value != null) {
-            return Optional.of(value)
+        if (subProject.ext.has(property.toString())) {
+            return Optional.of(subProject.ext.get(property.toString()))
         }
         return Optional.empty()
     }
