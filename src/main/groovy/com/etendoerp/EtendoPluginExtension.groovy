@@ -96,6 +96,12 @@ class EtendoPluginExtension {
      */
     boolean ignoreDisplayMenu = false
 
+    /**
+     * Flag used to load the CORE JARs dependencies when is in SOURCES.
+     * Default false.
+     */
+    boolean loadCoreDependencies = false
+
     /************************ MESSAGES ************************/
 
     static String ignoredArtifactsMessage(String exampleModule) {

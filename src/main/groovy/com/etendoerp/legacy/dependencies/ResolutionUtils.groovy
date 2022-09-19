@@ -380,5 +380,16 @@ class ResolutionUtils {
         return getIncomingDependencies(project, randomContainer, filterCoreDependency, obtainSelectedArtifacts, LogLevel.DEBUG)
     }
 
+    static void loadCoreDependencies(Project project, CoreMetadata coreMetadata, Configuration container) {
+        Configuration coreConfigurationContainer = project.configurations.create("coreConfigurationContainer")
+        String coreArtifact = "${coreMetadata.coreGroup}:${coreMetadata.coreName}:${coreMetadata.coreVersion}"
+        coreConfigurationContainer.dependencies.add(project.dependencies.create(coreArtifact))
+
+        def incomingDependencies = getIncomingDependencies(project, coreConfigurationContainer,
+                true, true, LogLevel.DEBUG)
+
+        ResolverDependencyUtils.loadConfigurationWithArtifacts(project, container, incomingDependencies,
+                false, true, false, true)
+    }
 
 }
