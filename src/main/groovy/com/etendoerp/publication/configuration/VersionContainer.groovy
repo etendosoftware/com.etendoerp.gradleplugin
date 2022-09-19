@@ -77,7 +77,7 @@ class VersionContainer {
      * @return
      */
     static String parsePatchVersion(String version) {
-        return version
+        return version.replace("-SNAPSHOT", "")
     }
 
     String loadVersionTypeToUpgrade() {
@@ -159,7 +159,7 @@ class VersionContainer {
 
     int validateVersion(String version, String versionType) {
         if (!version.isInteger()) {
-            throw new IllegalArgumentException("The '${versionType}' version '${version}' could not be converted to integer to be upgraded. Location: ${this.project.projectDir}")
+            throw new IllegalArgumentException("The '${versionType}' version '${version}' could not be converted to integer to be upgraded. Location: ${this.mainProject.projectDir}")
         }
         return version as Integer
     }
