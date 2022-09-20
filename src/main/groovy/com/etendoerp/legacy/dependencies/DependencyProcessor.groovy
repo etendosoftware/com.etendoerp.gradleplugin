@@ -137,6 +137,11 @@ class DependencyProcessor {
         // Load all project and subproject dependencies in a custom configuration container
         Configuration container = ResolverDependencyUtils.loadResolutionDependencies(project)
 
+        // Load the CORE dependencies
+        if (coreMetadata.coreType == CoreType.SOURCES && project.extensions.findByType(EtendoPluginExtension).loadCoreDependencies) {
+            ResolutionUtils.loadCoreDependencies(project, coreMetadata, container)
+        }
+
         ArtifactDependency coreArtifactDependency = null
 
         if (performResolutionConflicts) {

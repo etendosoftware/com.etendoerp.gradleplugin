@@ -109,6 +109,8 @@ class ResolverDependencyLoader {
              */
             project.ant.properties['gradle.custom.dependencies'] = project.ant.references['gradle.custom'].toString()
 
+            project.ant.project.setProperty("env.GRADLE_CLASSPATH", project.ant.references['gradle.custom'].toString())
+
             // This gets all dependencies and sets them in ant as a file list with id: "gradle.libs"
             // Ant task build.local.context uses this to copy them to WebContent
             project.ant.filelist(id: 'gradle.libs', files: dependencies.join(','))
