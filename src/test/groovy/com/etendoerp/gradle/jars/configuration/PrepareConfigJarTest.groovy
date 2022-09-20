@@ -1,6 +1,7 @@
 package com.etendoerp.gradle.jars.configuration
 
 import com.etendoerp.gradle.jars.EtendoCoreJarSpecificationTest
+import com.etendoerp.gradle.jars.resolution.EtendoCoreResolutionSpecificationTest
 import org.gradle.testkit.runner.TaskOutcome
 import spock.lang.Narrative
 import spock.lang.TempDir
@@ -15,7 +16,7 @@ import spock.lang.Title
 @Title("Series of tests to verify that the task 'prepareConfig' creates the 'Openbravo.properties' file correctly.")
 @Narrative("""TODO: Currently this test will fail because the gradle ant class loader is adding the Etendo core library.
 This causes problems because the 'Etendo core' contains classes that are already defined in the 'Gradle project'""")
-class PrepareConfigJarTest extends EtendoCoreJarSpecificationTest {
+class PrepareConfigJarTest extends EtendoCoreResolutionSpecificationTest {
     @TempDir File testProjectDir
 
     @Override

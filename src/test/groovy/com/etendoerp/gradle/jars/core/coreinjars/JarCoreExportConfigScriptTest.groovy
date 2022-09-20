@@ -1,26 +1,21 @@
 package com.etendoerp.gradle.jars.core.coreinjars
 
-import com.etendoerp.gradle.jars.EtendoCoreJarSpecificationTest
-import com.etendoerp.gradle.jars.EtendoCoreSourcesSpecificationTest
-import com.etendoerp.gradle.jars.JarsUtils
 import com.etendoerp.gradle.jars.core.coreinsources.CoreUtils
+import com.etendoerp.gradle.jars.resolution.EtendoCoreResolutionSpecificationTest
 import org.gradle.testkit.runner.TaskOutcome
 import spock.lang.Issue
 import spock.lang.Narrative
-import spock.lang.Shared
 import spock.lang.TempDir
 import spock.lang.Title
 
 /**
  * This test should use the latest CORE snapshot
- *  // TODO: This test should resolve from EtendoCoreResolutionSpecificationTest
- // TODO: Use latest snapshot
  */
 
 @Title("Running the export config script with a new template created.")
 @Narrative(""" Having a new template created and
 running the 'export.config.script' task creates the new template dir in the 'root/modules'""")
-class JarCoreExportConfigScriptTest extends EtendoCoreJarSpecificationTest {
+class JarCoreExportConfigScriptTest extends EtendoCoreResolutionSpecificationTest {
     @TempDir File testProjectDir
 
     @Override
@@ -30,15 +25,13 @@ class JarCoreExportConfigScriptTest extends EtendoCoreJarSpecificationTest {
 
     @Override
     String getCoreVersion() {
-        return ETENDO_22q1_VERSION
+        return ETENDO_LATEST_SNAPSHOT
     }
 
     @Override
     String getDB() {
         return this.getClass().getSimpleName().toLowerCase()
     }
-
-    // TODO: Republish
 
     public final static String PRE_EXPAND_MODULE_GROUP = "com.test"
     public final static String PRE_EXPAND_MODULE_NAME  = "premoduletoexpand"
@@ -48,30 +41,14 @@ class JarCoreExportConfigScriptTest extends EtendoCoreJarSpecificationTest {
 
     @Issue("EPL-13")
     def "Running export config script  with a new template created"() {
-        if (coreType.equalsIgnoreCase("sources")) {
-            // Replace the core in jar dependency
-            buildFile.text = buildFile.text.replace("${JarsUtils.IMPLEMENTATION} '${getCore()}'","")
-
-            def coreSources = getCore() + "@zip"
-
-            JarsUtils.addCoreMockTask(
-                    buildFile,
-                    coreSources,
-                    EtendoCoreSourcesSpecificationTest.ETENDO_CORE_REPO,
-                    args.get("nexusUser"),
-                    args.get("nexusPassword")
-            )
-        }
-
         given: "A Etendo environment with the Core dependency"
-        def dependenciesTaskResult = runTask(":dependencies","--refresh-dependencies", "-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
-        dependenciesTaskResult.task(":dependencies").outcome == TaskOutcome.SUCCESS
-        assert dependenciesTaskResult.output.contains(getCore())
+        addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
 
-        if (coreType.equalsIgnoreCase("sources")) {
-            def expandCoreMockResult = runTask(":expandCoreMock")
-            assert expandCoreMockResult.task(":expandCoreMock").outcome == TaskOutcome.SUCCESS
-        }
+        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", ignoreDisplayMenu : true]
+        loadCore([coreType : "${coreType}", pluginVariables: pluginVariables])
+
+        and: "The user resolves the core"
+        resolveCore([coreType : "${coreType}", testProjectDir: testProjectDir])
 
         and: "The users adds a sources MODULE dependency before running the install"
         def preExpandModGroup = PRE_EXPAND_MODULE_GROUP

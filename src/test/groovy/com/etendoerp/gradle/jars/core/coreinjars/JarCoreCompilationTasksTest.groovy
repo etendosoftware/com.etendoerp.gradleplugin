@@ -1,6 +1,6 @@
 package com.etendoerp.gradle.jars.core.coreinjars
 
-import com.etendoerp.gradle.jars.EtendoCoreJarSpecificationTest
+import com.etendoerp.gradle.jars.resolution.EtendoCoreResolutionSpecificationTest
 import com.etendoerp.gradle.utils.DBCleanupMode
 import org.gradle.testkit.runner.TaskOutcome
 import spock.lang.Issue
@@ -11,13 +11,11 @@ import spock.lang.Title
 
 /**
  * This test should use the latest CORE snapshot
- *  // TODO: This test should resolve from EtendoCoreResolutionSpecificationTest
- // TODO: Use latest snapshot
  */
 
 @Title("Running compilation tasks using a Etendo core JAR")
 @Stepwise
-class JarCoreCompilationTasksTest extends EtendoCoreJarSpecificationTest{
+class JarCoreCompilationTasksTest extends EtendoCoreResolutionSpecificationTest {
     @TempDir @Shared File testProjectDir
 
     @Override
@@ -32,7 +30,7 @@ class JarCoreCompilationTasksTest extends EtendoCoreJarSpecificationTest{
 
     @Override
     String getCoreVersion() {
-        return ETENDO_22q1_VERSION
+        return ETENDO_LATEST_SNAPSHOT
     }
 
     @Override
@@ -43,9 +41,13 @@ class JarCoreCompilationTasksTest extends EtendoCoreJarSpecificationTest{
     @Issue("EPL-13")
     def "Running compilation tasks" () {
         given: "A Etendo environment with the Core Jar dependency"
-        def dependenciesTaskResult = runTask(":dependencies","--refresh-dependencies","-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
-        dependenciesTaskResult.task(":dependencies").outcome == TaskOutcome.SUCCESS
-        assert dependenciesTaskResult.output.contains(getCore())
+        addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
+
+        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", forceResolution : true]
+        loadCore([coreType : "jar", pluginVariables: pluginVariables])
+
+        and: "The user resolves the core"
+        resolveCore([coreType : "jar", testProjectDir: testProjectDir])
 
         when: "The users runs the install task"
         def setupResult = runTask("setup")
