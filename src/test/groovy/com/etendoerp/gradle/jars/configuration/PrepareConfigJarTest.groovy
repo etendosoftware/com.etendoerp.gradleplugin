@@ -1,21 +1,15 @@
 package com.etendoerp.gradle.jars.configuration
 
-import com.etendoerp.gradle.jars.EtendoCoreJarSpecificationTest
 import com.etendoerp.gradle.jars.resolution.EtendoCoreResolutionSpecificationTest
 import org.gradle.testkit.runner.TaskOutcome
-import spock.lang.Narrative
 import spock.lang.TempDir
 import spock.lang.Title
 
 /**
  * This test should use the latest CORE snapshot
- *  // TODO: This test should resolve from EtendoCoreResolutionSpecificationTest
- // TODO: Use latest snapshot
  */
 
 @Title("Series of tests to verify that the task 'prepareConfig' creates the 'Openbravo.properties' file correctly.")
-@Narrative("""TODO: Currently this test will fail because the gradle ant class loader is adding the Etendo core library.
-This causes problems because the 'Etendo core' contains classes that are already defined in the 'Gradle project'""")
 class PrepareConfigJarTest extends EtendoCoreResolutionSpecificationTest {
     @TempDir File testProjectDir
 
@@ -24,11 +18,20 @@ class PrepareConfigJarTest extends EtendoCoreResolutionSpecificationTest {
         testProjectDir
     }
 
+    @Override
+    String getCoreVersion() {
+        return ETENDO_LATEST_SNAPSHOT
+    }
+
     def "Default values when 'gradle properties' is empty or does not exists"() {
         given: "A Project with the Etendo core jar"
-        def dependenciesTaskResult = runTask(":dependencies","--refresh-dependencies","-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
-        dependenciesTaskResult.task(":dependencies").outcome == TaskOutcome.SUCCESS
-        assert dependenciesTaskResult.output.contains(CORE)
+        addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
+
+        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", forceResolution : true]
+        loadCore([coreType : "jar", pluginVariables: pluginVariables])
+
+        and: "The user resolves the core"
+        resolveCore([coreType : "jar", testProjectDir: testProjectDir])
 
         and: "The gradle.properties file is empty"
         def gradleProperties = new File("${getProjectDir().absolutePath}/gradle.properties")
@@ -62,9 +65,13 @@ class PrepareConfigJarTest extends EtendoCoreResolutionSpecificationTest {
 
     def "Create Openbravo.properties using the 'gradle properties' file"() {
         given: "A Project with the Etendo core jar"
-        def dependenciesTaskResult = runTask(":dependencies","--refresh-dependencies","-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
-        dependenciesTaskResult.task(":dependencies").outcome == TaskOutcome.SUCCESS
-        assert dependenciesTaskResult.output.contains(CORE)
+        addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
+
+        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", forceResolution : true]
+        loadCore([coreType : "jar", pluginVariables: pluginVariables])
+
+        and: "The user resolves the core"
+        resolveCore([coreType : "jar", testProjectDir: testProjectDir])
 
         and: "A configured gradle.properties"
         def gradleProperties = new File(testProjectDir, "gradle.properties")
@@ -113,9 +120,13 @@ class PrepareConfigJarTest extends EtendoCoreResolutionSpecificationTest {
 
     def "Running 'prepareConfig' task multiple times"() {
         given: "A Project with the Etendo core jar"
-        def dependenciesTaskResult = runTask(":dependencies","--refresh-dependencies","-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
-        dependenciesTaskResult.task(":dependencies").outcome == TaskOutcome.SUCCESS
-        assert dependenciesTaskResult.output.contains(CORE)
+        addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
+
+        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", forceResolution : true]
+        loadCore([coreType : "jar", pluginVariables: pluginVariables])
+
+        and: "The user resolves the core"
+        resolveCore([coreType : "jar", testProjectDir: testProjectDir])
 
         and: "a configured gradle.properties"
         def gradleProperties = new File(testProjectDir, "gradle.properties")
