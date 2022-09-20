@@ -60,11 +60,11 @@ class ExpandCore {
 
                 if (performResolutionConflicts) {
                     project.logger.info("* Running the resolution of conflicts of the 'expandCore' task.")
-                    def artifactDependencies = ExpandUtils.performExpandResolutionConflicts(project, coreMetadata, true, supportJars, false, true)
+                    def artifactDependencies = ExpandUtils.performExpandCoreResolutionConflicts(project, coreMetadata)
 
                     // Obtain the 'selected' Core version
                     String currentCoreDependency = "${coreMetadata.coreGroup}:${coreMetadata.coreName}"
-                    coreArtifactDependency = ResolverDependencyUtils.getCoreDependency(project, currentCoreDependency ,artifactDependencies)
+                    coreArtifactDependency = ResolverDependencyUtils.getCoreDependency(project, currentCoreDependency , artifactDependencies)
                 }
 
                 // Check the version to expand

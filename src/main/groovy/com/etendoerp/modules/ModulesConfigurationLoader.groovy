@@ -1,19 +1,13 @@
 package com.etendoerp.modules
 
 import com.etendoerp.EtendoPluginExtension
-import com.etendoerp.jars.modules.mavenpublication.MavenPublicationConfig
 import com.etendoerp.jars.modules.metadata.DependencyUtils
 import com.etendoerp.legacy.dependencies.ResolverDependencyUtils
 import com.etendoerp.publication.PublicationUtils
-import com.etendoerp.publication.configuration.PublicationConfiguration
 import com.etendoerp.publication.configuration.pom.PomConfigurationContainer
 import com.etendoerp.publication.taskloaders.PublicationTaskLoader
-import com.etendoerp.publication.taskloaders.ZipTaskGenerator
 import org.gradle.api.Project
-import org.gradle.api.internal.artifacts.dependencies.DefaultProjectDependency
-import org.gradle.api.internal.file.UnionFileCollection
-import org.gradle.api.plugins.JavaPlugin
-import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.api.internal.artifacts.configurations.DefaultConfiguration
 
 /**
  * This class configures all the module subprojects sourcesSets.
@@ -45,7 +39,6 @@ class ModulesConfigurationLoader {
         def moduleProject = project.findProject(":${PublicationUtils.BASE_MODULE_DIR}")
 
         if (moduleProject != null) {
-
             def extension = project.extensions.findByType(EtendoPluginExtension)
 
             moduleProject.subprojects.each {subproject ->
@@ -66,6 +59,10 @@ class ModulesConfigurationLoader {
                         throw new IllegalArgumentException("WARNING: The subproject ${subproject} is missing the 'java' plugin. \n" +
                                 "*** ${ERROR_MISSING_PLUGIN}")
                     }
+
+                    // Configuration used later to perform the resolution of dependencies
+                    DefaultConfiguration defaultCopy = subproject.configurations.default.copyRecursive() as DefaultConfiguration
+                    subproject.configurations.add(defaultCopy)
 
                     // Exclude the core dependency
                     def excludeCoreDependency = extension.excludeCoreDependencyFromSubprojectConfigurations

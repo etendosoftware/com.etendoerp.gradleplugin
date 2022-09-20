@@ -149,4 +149,15 @@ class EtendoPluginExtension {
         |* }""".stripMargin()
     }
 
+    static String ignoreUnresolvedArtifactsMessage() {
+        return  """
+        |----------------------------------------------------------------------------
+        |* To ignore the unresolved artifacts use the plugin extension.
+        |* Example:
+        |* etendo {
+        |*    ignoreUnresolvedArtifacts = true
+        |* }
+        |""".stripMargin()
+    }
+
 }

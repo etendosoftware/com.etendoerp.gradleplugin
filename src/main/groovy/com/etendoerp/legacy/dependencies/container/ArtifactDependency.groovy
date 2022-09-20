@@ -50,6 +50,12 @@ class ArtifactDependency {
     // Contains the name (group:name)
     String artifactName
 
+    boolean isProjectDependency
+
+    ArtifactDependency(Project project) {
+        this.project = project
+    }
+
     ArtifactDependency(Project project, ResolvedArtifact resolvedArtifact) {
         this.project = project
         this.resolvedArtifact = resolvedArtifact

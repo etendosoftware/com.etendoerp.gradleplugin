@@ -328,7 +328,18 @@ class LegacyScriptLoader {
                     if (!props.getProperty("bbdd.url")) {
                         def host = props.getProperty("bbdd.host", "localhost")
                         def port = props.getProperty("bbdd.port", "5432")
-                        entry(key: "bbdd.url", value: "jdbc:postgresql://" + host + ":" + port)
+
+                        def database = props.getProperty("bbdd.rdbms")
+                        def urlValue
+                        if (database && database == "ORACLE") {
+                            def sid = props.getProperty("bbdd.sid", "etendo")
+                            port = props.getProperty("bbdd.port", "1521")
+                            urlValue = "jdbc:oracle:thin:@" + host + ":" + port + ":" + sid
+                        } else {
+                            urlValue = "jdbc:postgresql://" + host + ":" + port
+                        }
+
+                        entry(key: "bbdd.url", value: urlValue)
                     }
 
                     if (!props.getProperty("bbdd.systemUser")) {

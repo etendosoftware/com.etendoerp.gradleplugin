@@ -10,6 +10,8 @@ import org.gradle.api.artifacts.Dependency
 import org.gradle.api.artifacts.ResolveException
 import org.gradle.api.artifacts.ResolvedArtifact
 import org.gradle.api.file.FileTree
+import org.gradle.api.specs.Specs
+import org.gradle.internal.component.external.model.DefaultModuleComponentIdentifier
 
 class DependencyContainer {
 
@@ -47,6 +49,8 @@ class DependencyContainer {
             Throwable t = it
             project.logger.error("* -> ${t.getMessage()}")
         }
+
+        project.logger.error("${EtendoPluginExtension.ignoreUnresolvedArtifactsMessage()}")
     }
 
     /**
@@ -64,10 +68,11 @@ class DependencyContainer {
         } catch (ResolveException re) {
             def extension = project.extensions.findByType(EtendoPluginExtension)
             if (!extension.ignoreUnresolvedArtifacts) {
+                // Show the warning
+                showUnresolvedArtifactsException(this.project, re)
                 throw re
             }
-            // Show the warning
-            showUnresolvedArtifactsException(this.project, re)
+            resolvedArtifacts = this.configuration.resolvedConfiguration.lenientConfiguration.getArtifacts(Specs.satisfyAll())
         }
 
         // TODO: Improvement, detect the unresolved dependencies if the flag 'ignoreUnresolvedArtifacts'
@@ -75,23 +80,26 @@ class DependencyContainer {
         // Remove from the ':compileClasspath' the unresolved dependencies to prevent failing
 
         for (ResolvedArtifact resolvedArtifact : resolvedArtifacts) {
-            ArtifactDependency artifactDependency = getArtifactDependency(project, resolvedArtifact)
 
-            // Get the 'Dependency' object
-            artifactDependency.dependency = this.dependenciesMap.get(artifactDependency.moduleName)
-            switch (artifactDependency.type) {
-                case DependencyType.ETENDOCOREJAR:
-                    this.etendoCoreDependencyFile = artifactDependency
-                    break
-                case DependencyType.ETENDOJARMODULE:
-                    this.etendoDependenciesJarFiles.put(artifactDependency.moduleName, artifactDependency)
-                    break
-                case DependencyType.ETENDOZIPMODULE:
-                    this.etendoDependenciesZipFiles.put(artifactDependency.moduleName, artifactDependency)
-                    break
-                default:
-                    this.mavenDependenciesFiles.put(artifactDependency.moduleName, artifactDependency)
-                    break
+            if (resolvedArtifact.id.componentIdentifier instanceof DefaultModuleComponentIdentifier) {
+                ArtifactDependency artifactDependency = getArtifactDependency(project, resolvedArtifact)
+
+                // Get the 'Dependency' object
+                artifactDependency.dependency = this.dependenciesMap.get(artifactDependency.moduleName)
+                switch (artifactDependency.type) {
+                    case DependencyType.ETENDOCOREJAR:
+                        this.etendoCoreDependencyFile = artifactDependency
+                        break
+                    case DependencyType.ETENDOJARMODULE:
+                        this.etendoDependenciesJarFiles.put(artifactDependency.moduleName, artifactDependency)
+                        break
+                    case DependencyType.ETENDOZIPMODULE:
+                        this.etendoDependenciesZipFiles.put(artifactDependency.moduleName, artifactDependency)
+                        break
+                    default:
+                        this.mavenDependenciesFiles.put(artifactDependency.moduleName, artifactDependency)
+                        break
+                }
             }
         }
     }
@@ -127,6 +135,24 @@ class DependencyContainer {
 
         // The default Artifact is a Maven dependency
         return new MavenArtifact(project, resolvedArtifact)
+    }
+
+    /**
+     * Returns a Map containing the names (group:name) of an Artifact
+     * @param project
+     * @param artifacts
+     * @return
+     */
+    static Map<String, ArtifactDependency> parseArtifactDependency(Project project, Collection<ArtifactDependency> artifacts) {
+        Map<String, ArtifactDependency> map = new TreeMap<>(String.CASE_INSENSITIVE_ORDER)
+
+        artifacts.stream().filter({
+            it.group != null && !it.group.isBlank() && it.name != null && !it.name.isBlank()
+        }).each {
+            String name = "${it.group}:${it.name}"
+            map.put(name.toString(), it)
+        }
+        return map
     }
 
 }

@@ -156,6 +156,7 @@ class PublicationConfiguration {
             Project subprojectToProcess = subprojectEntry.value
 
             def pomContainer = PomConfigurationContainer.getPomContainer(this.project, subprojectToProcess, pomType)
+            pomContainer.recursivePublication = true
 
             /**
              * Checks if the version should be updated if:
