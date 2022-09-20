@@ -1,6 +1,6 @@
 package com.etendoerp.gradle.jars.core.coreinsources
 
-import com.etendoerp.gradle.jars.EtendoCoreSourcesSpecificationTest
+import com.etendoerp.gradle.jars.resolution.EtendoCoreResolutionSpecificationTest
 import com.etendoerp.gradle.utils.DBCleanupMode
 import org.gradle.testkit.runner.TaskOutcome
 import spock.lang.Narrative
@@ -11,15 +11,13 @@ import spock.lang.Title
 
 /**
  * This test should use the latest CORE snapshot
- *  // TODO: This test should resolve from EtendoCoreResolutionSpecificationTest
- // TODO: Use latest snapshot
  */
 
 @Title("Test to verify that a Etendo module Jar dependency is installed correctly")
 @Narrative("""This test adds a Etendo module jar dependency 
 and runs the Ant install tasks to verify that the module is correctly installed""")
 @Stepwise
-class SourceCoreJarModuleInstallTest extends EtendoCoreSourcesSpecificationTest {
+class SourceCoreJarModuleInstallTest extends EtendoCoreResolutionSpecificationTest {
 
     @TempDir @Shared File testProjectDir
 
@@ -38,15 +36,23 @@ class SourceCoreJarModuleInstallTest extends EtendoCoreSourcesSpecificationTest 
         return this.getClass().getSimpleName().toLowerCase()
     }
 
+    @Override
+    String getCoreVersion() {
+        return ETENDO_LATEST_SNAPSHOT
+    }
+
     public final static String JAR_MODULE_GROUP = "com.test"
     public final static String JAR_MODULE_NAME  = "dummymodule"
 
     def "Installing Etendo sources core with a module in Jar"() {
         given: "A Etendo sources core environment"
-        // TODO: Use the resolve core
-        expandMock()
-        def expandResult = runTask(":expandCoreMock")
-        assert expandResult.task(":expandCoreMock").outcome == TaskOutcome.SUCCESS
+        addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
+
+        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", ignoreDisplayMenu : true]
+        loadCore([coreType : "sources", pluginVariables: pluginVariables])
+
+        and: "The user resolves the core"
+        resolveCore([coreType : "sources", testProjectDir: testProjectDir])
 
         and: "The users adds a jar module dependency"
         def moduleGroup = JAR_MODULE_GROUP
