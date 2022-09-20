@@ -339,7 +339,7 @@ class ExpandUtils {
     }
 
     static boolean shouldExpandSourceModules(Project project, List<ArtifactDependency> artifactToExtract, List<ArtifactDependency> artifactToIgnore) {
-        if (project.extensions.findByType(EtendoPluginExtension).ignoreExpandMenu) {
+        if (project.extensions.findByType(EtendoPluginExtension).ignoreDisplayMenu) {
             return true
         }
 
