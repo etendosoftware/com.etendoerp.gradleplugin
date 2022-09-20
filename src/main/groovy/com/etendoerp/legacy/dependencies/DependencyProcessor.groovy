@@ -8,12 +8,12 @@ import com.etendoerp.legacy.dependencies.container.ArtifactDependency
 import com.etendoerp.legacy.dependencies.container.DependencyContainer
 import com.etendoerp.legacy.dependencies.container.DependencyType
 import com.etendoerp.legacy.dependencies.container.EtendoJarModuleArtifact
-import com.etendoerp.publication.PublicationUtils
+import com.etendoerp.modules.ModuleUtils
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.Dependency
 import org.gradle.api.artifacts.DependencySet
-import org.gradle.api.artifacts.result.DependencyResult
+import org.gradle.api.internal.artifacts.dependencies.DefaultExternalModuleDependency
 
 /**
  * Class used to contain and process the Maven and Etendo dependencies.
@@ -68,6 +68,9 @@ class DependencyProcessor {
         def applyDependenciesToMainProject = extension.applyDependenciesToMainProject
 
         def rootProjectConfigurations = DependencyUtils.loadListOfConfigurations(project)
+
+        // Clean the 'build/etendo/modules/' dir
+        ModuleUtils.cleanBuildModules(project)
 
         if (coreMetadata.coreType == CoreType.SOURCES) {
             // Exclude from the root project the Core JAR dependency (included also from transitivity)
@@ -144,7 +147,7 @@ class DependencyProcessor {
      */
     void loadDependenciesFiles(boolean addCoreToResolution, boolean performResolutionConflicts , boolean filterCoreDependency) {
         // Load all project and subproject dependencies in a custom configuration container
-        Configuration container = ResolverDependencyUtils.loadAllDependencies(project)
+        Configuration container = ResolverDependencyUtils.loadAllDependencies(project).copyRecursive()
         ArtifactDependency coreArtifactDependency = null
 
         if (performResolutionConflicts) {
@@ -218,7 +221,8 @@ class DependencyProcessor {
             project.logger.info("***********************************************")
             project.logger.info("* Core dependency resolved to use '${coreArtifactDependency.displayName}'")
             project.logger.info("***********************************************")
-            project.dependencies.add(container.name, coreArtifactDependency.displayName)
+            Set<DefaultExternalModuleDependency> dependencies = ResolverDependencyUtils.filterDependenciesByName(project, container, coreArtifactDependency.group, coreArtifactDependency.name)
+            ResolverDependencyUtils.updateDependenciesVersion(project, dependencies, coreArtifactDependency.version)
         }
     }
 

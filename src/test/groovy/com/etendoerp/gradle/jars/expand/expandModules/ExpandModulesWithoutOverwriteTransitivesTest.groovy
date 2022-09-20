@@ -39,7 +39,7 @@ class ExpandModulesWithoutOverwriteTransitivesTest extends EtendoCoreResolutionS
         Map pluginVariables = [
                 "coreVersion" : "'${getCoreVersion()}'",
                 "overwriteTransitiveExpandModules": overwriteTransitiveExpandModules,
-                ignoreExpandMenu : true,
+                ignoreDisplayMenu : true,
                 "supportJars" : false,
                 forceResolution : true
         ]

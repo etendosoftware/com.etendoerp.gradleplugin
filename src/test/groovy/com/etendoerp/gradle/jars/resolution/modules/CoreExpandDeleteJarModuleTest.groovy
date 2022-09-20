@@ -31,7 +31,7 @@ class CoreExpandDeleteJarModuleTest extends EtendoCoreResolutionSpecificationTes
         addRepositoryToBuildFile(SNAPSHOT_REPOSITORY_URL)
         addRepositoryToBuildFile(getCoreRepo())
 
-        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", ignoreExpandMenu : true, forceResolution : true]
+        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", ignoreDisplayMenu : true, forceResolution : true]
         loadCore([coreType : "${coreType}", pluginVariables: pluginVariables])
 
         and: "The user resolves the core"

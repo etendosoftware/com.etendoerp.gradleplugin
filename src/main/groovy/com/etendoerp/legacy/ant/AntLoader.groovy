@@ -5,6 +5,7 @@ import com.etendoerp.core.CoreStatus
 import com.etendoerp.core.CoreType
 import com.etendoerp.jars.JarCoreGenerator
 import com.etendoerp.jars.modules.metadata.DependencyUtils
+import com.etendoerp.legacy.ant.compilejava.CompileJavaLoader
 import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
@@ -16,6 +17,7 @@ class AntLoader {
     static load(Project project) {
 
         ConsistencyVerification.load(project)
+        CompileJavaLoader.load(project)
 
         /***
          * Task to check  that all configuration files exist
@@ -160,6 +162,13 @@ class AntLoader {
             }
         }
 
+        // Adding java dummy task to prevent deleting 'build/classes' dir when
+        // the task 'compileJava' is executed for first time.
+        def antInitTask = project.tasks.findByName("antInit")
+        def compileJavaDummy = project.tasks.findByName(CompileJavaLoader.TASK_NAME)
+        if (antInitTask != null && compileJavaDummy != null) {
+            antInitTask.dependsOn(compileJavaDummy)
+        }
 
         /** Call ant setup to prepare environment */
         project.task("setup") {

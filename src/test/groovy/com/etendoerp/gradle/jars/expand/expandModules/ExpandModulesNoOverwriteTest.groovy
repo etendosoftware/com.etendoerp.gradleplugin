@@ -32,7 +32,7 @@ class ExpandModulesNoOverwriteTest extends EtendoCoreResolutionSpecificationTest
         given: "The users adds a moduleDeps dependency"
         addRepositoryToBuildFile(SNAPSHOT_REPOSITORY_URL)
 
-        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", forceResolution: true, ignoreExpandMenu : true]
+        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", forceResolution: true, ignoreDisplayMenu : true]
         loadCore([coreType : "${coreType}", pluginVariables: pluginVariables])
 
         def moduleGroup = "com.test"
@@ -78,7 +78,7 @@ class ExpandModulesNoOverwriteTest extends EtendoCoreResolutionSpecificationTest
         Map pluginVariablesUpdate = [
                 "coreVersion" : "'${getCoreVersion()}'",
                 forceResolution: true,
-                ignoreExpandMenu : true,
+                ignoreDisplayMenu : true,
                 sourceModulesInDevelopment : developmentList.toString()
         ]
         changeExtensionPluginVariables(pluginVariablesUpdate)

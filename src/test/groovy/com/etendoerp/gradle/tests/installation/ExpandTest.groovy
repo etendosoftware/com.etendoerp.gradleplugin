@@ -100,7 +100,7 @@ class ExpandTest extends EtendoSpecification {
         when: "listing the project module files (after expandCore)"
         buildFile.text.contains("com.openbravo:gps.idl.stock")
 
-        changeExtensionPluginVariables([ignoreExpandMenu : true])
+        changeExtensionPluginVariables([ignoreDisplayMenu : true])
 
         def result = runTask("expandModules")
         def modulesPath = getProjectDir().toPath().resolve("modules")

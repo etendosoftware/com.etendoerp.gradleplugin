@@ -39,7 +39,7 @@ class CoreExpandTransitiveModulesTest extends EtendoCoreResolutionSpecificationT
     def "Expanding transitive modules extract the correct version"() {
         given: "A Etendo core '#coreType'"
 
-        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", supportJars: supportJars, ignoreExpandMenu : true]
+        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", supportJars: supportJars, ignoreDisplayMenu : true]
         loadCore([coreType : "${coreType}", pluginVariables: pluginVariables])
 
         and: "The user resolves the core"

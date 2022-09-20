@@ -30,7 +30,7 @@ class ExpandModulesPkgFlagTest extends EtendoCoreResolutionSpecificationTest {
         given: "The users adds a moduleDeps dependency"
         addRepositoryToBuildFile(SNAPSHOT_REPOSITORY_URL)
 
-        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", ignoreExpandMenu : true, forceResolution : true]
+        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", ignoreDisplayMenu : true, forceResolution : true]
         loadCore([coreType : "${coreType}", pluginVariables: pluginVariables])
 
         def moduleGroup = "com.test"

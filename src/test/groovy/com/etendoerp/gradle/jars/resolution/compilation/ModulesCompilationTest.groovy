@@ -47,7 +47,7 @@ class ModulesCompilationTest extends EtendoCoreResolutionSpecificationTest{
         addRepositoryToBuildFile(SNAPSHOT_REPOSITORY_URL)
         addRepositoryToBuildFile(getCoreRepo())
 
-        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", forceResolution: true, ignoreExpandMenu : true]
+        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", forceResolution: true, ignoreDisplayMenu : true]
         loadCore([coreType : "${coreType}", pluginVariables: pluginVariables])
 
         and: "The user resolves the core"

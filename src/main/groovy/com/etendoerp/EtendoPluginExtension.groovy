@@ -13,9 +13,9 @@ class EtendoPluginExtension {
 
     /**
      * Flag used to ignore loading the source modules to perform resolution conflicts.
-     * Default false
+     * Default true
      */
-    boolean ignoreSourceModulesResolution = false
+    boolean ignoreSourceModulesResolution = true
 
     /**
      * Flag used to perform or not the resolution conflicts.
@@ -83,12 +83,18 @@ class EtendoPluginExtension {
      */
     List<String> sourceModulesInDevelopment = []
 
-
     /**
-     * Flag used to prevent the display of the expand modules menu.
+     * Flag used to ignore the Etendo CORE jar dependency located in the
+     * build.gradle of the root project.
      * Default false.
      */
-    boolean ignoreExpandMenu = false
+    boolean ignoreCoreJarDependency = false
+
+    /**
+     * Flag used to prevent the display of the multiple menus.
+     * Default false.
+     */
+    boolean ignoreDisplayMenu = false
 
     /************************ MESSAGES ************************/
 
@@ -132,6 +138,15 @@ class EtendoPluginExtension {
         |*    sourceModulesInDevelopment = ['com.test.custommodule']
         |* }
         |""".stripMargin()
+    }
+
+    static String ignoreCoreJarDependencyMessage() {
+        return """
+        |* The Etendo CORE jar dependency is located in the build.gradle of the root project.
+        |* Remove the dependency or use the plugin extension.
+        |* etendo {
+        |*  ignoreCoreJarDependency = true
+        |* }""".stripMargin()
     }
 
 }

@@ -20,6 +20,15 @@ class PublicationConfigurationUtils {
         return processedProjectList
     }
 
+    static <K,V> Map<K,V> queueToMap(Queue<Map.Entry<K,V>> queue) {
+        Map<K,V> map = new TreeMap<>(String.CASE_INSENSITIVE_ORDER as Comparator<? super K>)
+        while (!queue.isEmpty()) {
+            def processedEntry = queue.poll()
+            map.put(processedEntry.key, processedEntry.value)
+        }
+        return map
+    }
+
     /**
      * Load the subproject dependencies.
      * The dependencies could belong from the 'java' plugin configurations (implementation),

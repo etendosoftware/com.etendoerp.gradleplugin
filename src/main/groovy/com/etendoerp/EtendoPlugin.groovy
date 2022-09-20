@@ -7,8 +7,8 @@ import com.etendoerp.jars.JarLoader
 import com.etendoerp.legacy.EtendoLegacy
 import com.etendoerp.legacy.ant.AntLoader
 import com.etendoerp.modules.ModulesConfigurationLoader
+import com.etendoerp.modules.uninstall.UninstallModuleLoader
 import com.etendoerp.publication.PublicationLoader
-import com.etendoerp.publication.git.GitLoader
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaBasePlugin
@@ -19,7 +19,7 @@ import com.etendoerp.publication.git.CloneDependencies
 
 class EtendoPlugin implements Plugin<Project> {
 
-    final static String PLUGIN_VERSION = "1.0.3"
+    final static String PLUGIN_VERSION = "1.0.4"
 
     @Override
     void apply(Project project) {
@@ -47,5 +47,6 @@ class EtendoPlugin implements Plugin<Project> {
         CloneDependencies.load(project)
         JandexConfigLoader.load(project)
         CssCompileLoader.load(project)
+        UninstallModuleLoader.load(project)
     }
 }

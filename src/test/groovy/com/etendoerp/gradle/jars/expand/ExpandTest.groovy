@@ -35,7 +35,7 @@ class ExpandTest extends EtendoCoreResolutionSpecificationTest {
         // TODO: Add flag to ignore menu
         Map pluginVariables = [
                 "coreVersion" : "'${getCoreVersion()}'",
-                ignoreExpandMenu : true
+                ignoreDisplayMenu : true
         ]
         loadCore([coreType : "sources", pluginVariables: pluginVariables])
 

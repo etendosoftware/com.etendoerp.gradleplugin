@@ -2,18 +2,19 @@ package com.etendoerp.legacy.modules.expand
 
 import com.etendoerp.EtendoPluginExtension
 import com.etendoerp.core.CoreMetadata
-import com.etendoerp.core.CoreType
 import com.etendoerp.legacy.LegacyScriptLoader
-import com.etendoerp.legacy.dependencies.ResolutionUtils
+import com.etendoerp.legacy.ant.AntMenuHelper
 import com.etendoerp.legacy.dependencies.ResolverDependencyUtils
 import com.etendoerp.legacy.dependencies.container.ArtifactDependency
 import com.etendoerp.legacy.dependencies.container.EtendoCoreZipArtifact
+import com.etendoerp.legacy.utils.NexusUtils
 import org.gradle.api.Project
-import org.gradle.api.artifacts.Dependency
 import org.gradle.api.tasks.Delete
 import org.gradle.api.tasks.Sync
 
 class ExpandCore {
+
+    static final String FORCE_EXPAND_PROP = "forceExpand"
 
     static void load(Project project) {
 
@@ -28,16 +29,29 @@ class ExpandCore {
             doLast {
                 CoreMetadata coreMetadata = new CoreMetadata(project)
 
+                // Clean dir
+                project.delete(tempDir)
+
                 // Load the core metadata from the extension with the user options
                 coreMetadata.loadMetadataFromExtension()
 
                 def extension = project.extensions.findByType(EtendoPluginExtension)
+
+                // Verify if the core is already in JAR
+                // The core is in JAR and neither the force property or the ignore Core Jar Dependency is set to true.
+                if (coreMetadata.isCoreInJars() && !(project.findProperty(FORCE_EXPAND_PROP) || extension.ignoreCoreJarDependency)) {
+                    throw new IllegalStateException("* The CORE can not be expanded." +
+                                                    "${EtendoPluginExtension.ignoreCoreJarDependencyMessage()} \n" +
+                                                    "* To force the expansion use the command line parameter '-P${FORCE_EXPAND_PROP}=true'")
+                }
 
                 def performResolutionConflicts = extension.performResolutionConflicts
                 def supportJars = extension.supportJars
 
                 ArtifactDependency coreArtifactDependency = null
                 String displayName = coreMetadata.coreId
+
+                NexusUtils.askNexusCredentials(project)
 
                 project.logger.info("*****************************************************")
                 project.logger.info("* Starting expanding the core in SOURCES.")
@@ -75,14 +89,15 @@ class ExpandCore {
                 }
 
                 if (coreArtifactDependency instanceof EtendoCoreZipArtifact) {
-                    def core = coreArtifactDependency as EtendoCoreZipArtifact
-                    core.tempDir = tempDir
-                    core.extract()
+                    if (shouldExpandCore(project, coreArtifactDependency)) {
+                        def core = coreArtifactDependency as EtendoCoreZipArtifact
+                        core.tempDir = tempDir
+                        core.extract()
+                    }
                 } else {
                     throw new IllegalArgumentException("The artifact dependency to expand is not a instance of a EtendoCoreZipArtifact. Artifact: ${displayName}")
                 }
             }
-
         }
 
         project.tasks.register("expandCore", Sync) {
@@ -104,11 +119,17 @@ class ExpandCore {
             }
 
             doLast {
-                project.logger.info("The core was extracted successfully.")
+                project.logger.info("*** The expandCore task completed successfully. ***")
             }
-
         }
-
     }
 
+    static boolean shouldExpandCore(Project mainProject, EtendoCoreZipArtifact coreDisplayName) {
+        String message = """
+        |*************** CORE EXPANSION ***************
+        |* Core version to expand: ${coreDisplayName.displayName}
+        |* The expansion will overwrite and delete all the current core files.
+        |""".stripMargin()
+        return AntMenuHelper.confirmationMenu(mainProject, message)
+    }
 }

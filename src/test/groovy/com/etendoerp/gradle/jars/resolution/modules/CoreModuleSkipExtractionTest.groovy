@@ -41,7 +41,7 @@ class CoreModuleSkipExtractionTest extends EtendoCoreResolutionSpecificationTest
     def "Skipping extraction of a JAR module already in sources"() {
         given: "A Etendo core '#coreType'"
 
-        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", supportJars: supportJars, ignoreExpandMenu : true, forceResolution : true]
+        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", supportJars: supportJars, ignoreDisplayMenu : true, forceResolution : true]
         loadCore([coreType : "${coreType}", pluginVariables: pluginVariables])
 
         and: "The user resolves the core"
