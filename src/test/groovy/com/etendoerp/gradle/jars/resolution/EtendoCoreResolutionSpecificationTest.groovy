@@ -45,6 +45,7 @@ abstract class EtendoCoreResolutionSpecificationTest extends EtendoSpecification
         String coreType = map["coreType"] ?: ""
 
         if (pluginVariables && pluginVariables.size()) {
+            pluginVariables.put("ignoreDisplayMenu", true)
             changeExtensionPluginVariables(pluginVariables)
         }
 

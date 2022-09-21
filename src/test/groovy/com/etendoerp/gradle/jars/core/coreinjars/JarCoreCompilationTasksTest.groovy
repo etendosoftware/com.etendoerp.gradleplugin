@@ -43,7 +43,7 @@ class JarCoreCompilationTasksTest extends EtendoCoreResolutionSpecificationTest 
         given: "A Etendo environment with the Core Jar dependency"
         addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
 
-        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", forceResolution : true]
+        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", forceResolution : true, ignoreDisplayMenu : true]
         loadCore([coreType : "jar", pluginVariables: pluginVariables])
 
         and: "The user resolves the core"
