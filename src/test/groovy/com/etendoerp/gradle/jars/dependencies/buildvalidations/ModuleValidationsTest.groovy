@@ -30,8 +30,6 @@ class ModuleValidationsTest extends EtendoCoreResolutionSpecificationTest {
         given: "A user wanting to install a JAR module dependency"
         addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
 
-        // TODO: re publish module validations Rdy
-
         Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", forceResolution: true,  ignoreDisplayMenu : true]
         loadCore([coreType : "${coreType}", pluginVariables: pluginVariables])
 

@@ -57,8 +57,6 @@ class CoreInstallSkipJarToWebContentTest extends EtendoCoreResolutionSpecificati
             }
         """
 
-        // TODO: RDY
-
         and: "The user runs the 'expandModules' task to obtain the module B"
         def expandTaskResult = runTask(":expandModules", "-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
         expandTaskResult.task(":expandModules").outcome == TaskOutcome.SUCCESS

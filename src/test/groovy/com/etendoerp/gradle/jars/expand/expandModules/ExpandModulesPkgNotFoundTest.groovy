@@ -59,8 +59,6 @@ class ExpandModulesPkgNotFoundTest extends EtendoCoreResolutionSpecificationTest
         and: "The user resolves the core"
         resolveCore([coreType : "${coreType}", testProjectDir: testProjectDir])
 
-        // TODO: Add flag to ignore menu Rdy
-
         when: "The user runs the expandModule task"
         def expandTaskResult = runTask(":expandModules", "-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
         expandTaskResult.task(":expandModules").outcome == TaskOutcome.SUCCESS

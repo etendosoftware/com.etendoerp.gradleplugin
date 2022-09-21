@@ -1,7 +1,6 @@
 package com.etendoerp.gradle.jars.configuration
 
 import com.etendoerp.gradle.jars.resolution.EtendoCoreResolutionSpecificationTest
-import spock.lang.Narrative
 import spock.lang.TempDir
 import spock.lang.Title
 
@@ -10,8 +9,6 @@ import spock.lang.Title
  */
 
 @Title("Test to verify that the config phase copies the 'config' dir to the root project.")
-@Narrative("""TODO: Currently this test will fail because the gradle ant class loader is adding the Etendo core library.
-This causes problems because the 'Etendo core' contains classes that are already defined in the 'Gradle project'""")
 class CopyConfigDirFromEtendoCoreJarTest extends EtendoCoreResolutionSpecificationTest {
     @TempDir File testProjectDir
 

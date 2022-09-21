@@ -31,7 +31,6 @@ class ModulesCompilationTest extends EtendoCoreResolutionSpecificationTest{
         testProjectDir
     }
 
-    // TODO: Use latest snapshot
     @Override
     String getCoreVersion() {
         return ETENDO_LATEST_SNAPSHOT
@@ -71,8 +70,6 @@ class ModulesCompilationTest extends EtendoCoreResolutionSpecificationTest{
               moduleDeps('com.test:compilationB:1.0.0@zip')
             }
         """
-
-        // TODO: Add flag menu RDY
 
         and: "The user runs the 'expandModules' task"
         def expandTaskResult = runTask(":expandModules", "-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")

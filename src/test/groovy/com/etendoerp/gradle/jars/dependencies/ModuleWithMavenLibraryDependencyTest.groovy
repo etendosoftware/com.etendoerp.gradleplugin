@@ -28,8 +28,6 @@ class ModuleWithMavenLibraryDependencyTest extends EtendoMockupSpecificationTest
         given: "A module to be convented to a gradle subproject"
         def module = moduleName
 
-        // TODO: Re publish 'dummytopublish'
-
         // Simulate CORE in Sources
         new File(testProjectDir, "modules_core").mkdir()
         new File(testProjectDir, "src-core").mkdir()

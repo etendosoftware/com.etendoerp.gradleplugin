@@ -58,8 +58,6 @@ class ExpandModulesWithoutOverwriteTransitivesTest extends EtendoCoreResolutionS
             }
         """
 
-        // TODO: Add flag to ignore menu RDY
-
         and: "The user runs the 'expandModules' task"
         def expandTaskResult = runTask(":expandModules", "-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
         expandTaskResult.task(":expandModules").outcome == TaskOutcome.SUCCESS

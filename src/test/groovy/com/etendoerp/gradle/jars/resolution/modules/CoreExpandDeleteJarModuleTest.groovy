@@ -61,8 +61,6 @@ class CoreExpandDeleteJarModuleTest extends EtendoCoreResolutionSpecificationTes
             }
         """
 
-        // TODO: Add flag menu Rdy
-
         and: "The user runs the ‘expandModules’ tasks"
         def expandTaskResult = runTask(":expandModules", "-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
         expandTaskResult.task(":expandModules").outcome == TaskOutcome.SUCCESS

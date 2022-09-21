@@ -23,7 +23,6 @@ class SetupCoreJarTest extends EtendoCoreResolutionSpecificationTest {
         testProjectDir
     }
 
-    // TODO: Change version for snapshot
     @Override
     String getCoreVersion() {
         return ETENDO_LATEST_SNAPSHOT

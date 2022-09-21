@@ -17,9 +17,6 @@ import spock.lang.Title
 @Stepwise
 class AntJarTasksTest extends EtendoCoreResolutionSpecificationTest {
 
-    // TODO: This test should resolve from EtendoCoreResolutionSpecificationTest
-    // TODO: Use latest snapshot
-
     @TempDir @Shared File testProjectDir
     boolean installed = false
 

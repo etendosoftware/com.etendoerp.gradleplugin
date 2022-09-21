@@ -32,7 +32,7 @@ class ExpandTest extends EtendoCoreResolutionSpecificationTest {
     def "Running the expand tasks the core and modules"() {
         given: "A user wanting to expand a Etendo environment"
         addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
-        // TODO: Add flag to ignore menu
+
         Map pluginVariables = [
                 "coreVersion" : "'${getCoreVersion()}'",
                 ignoreDisplayMenu : true
