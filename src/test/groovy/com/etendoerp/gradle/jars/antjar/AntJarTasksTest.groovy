@@ -1,20 +1,21 @@
 package com.etendoerp.gradle.jars.antjar
 
-import com.etendoerp.gradle.jars.EtendoCoreJarSpecificationTest
+
+import com.etendoerp.gradle.jars.resolution.EtendoCoreResolutionSpecificationTest
 import com.etendoerp.gradle.utils.DBCleanupMode
 import org.gradle.testkit.runner.TaskOutcome
-import spock.lang.Narrative
 import spock.lang.Shared
 import spock.lang.Stepwise
 import spock.lang.TempDir
 import spock.lang.Title
 
+/**
+ * This test should use the latest CORE snapshot
+ */
+
 @Title("Test for the ant tasks using the Etendo core jar")
-@Narrative("""TODO: This test is currently failing because the 'build.xml' file is taken from the root project.
-The plugin should choose where find the 'build.xml', in the root project (core sources) or in the 'build/etendo' dir (core jar)
-""")
 @Stepwise
-class AntJarTasksTest extends EtendoCoreJarSpecificationTest{
+class AntJarTasksTest extends EtendoCoreResolutionSpecificationTest {
 
     @TempDir @Shared File testProjectDir
     boolean installed = false
@@ -41,11 +42,23 @@ class AntJarTasksTest extends EtendoCoreJarSpecificationTest{
         installed = true
     }
 
+    String getCoreVersion() {
+        return ETENDO_LATEST_SNAPSHOT
+    }
+
+    String getCoreRepo() {
+        return SNAPSHOT_REPOSITORY_URL
+    }
+
     def "successfully installs"() {
         given: "A Project with the Etendo core jar"
-        def dependenciesTaskResult = runTask(":dependencies","--refresh-dependencies","-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
-        dependenciesTaskResult.task(":dependencies").outcome == TaskOutcome.SUCCESS
-        assert dependenciesTaskResult.output.contains(CORE)
+        addRepositoryToBuildFile(getCoreRepo())
+
+        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'"]
+        loadCore([coreType : "jar", pluginVariables: pluginVariables])
+        
+        and: "The user resolves the core"
+        resolveCore([coreType : "jar", testProjectDir: testProjectDir])
 
         when: "configuring and installing the environment"
         def setupResult = runTask("setup")

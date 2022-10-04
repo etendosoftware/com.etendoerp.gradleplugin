@@ -28,7 +28,7 @@ class SetupOmitCredentialsTest extends EtendoCoreResolutionSpecificationTest {
 
     @Override
     String getCoreVersion() {
-        return ETENDO_21q1_SNAPSHOT
+        return ETENDO_LATEST_SNAPSHOT
     }
 
     @Override
@@ -40,7 +40,7 @@ class SetupOmitCredentialsTest extends EtendoCoreResolutionSpecificationTest {
         given: "A user installing the Etendo environment"
         addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
 
-        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", forceResolution : true]
+        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", forceResolution : true, ignoreDisplayMenu : true]
         loadCore([coreType : "${coreType}", pluginVariables: pluginVariables])
 
         and: "The user resolves the core"

@@ -1,19 +1,15 @@
 package com.etendoerp.gradle.jars.dependencies
 
-import com.etendoerp.gradle.jars.EtendoCoreJarSpecificationTest
 import com.etendoerp.gradle.jars.modules.ModuleToJarSpecificationTest
+import com.etendoerp.gradle.jars.resolution.EtendoCoreResolutionSpecificationTest
 import com.etendoerp.jars.PathUtils
 import org.gradle.testkit.runner.TaskOutcome
-import spock.lang.Narrative
 import spock.lang.TempDir
 import com.etendoerp.gradle.jars.JarsUtils
 import spock.lang.Title
 
 @Title("Test to verify the correct import of the Etendo core jar")
-@Narrative(""" TODO: Currently this test will fail because the gradle ant class loader is adding the Etendo core library.
-This causes problems because the 'Etendo core' contains classes that are already defined in the 'Gradle project'
-""")
-class ProjectWithEtendoCoreDependency extends EtendoCoreJarSpecificationTest {
+class ProjectWithEtendoCoreDependency extends EtendoCoreResolutionSpecificationTest {
 
     @TempDir File testProjectDir
 
@@ -22,8 +18,21 @@ class ProjectWithEtendoCoreDependency extends EtendoCoreJarSpecificationTest {
         testProjectDir
     }
 
+    @Override
+    String getCoreVersion() {
+        return ETENDO_LATEST_SNAPSHOT
+    }
+
     def "Adding the Etendo core dependency to a project"() {
         given: "A module which will use the Etendo core classes"
+        addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
+
+        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", forceResolution : true]
+        loadCore([coreType : "jar", pluginVariables: pluginVariables])
+
+        and: "The user resolves the core"
+        resolveCore([coreType : "jar", testProjectDir: testProjectDir])
+
         def module = moduleName
 
         and: "The users creates a java class to use the dependency"

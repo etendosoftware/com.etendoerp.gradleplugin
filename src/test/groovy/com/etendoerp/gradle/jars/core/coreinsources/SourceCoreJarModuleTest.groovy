@@ -1,6 +1,6 @@
 package com.etendoerp.gradle.jars.core.coreinsources
 
-import com.etendoerp.gradle.jars.EtendoCoreSourcesSpecificationTest
+import com.etendoerp.gradle.jars.resolution.EtendoCoreResolutionSpecificationTest
 import com.etendoerp.gradle.utils.DBCleanupMode
 import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.TaskOutcome
@@ -10,13 +10,17 @@ import spock.lang.Stepwise
 import spock.lang.TempDir
 import spock.lang.Title
 
+/**
+ * This test should use the latest CORE snapshot
+ */
+
 @Title("Test with Sources core - sources modules - jar modules.")
 @Narrative(""" This test uses the core in sources with a module in sources.
 The module in sources has a dependency of a module in Jar. The test verify that
 the module in Jar is installed correctly after the 'update.database' task.
 """)
 @Stepwise
-class SourceCoreJarModuleTest extends EtendoCoreSourcesSpecificationTest {
+class SourceCoreJarModuleTest extends EtendoCoreResolutionSpecificationTest {
 
     @TempDir @Shared File testProjectDir
 
@@ -35,6 +39,11 @@ class SourceCoreJarModuleTest extends EtendoCoreSourcesSpecificationTest {
         return this.getClass().getSimpleName().toLowerCase()
     }
 
+    @Override
+    String getCoreVersion() {
+        return ETENDO_LATEST_SNAPSHOT
+    }
+
     public final static String SOURCE_MODULE_GROUP = "com.openbravo"
     public final static String SOURCE_MODULE_NAME  = "gps.purchase.pgr"
 
@@ -43,16 +52,19 @@ class SourceCoreJarModuleTest extends EtendoCoreSourcesSpecificationTest {
 
     def "Installing Etendo sources core with source modules"() {
         given: "A Etendo sources core environment"
-        expandMock()
-        def expandResult = runTask(":expandCoreMock")
-        assert expandResult.task(":expandCoreMock").outcome == TaskOutcome.SUCCESS
+        addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
 
+        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", ignoreDisplayMenu : true, forceResolution : true]
+        loadCore([coreType : "sources", pluginVariables: pluginVariables])
+
+        and: "The user resolves the core"
+        resolveCore([coreType : "sources", testProjectDir: testProjectDir])
         and: "The users adds a sources module dependency"
         def moduleGroup = SOURCE_MODULE_GROUP
         def moduleName = SOURCE_MODULE_NAME
         buildFile << """
         dependencies {
-          moduleDeps('${moduleGroup}:${moduleName}:[1.0.0,)@zip') { transitive = true }
+          moduleDeps('${moduleGroup}:${moduleName}:[1.0.0,)@zip') { transitive = false }
         }
 
         repositories {

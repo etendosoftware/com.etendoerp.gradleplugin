@@ -7,6 +7,10 @@ import spock.lang.Narrative
 import spock.lang.TempDir
 import spock.lang.Title
 
+/**
+ * This test should use the latest CORE snapshot
+ */
+
 @Title("antWar task creates the war file in the root lib dir")
 @Narrative("""
 When the core is in SOURCES o JAR, the antWar task should always create the war file
@@ -28,7 +32,7 @@ class AntWarTaskTest extends EtendoCoreResolutionSpecificationTest {
 
     @Override
     String getCoreVersion() {
-        return ETENDO_21q1_SNAPSHOT
+        return ETENDO_LATEST_SNAPSHOT
     }
 
     @Override
@@ -40,7 +44,7 @@ class AntWarTaskTest extends EtendoCoreResolutionSpecificationTest {
         given: "A user installing the Etendo environment"
         addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
 
-        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", forceResolution : true]
+        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", forceResolution : true, ignoreDisplayMenu : true]
         loadCore([coreType : "${coreType}", pluginVariables: pluginVariables])
 
         and: "The user resolves the core"

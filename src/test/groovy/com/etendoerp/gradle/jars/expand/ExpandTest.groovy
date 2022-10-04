@@ -21,7 +21,7 @@ class ExpandTest extends EtendoCoreResolutionSpecificationTest {
 
     @Override
     String getCoreVersion() {
-        return ETENDO_21q1_SNAPSHOT
+        return ETENDO_LATEST_SNAPSHOT
     }
 
     @Override
@@ -35,6 +35,7 @@ class ExpandTest extends EtendoCoreResolutionSpecificationTest {
 
         Map pluginVariables = [
                 "coreVersion" : "'${getCoreVersion()}'",
+                ignoreDisplayMenu : true
         ]
         loadCore([coreType : "sources", pluginVariables: pluginVariables])
 
