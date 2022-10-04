@@ -28,17 +28,20 @@ class ExpandModulesWithoutOverwriteTransitivesTest extends EtendoCoreResolutionS
 
     @Override
     String getCoreVersion() {
-        return "[1.0.0]"
+        return ETENDO_LATEST_SNAPSHOT
     }
 
     def "Expanding a module with transitive dependencies already in sources"() {
         given: "A Etendo core '#coreType'"
+        addRepositoryToBuildFile(SNAPSHOT_REPOSITORY_URL)
         addRepositoryToBuildFile(getCoreRepo())
 
         Map pluginVariables = [
                 "coreVersion" : "'${getCoreVersion()}'",
                 "overwriteTransitiveExpandModules": overwriteTransitiveExpandModules,
-                "supportJars" : false
+                ignoreDisplayMenu : true,
+                "supportJars" : false,
+                forceResolution : true
         ]
 
         loadCore([coreType : "${coreType}", pluginVariables: pluginVariables])

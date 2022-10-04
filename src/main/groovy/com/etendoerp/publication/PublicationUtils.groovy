@@ -3,10 +3,9 @@ package com.etendoerp.publication
 import com.etendoerp.legacy.dependencies.EtendoArtifactMetadata
 import com.etendoerp.legacy.utils.NexusUtils
 import com.etendoerp.publication.buildfile.BuildMetadata
-import org.gradle.api.GradleException
-import org.gradle.api.GradleScriptException
 import org.gradle.api.Project
 import org.gradle.api.internal.artifacts.repositories.AbstractAuthenticationSupportedRepository
+import org.gradle.api.logging.LogLevel
 
 class PublicationUtils {
 
@@ -115,17 +114,17 @@ class PublicationUtils {
 
     }
 
-    static Optional<String> loadModuleName(Project mainProject, Project subProject) {
+    static Optional<String> loadModuleName(Project mainProject, Project subProject, logLevel=LogLevel.DEBUG) {
         String group    = subProject.group as String
         String artifact = subProject.findProperty(BuildMetadata.ARTIFACT) as String
 
         if (!group) {
-            mainProject.logger.warn("* The subproject '${subProject}' does not contain the 'group' property. Make sure is defined in the build.gradle (group = 'modulegroup')")
+            mainProject.logger.log(logLevel, "* The subproject '${subProject}' does not contain the 'group' property. Make sure is defined in the build.gradle (group = 'modulegroup')")
             return Optional.empty()
         }
 
         if (!artifact) {
-            mainProject.logger.warn("* The subproject '${subProject}' does not contain the 'artifact' property. Make sure is defined in the build.gradle (ext.artifact = 'moduleartifact')")
+            mainProject.logger.log(logLevel, "* The subproject '${subProject}' does not contain the 'artifact' property. Make sure is defined in the build.gradle (ext.artifact = 'moduleartifact')")
             return Optional.empty()
         }
 

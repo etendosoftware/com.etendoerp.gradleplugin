@@ -1,20 +1,25 @@
 package com.etendoerp.gradle.jars.configuration
 
-import com.etendoerp.gradle.jars.EtendoCoreJarSpecificationTest
-import org.gradle.testkit.runner.TaskOutcome
-import spock.lang.Narrative
+import com.etendoerp.gradle.jars.resolution.EtendoCoreResolutionSpecificationTest
 import spock.lang.TempDir
 import spock.lang.Title
 
+/**
+ * This test should use the latest CORE snapshot
+ */
+
 @Title("Test to verify that the config phase copies the 'config' dir to the root project.")
-@Narrative("""TODO: Currently this test will fail because the gradle ant class loader is adding the Etendo core library.
-This causes problems because the 'Etendo core' contains classes that are already defined in the 'Gradle project'""")
-class CopyConfigDirFromEtendoCoreJarTest extends EtendoCoreJarSpecificationTest {
+class CopyConfigDirFromEtendoCoreJarTest extends EtendoCoreResolutionSpecificationTest {
     @TempDir File testProjectDir
 
     @Override
     File getProjectDir() {
         testProjectDir
+    }
+
+    @Override
+    String getCoreVersion() {
+        return ETENDO_LATEST_SNAPSHOT
     }
 
     public final static List<String> CONFIG_FILES = [
@@ -27,9 +32,13 @@ class CopyConfigDirFromEtendoCoreJarTest extends EtendoCoreJarSpecificationTest 
 
     def "Adding the Etendo core dependency JAR copies the config folder to the root project"() {
         given: "A Project with the Etendo core jar"
-        def dependenciesTaskResult = runTask(":dependencies","--refresh-dependencies","-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
-        dependenciesTaskResult.task(":dependencies").outcome == TaskOutcome.SUCCESS
-        assert dependenciesTaskResult.output.contains(CORE)
+        addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
+
+        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", forceResolution : true]
+        loadCore([coreType : "jar", pluginVariables: pluginVariables])
+
+        and: "The user resolves the core"
+        resolveCore([coreType : "jar", testProjectDir: testProjectDir])
 
         expect: "The config dir to be copied in the root project"
         def configDir = new File("${getProjectDir().absolutePath}/config")

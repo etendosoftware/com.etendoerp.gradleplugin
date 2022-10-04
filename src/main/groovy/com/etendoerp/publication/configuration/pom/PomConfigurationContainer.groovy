@@ -8,6 +8,8 @@ import com.etendoerp.publication.PublicationUtils
 import com.etendoerp.publication.buildfile.BuildMetadata
 import com.etendoerp.publication.configuration.VersionContainer
 import org.gradle.api.Project
+import org.gradle.api.artifacts.Configuration
+import org.gradle.api.internal.artifacts.dependencies.DefaultProjectDependency
 import org.gradle.api.publish.maven.tasks.GenerateMavenPom
 
 import org.jdom2.*
@@ -41,6 +43,16 @@ class PomConfigurationContainer {
     Map<String, PomProjectContainer> subprojectDependencies
     VersionContainer versionContainer
 
+    Configuration defaultCopyConfiguration
+
+    /**
+     * Flag used to indicate that the subproject is being publish recursively
+     */
+    boolean recursivePublication = false
+
+    boolean isValidProject = false
+    DefaultProjectDependency projectDependency
+
     /**
      * Temporary dir used to store the parsed files
      */
@@ -62,9 +74,7 @@ class PomConfigurationContainer {
     }
 
     void putSubproject(PomProjectContainer pomProjectContainer) {
-        Project project = pomProjectContainer.projectDependency
-        String name = "${project.group}.${project.artifact}"
-        this.subprojectDependencies.put(name, pomProjectContainer)
+        this.subprojectDependencies.put(pomProjectContainer.artifactName, pomProjectContainer)
     }
 
     PomProjectContainer getSubproject(String name) {
@@ -79,12 +89,11 @@ class PomConfigurationContainer {
      * @return
      */
     static PomConfigurationContainer getPomContainer(Project mainProject, Project subProject, PomConfigurationType pomType=PomConfigurationType.MULTIPLE_PUBLISH) {
-        PomConfigurationContainer pom = subProject.findProperty(POM_CONTAINER_PROPERTY) as PomConfigurationContainer
-        if (!pom) {
-            mainProject.logger.info("* The POM container is not declared. Creating a new instance for ${subProject}")
-            pom = new PomConfigurationContainer(mainProject, subProject, pomType)
+        if (!subProject.ext.has(POM_CONTAINER_PROPERTY)) {
+            mainProject.logger.debug("* The POM container is not declared. Creating a new instance for ${subProject}")
+            new PomConfigurationContainer(mainProject, subProject, pomType)
         }
-        return pom
+        return subProject.ext.get(POM_CONTAINER_PROPERTY) as PomConfigurationContainer
     }
 
     void load() {
@@ -201,8 +210,12 @@ class PomConfigurationContainer {
         PomProjectContainer pomProjectContainer
 
         this.subprojectDependencies.entrySet().stream().filter({
+            return (it.value.isProjectDependency
+                    && it.value.isRecursivePublication() && it.value.projectDependency != null
+                    && it.value.group != null && !it.value.group.isBlank() && it.value.name != null && !it.value.name.isBlank())
+        }).filter({
             Project project = it.value.projectDependency
-            return line.contains(project.group as String) && line.contains(project.findProperty(BuildMetadata.ARTIFACT) as String)
+            return line.contains(it.value.group) && line.contains(it.value.name)
         }).map({
             it.value
         }).collect({

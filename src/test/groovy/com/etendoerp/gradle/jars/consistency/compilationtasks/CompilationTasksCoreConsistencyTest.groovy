@@ -10,6 +10,11 @@ import spock.lang.Narrative
 import spock.lang.TempDir
 import spock.lang.Title
 
+/**
+ * Is not necessary to use the latest core version for this test.
+ * The CORE dependency should be obtained from the "https://repo.futit.cloud/repository/etendo-resolution-test/" repo
+ */
+
 @Issue("EPL-123")
 @Title("The core consistency verification is ran when is updated")
 @Narrative("""
@@ -38,11 +43,11 @@ class CompilationTasksCoreConsistencyTest extends EtendoCoreResolutionSpecificat
 
     def "Running compilation tasks when the core in JARs is updated"() {
         given: "The user with an installed version of the CORE in JARs"
-        def currentCoreVersion = "22.1.2"
-        def currentCoreVersionXML = "3.0.221200"
+        def currentCoreVersion = "22.1.3"
+        def currentCoreVersionXML = "22.1.3"
 
-        def newCoreVersion = "22.1.3"
-        def newCoreVersionXML = "3.0.221300"
+        def newCoreVersion = "22.2.0"
+        def newCoreVersionXML = "22.2.0"
 
         coreVersionToInstall = currentCoreVersion
 

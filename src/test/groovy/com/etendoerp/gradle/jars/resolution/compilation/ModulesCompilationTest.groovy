@@ -33,7 +33,7 @@ class ModulesCompilationTest extends EtendoCoreResolutionSpecificationTest{
 
     @Override
     String getCoreVersion() {
-        return "22.1.0"
+        return ETENDO_LATEST_SNAPSHOT
     }
 
     @Override
@@ -43,9 +43,10 @@ class ModulesCompilationTest extends EtendoCoreResolutionSpecificationTest{
 
     def "Compiling a module does not include the JAR module classpath if is already in Sources"() {
         given: "A Etendo core '#coreType'"
+        addRepositoryToBuildFile(SNAPSHOT_REPOSITORY_URL)
         addRepositoryToBuildFile(getCoreRepo())
 
-        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", forceResolution: true]
+        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", forceResolution: true, ignoreDisplayMenu : true]
         loadCore([coreType : "${coreType}", pluginVariables: pluginVariables])
 
         and: "The user resolves the core"

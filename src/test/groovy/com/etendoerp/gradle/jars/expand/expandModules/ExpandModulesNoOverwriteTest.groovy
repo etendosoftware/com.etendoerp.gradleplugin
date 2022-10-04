@@ -25,13 +25,14 @@ class ExpandModulesNoOverwriteTest extends EtendoCoreResolutionSpecificationTest
 
     @Override
     String getCoreVersion() {
-        return "22.1.0"
+        return ETENDO_LATEST_SNAPSHOT
     }
 
     def "Running expandModules task multiple times"() {
         given: "The users adds a moduleDeps dependency"
+        addRepositoryToBuildFile(SNAPSHOT_REPOSITORY_URL)
 
-        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'"]
+        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", forceResolution: true, ignoreDisplayMenu : true]
         loadCore([coreType : "${coreType}", pluginVariables: pluginVariables])
 
         def moduleGroup = "com.test"
@@ -53,7 +54,7 @@ class ExpandModulesNoOverwriteTest extends EtendoCoreResolutionSpecificationTest
         when: "The user runs the expandModule task"
         def expandTaskResult = runTask(":expandModules", "-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
         expandTaskResult.task(":expandModules").outcome == TaskOutcome.SUCCESS
-
+//        com.etendoerp.platform:etendo-core:22.2.0.1657972019-20220716.114700-1
         then: "The dependency should be extracted in the 'modules' dir"
         def modulesLocation = new File(getTestProjectDir(), "modules")
         def moduleLocation = new File(modulesLocation, moduleName)
@@ -72,15 +73,18 @@ class ExpandModulesNoOverwriteTest extends EtendoCoreResolutionSpecificationTest
         def buildLocationFile = new File(moduleLocation, "build.gradle")
         buildLocationFile.text = buildLocationFile.text + "\n${editFileText}"
 
+        def developmentList = inDevelopmentList ? "['${moduleGroup}.${moduleArtifact}']" : "[]"
+
+        Map pluginVariablesUpdate = [
+                "coreVersion" : "'${getCoreVersion()}'",
+                forceResolution: true,
+                ignoreDisplayMenu : true,
+                sourceModulesInDevelopment : developmentList.toString()
+        ]
+        changeExtensionPluginVariables(pluginVariablesUpdate)
+
         and: "The user runs again the expandModule task"
-
-        def expandTaskResultRerun
-        if (force) {
-            expandTaskResultRerun = runTask(":expandModules","-Pforce=true", "-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
-        } else {
-            expandTaskResultRerun = runTask(":expandModules", "-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
-        }
-
+        def expandTaskResultRerun = runTask(":expandModules", "-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
         expandTaskResultRerun.task(":expandModules").outcome == TaskOutcome.SUCCESS
 
         def modulesLocationRerun = new File(getTestProjectDir(), "modules")
@@ -92,9 +96,9 @@ class ExpandModulesNoOverwriteTest extends EtendoCoreResolutionSpecificationTest
         // edit file
         def buildLocationFileRerun = new File(moduleLocationRerun, "build.gradle")
 
-        then: "The changes remains if not force flag is used, otherwise are overwritten"
+        then: "The changes remains if the module is in de development list, otherwise are overwritten"
 
-        if (force) {
+        if (!inDevelopmentList) {
             // The changes are overwritten
             assert !newFileRerun.exists()
 
@@ -108,11 +112,11 @@ class ExpandModulesNoOverwriteTest extends EtendoCoreResolutionSpecificationTest
         }
 
         where:
-        coreType  | force | _
-        "sources" | true  | _
-        "jar"     | true  | _
-        "sources" | false | _
-        "jar"     | false | _
+        coreType  | inDevelopmentList | _
+        "sources" | true              | _
+        "jar"     | true              | _
+        "sources" | false             | _
+        "jar"     | false             | _
 
     }
 

@@ -1,6 +1,6 @@
 package com.etendoerp.gradle.jars.core.coreinsources
 
-import com.etendoerp.gradle.jars.EtendoCoreSourcesSpecificationTest
+import com.etendoerp.gradle.jars.resolution.EtendoCoreResolutionSpecificationTest
 import com.etendoerp.gradle.utils.DBCleanupMode
 import org.gradle.testkit.runner.TaskOutcome
 import spock.lang.Narrative
@@ -9,11 +9,15 @@ import spock.lang.Stepwise
 import spock.lang.TempDir
 import spock.lang.Title
 
+/**
+ * This test should use the latest CORE snapshot
+ */
+
 @Title("Test to verify the correct deploy and extraction of resources from a module jar")
 @Narrative("""This test adds a module in jar dependency, runs an install and smartbuild to
 see if the resources of the jar ('.html, .xml, etc') are deployed in the WebContent folder.""")
 @Stepwise
-class SourceCoreJarModuleDeployTest extends EtendoCoreSourcesSpecificationTest {
+class SourceCoreJarModuleDeployTest extends EtendoCoreResolutionSpecificationTest {
     @TempDir @Shared File testProjectDir
 
     @Override
@@ -31,14 +35,23 @@ class SourceCoreJarModuleDeployTest extends EtendoCoreSourcesSpecificationTest {
         return this.getClass().getSimpleName().toLowerCase()
     }
 
+    @Override
+    String getCoreVersion() {
+        return ETENDO_LATEST_SNAPSHOT
+    }
+
     public final static String JAR_MODULE_GROUP = "com.test"
     public final static String JAR_MODULE_NAME  = "dummymodule"
 
     def "Installing Etendo sources core with a module in Jar"() {
         given: "A Etendo sources core environment"
-        expandMock()
-        def expandResult = runTask(":expandCoreMock")
-        assert expandResult.task(":expandCoreMock").outcome == TaskOutcome.SUCCESS
+        addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
+
+        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", ignoreDisplayMenu : true]
+        loadCore([coreType : "sources", pluginVariables: pluginVariables])
+
+        and: "The user resolves the core"
+        resolveCore([coreType : "sources", testProjectDir: testProjectDir])
 
         and: "The users adds a jar module dependency"
         def moduleGroup = JAR_MODULE_GROUP

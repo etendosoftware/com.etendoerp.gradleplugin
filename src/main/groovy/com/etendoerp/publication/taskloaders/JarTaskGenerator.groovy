@@ -72,7 +72,7 @@ class JarTaskGenerator {
         }
 
         // JAR configuration
-        def jarModuleTask = GradleUtils.getTaskByName(mainProject, subProject, "jar")// subProject.tasks.named("jar")
+        def jarModuleTask = GradleUtils.getTaskByName(mainProject, subProject, "jar")
         if (!jarModuleTask) {
             mainProject.logger.warn("WARNING: The subproject ${subProject} is missing the 'jar' task.")
             mainProject.logger.warn("*** Make sure that the 'build.gradle' file is using the 'java' plugin.")

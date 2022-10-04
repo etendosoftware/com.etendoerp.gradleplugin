@@ -1,16 +1,88 @@
 package com.etendoerp.legacy.dependencies
 
 import com.etendoerp.core.CoreMetadata
+import com.etendoerp.gradleutils.GradleUtils
+import com.etendoerp.gradleutils.ProjectProperty
 import com.etendoerp.jars.modules.metadata.DependencyUtils
 import com.etendoerp.legacy.dependencies.container.ArtifactDependency
+import com.etendoerp.modules.ModulesConfigurationUtils
+import com.etendoerp.publication.PublicationUtils
+import com.etendoerp.publication.configuration.pom.PomConfigurationContainer
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.Dependency
 import org.gradle.api.artifacts.DependencySet
 import org.gradle.api.internal.artifacts.dependencies.AbstractModuleDependency
+import org.gradle.api.internal.artifacts.dependencies.DefaultExternalModuleDependency
 import org.gradle.api.internal.artifacts.dependencies.DefaultProjectDependency
+import org.gradle.api.internal.artifacts.ivyservice.resolutionstrategy.DefaultResolutionStrategy
 
 class ResolverDependencyUtils {
+
+    static Configuration loadResolutionDependencies(Project mainProject) {
+        Configuration resolutionConfiguration = createRandomConfiguration(mainProject, "resolution")
+
+        // Contains a map between the subproject name "group:artifact" and the subproject
+        Map<String, Project> subprojectNames = ModulesConfigurationUtils.getSubprojectNames(mainProject)
+
+        // Obtain the main project dependencies
+        def mainConf = mainProjectDependencies(mainProject, subprojectNames)
+        if (mainConf) {
+            resolutionConfiguration.extendsFrom(mainConf)
+            resolutionConfiguration.dependencies.addAll(mainConf.dependencies)
+        }
+
+        // Obtain the subproject dependencies
+        def moduleProject = mainProject.findProject(":${PublicationUtils.BASE_MODULE_DIR}")
+
+        if (moduleProject) {
+            moduleProject.subprojects.each {
+                def subprojectPom = PomConfigurationContainer.getPomContainer(mainProject, it)
+
+                // Add the 'projectDependency' to the resolutionConfiguration
+                if (subprojectPom.projectDependency) {
+                    resolutionConfiguration.dependencies.add(subprojectPom.projectDependency)
+                }
+            }
+        }
+
+        // Configure the resolutionConfiguration to substitute all the dependencies
+        // already in sources.
+        ModulesConfigurationUtils.configureSubstitutions(mainProject, [resolutionConfiguration], subprojectNames)
+
+        return resolutionConfiguration
+    }
+
+    static Configuration mainProjectDependencies(Project mainProject, Map<String, Project> subprojectNames) {
+        Configuration configuration = null
+
+        // Obtain the main project dependencies
+        def mainPom = PomConfigurationContainer.getPomContainer(mainProject, mainProject)
+        if (mainPom.defaultCopyConfiguration) {
+            configuration = mainPom.defaultCopyConfiguration
+        }
+
+        // Exclude from the root configurations the dependencies already in sources
+        def validConfigs = mainProject.configurations.findAll {
+            it.name in DependencyUtils.VALID_CONFIGURATIONS || it.name == ModulesConfigurationUtils.DEFAULT_CONFIG_COPY
+        }.collect()
+
+        validConfigs.each { Configuration conf ->
+            conf.dependencies.removeIf({
+                String dependencyName = "${it.group}:${it.name}"
+                return subprojectNames.containsKey(dependencyName)
+            })
+
+            subprojectNames.each {
+                def nameSplit = it.key.split(":")
+                if (nameSplit.size() >= 2) {
+                    conf.exclude([group: nameSplit[0], module: nameSplit[1]])
+                }
+            }
+        }
+
+        return configuration
+    }
 
     /**
      * Loads all the dependencies of the project and subproject in a custom Configuration
@@ -60,7 +132,7 @@ class ResolverDependencyUtils {
      * Loads the dependencies map with the module name has key and the Dependency has value.
      * @param container
      */
-    static Map<String, Dependency> loadDependenciesMap(Project project, Configuration container) {
+    static Map<String, Dependency> loadDependenciesMap(Project project, Configuration container, String separator=".") {
         Map<String, Dependency> dependenciesMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER)
         for (Dependency dependency : container.dependencies) {
             def group = dependency.group
@@ -72,7 +144,7 @@ class ResolverDependencyUtils {
                     name = artifact
                 }
             }
-            String moduleName = "${group}.${name}"
+            String moduleName = "${group}${separator}${name}"
             dependenciesMap.put(moduleName, dependency)
         }
         return dependenciesMap
@@ -95,20 +167,59 @@ class ResolverDependencyUtils {
         DependencyUtils.loadDependenciesFromConfigurations(configurations, configurationDependencySet)
 
         // Load the Artifact dependencies
-        loadConfigurationWithArtifacts(project, configurationContainer, artifactDependencyMap)
+        loadConfigurationWithArtifacts(project, configurationContainer, artifactDependencyMap,
+                true, true, false, false)
 
         return configurationContainer
     }
 
-    static void loadConfigurationWithArtifacts(Project project, Configuration configuration, Map<String, List<ArtifactDependency>> artifacts) {
+    /**
+     * Loads a Configuration with artifacts or updates the dependencies if they are already present.
+     *
+     * This is used by the 'conflict resolution' to add all the Etendo dependencies and verify if the CORE has conflicts.
+     * Also is used to update the 'final' configuration which will be expanded (sources or jar files). Each version dependency
+     * is updated based on the result of the resolution conflict.
+     *
+     * @param project
+     * @param configuration
+     * @param artifacts
+     * @param updateConstrains
+     * @param addMissingArtifact
+     */
+    static void loadConfigurationWithArtifacts(Project project, Configuration configuration, Map<String, List<ArtifactDependency>> artifacts,
+                                               boolean updateConstrains=false, boolean addMissingArtifact=true, boolean isTransitive=false, boolean reloadArtifact=false) {
         for (def entry : artifacts.entrySet()) {
             for (ArtifactDependency artifactDependency : entry.value) {
                 String displayName = artifactDependency.displayName
-                if (displayName) {
-                    project.dependencies.add(configuration.name, displayName)
+                Set<DefaultExternalModuleDependency> dependencies = filterDependenciesByName(project, configuration, artifactDependency.group, artifactDependency.name)
+                if (dependencies && !dependencies.isEmpty() && !reloadArtifact) {
+                    if (updateConstrains) {
+                        updateDependenciesVersion(project, dependencies, artifactDependency.dependencyResult.selected.getModuleVersion().version)
+                    }
+                } else if (displayName && (addMissingArtifact || reloadArtifact)) {
+                    configuration.dependencies.add(project.dependencies.create(displayName, {
+                        transitive = isTransitive
+                    }))
                 }
             }
         }
+    }
+
+    static void updateDependenciesVersion(Project project, Set<DefaultExternalModuleDependency> dependencies, String version, boolean overwrite=false) {
+        dependencies.each {
+            def versionConstraint = it.versionConstraint
+            if (overwrite || (!it.force && versionConstraint.strictVersion.isBlank()
+                    && versionConstraint.preferredVersion.isBlank()
+                    && !(version in versionConstraint.rejectedVersions))) {
+                it.versionConstraint.requiredVersion = version
+            }
+        }
+    }
+
+    static Set<DefaultExternalModuleDependency> filterDependenciesByName(Project project, Configuration configuration, String group, String name) {
+        return configuration.dependencies.findAll {
+            it instanceof DefaultExternalModuleDependency && it.group == group && it.name == name
+        } as Set<DefaultExternalModuleDependency>
     }
 
     /**
@@ -216,6 +327,27 @@ class ResolverDependencyUtils {
         if (configurationToAdd) {
             DependencyUtils.loadDependenciesFromConfigurations([configurationToAdd], config.dependencies)
         }
+        return config
+    }
+
+    static Configuration createExtendedConfiguration(Project project, String name=null, Configuration confToExtend=null,
+                                                     boolean addSubstitutionsRules=true, boolean addDependencies=true) {
+        String configName = (name) ?: "internal"
+        def config = project.configurations.create("${configName}-configuration-" + UUID.randomUUID().toString().replace("-",""))
+
+        if (confToExtend) {
+            config.extendsFrom(confToExtend)
+            if (addSubstitutionsRules && confToExtend.resolutionStrategy instanceof DefaultResolutionStrategy ) {
+                config.resolutionStrategy.dependencySubstitution.all(
+                        (confToExtend.resolutionStrategy as DefaultResolutionStrategy ).getDependencySubstitutionRule()
+                )
+            }
+
+            if (addDependencies) {
+                DependencyUtils.loadDependenciesFromConfigurations([confToExtend], config.dependencies)
+            }
+        }
+
         return config
     }
 

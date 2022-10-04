@@ -259,6 +259,8 @@ abstract class EtendoSpecification extends Specification implements EtendoSpecif
         """
     }
 
+    // TODO: Add functionality to delete a repository in the 'after evaluated phase' (in the plugin)
+    // (Where all the repositories are configured)
     void addRepositoryToBuildFileFirst(String repository) {
         addRepositoryToBuildFile(repository)
 

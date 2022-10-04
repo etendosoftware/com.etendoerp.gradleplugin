@@ -10,6 +10,10 @@ import spock.lang.Narrative
 import spock.lang.TempDir
 import spock.lang.Title
 
+/**
+ * This test should use the latest CORE snapshot
+ */
+
 @Issue("EPL-123")
 @Title("The extraction of an old version of a module in JAR should be omitted")
 @Narrative("""
@@ -27,7 +31,7 @@ class ModuleExtractionVerificationTest extends EtendoCoreResolutionSpecification
 
     @Override
     String getCoreVersion() {
-        return ETENDO_21q1_SNAPSHOT
+        return ETENDO_LATEST_SNAPSHOT
     }
 
     @Override

@@ -13,9 +13,9 @@ class EtendoPluginExtension {
 
     /**
      * Flag used to ignore loading the source modules to perform resolution conflicts.
-     * Default false
+     * Default true
      */
-    boolean ignoreSourceModulesResolution = false
+    boolean ignoreSourceModulesResolution = true
 
     /**
      * Flag used to perform or not the resolution conflicts.
@@ -96,6 +96,12 @@ class EtendoPluginExtension {
      */
     boolean ignoreDisplayMenu = false
 
+    /**
+     * Flag used to load the CORE JARs dependencies when is in SOURCES.
+     * Default false.
+     */
+    boolean loadCoreDependencies = false
+
     /************************ MESSAGES ************************/
 
     static String ignoredArtifactsMessage(String exampleModule) {
@@ -147,6 +153,17 @@ class EtendoPluginExtension {
         |* etendo {
         |*  ignoreCoreJarDependency = true
         |* }""".stripMargin()
+    }
+
+    static String ignoreUnresolvedArtifactsMessage() {
+        return  """
+        |----------------------------------------------------------------------------
+        |* To ignore the unresolved artifacts use the plugin extension.
+        |* Example:
+        |* etendo {
+        |*    ignoreUnresolvedArtifacts = true
+        |* }
+        |""".stripMargin()
     }
 
 }

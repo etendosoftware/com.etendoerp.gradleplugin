@@ -5,8 +5,8 @@ import com.etendoerp.consistency.EtendoArtifactsConsistencyContainer
 import com.etendoerp.core.CoreMetadata
 import com.etendoerp.dependencies.EtendoCoreDependencies
 import com.etendoerp.legacy.ant.AntLoader
-import com.etendoerp.legacy.ant.ConsistencyVerification
 import com.etendoerp.legacy.utils.NexusUtils
+import com.etendoerp.modules.ModulesConfigurationUtils
 import com.etendoerp.publication.configuration.PublicationConfiguration
 import org.gradle.api.Project
 import org.gradle.api.logging.LogLevel
@@ -37,6 +37,8 @@ class ResolverDependencyLoader {
 
             NexusUtils.configureRepositories(project)
             CoreMetadata coreMetadata = new CoreMetadata(project)
+
+            ModulesConfigurationUtils.configureSubprojects(project)
 
             PublicationConfiguration publicationConfiguration = new PublicationConfiguration(project)
             publicationConfiguration.configurePublication()
@@ -106,6 +108,8 @@ class ResolverDependencyLoader {
              *
              */
             project.ant.properties['gradle.custom.dependencies'] = project.ant.references['gradle.custom'].toString()
+
+            project.ant.project.setProperty("env.GRADLE_CLASSPATH", project.ant.references['gradle.custom'].toString())
 
             // This gets all dependencies and sets them in ant as a file list with id: "gradle.libs"
             // Ant task build.local.context uses this to copy them to WebContent

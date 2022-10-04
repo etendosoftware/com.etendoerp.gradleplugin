@@ -1,20 +1,21 @@
 package com.etendoerp.gradle.jars.core.coreinjars
 
-import com.etendoerp.gradle.jars.EtendoCoreJarSpecificationTest
-import com.etendoerp.gradle.jars.EtendoCoreSourcesSpecificationTest
-import com.etendoerp.gradle.jars.JarsUtils
 import com.etendoerp.gradle.jars.core.coreinsources.CoreUtils
-import com.etendoerp.gradle.utils.DBCleanupMode
+import com.etendoerp.gradle.jars.resolution.EtendoCoreResolutionSpecificationTest
 import org.gradle.testkit.runner.TaskOutcome
 import spock.lang.Issue
 import spock.lang.Narrative
 import spock.lang.TempDir
 import spock.lang.Title
 
+/**
+ * This test should use the latest CORE snapshot
+ */
+
 @Title("Running the install task with modules dirs and dependencies.")
 @Narrative("""When having modules directories in the root dir and modules jar dependencies, running
 the 'install' task creates the modules correctly""")
-class JarCoreModulesInstallTest extends EtendoCoreJarSpecificationTest {
+class JarCoreModulesInstallTest extends EtendoCoreResolutionSpecificationTest {
     @TempDir File testProjectDir
 
     @Override
@@ -24,7 +25,7 @@ class JarCoreModulesInstallTest extends EtendoCoreJarSpecificationTest {
 
     @Override
     String getCoreVersion() {
-        return ETENDO_22q1_VERSION
+        return ETENDO_LATEST_SNAPSHOT
     }
 
     @Override
@@ -40,30 +41,14 @@ class JarCoreModulesInstallTest extends EtendoCoreJarSpecificationTest {
 
     @Issue("EPL-13")
     def "Running install with modules dir and modules dependencies"() {
-        if (coreType.equalsIgnoreCase("sources")) {
-            // Replace the core in jar dependency
-            buildFile.text = buildFile.text.replace("${JarsUtils.IMPLEMENTATION} '${getCore()}'","")
-
-            def coreSources = getCore() + "@zip"
-
-            JarsUtils.addCoreMockTask(
-                    buildFile,
-                    coreSources,
-                    EtendoCoreSourcesSpecificationTest.ETENDO_CORE_REPO,
-                    args.get("nexusUser"),
-                    args.get("nexusPassword")
-            )
-        }
-
         given: "A Etendo environment with the Core dependency"
-        def dependenciesTaskResult = runTask(":dependencies","--refresh-dependencies", "-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
-        dependenciesTaskResult.task(":dependencies").outcome == TaskOutcome.SUCCESS
-        assert dependenciesTaskResult.output.contains(getCore())
+        addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
 
-        if (coreType.equalsIgnoreCase("sources")) {
-            def expandCoreMockResult = runTask(":expandCoreMock")
-            assert expandCoreMockResult.task(":expandCoreMock").outcome == TaskOutcome.SUCCESS
-        }
+        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'", ignoreDisplayMenu : true]
+        loadCore([coreType : "${coreType}", pluginVariables: pluginVariables])
+
+        and: "The user resolves the core"
+        resolveCore([coreType : "${coreType}", testProjectDir: testProjectDir])
 
         and: "The users adds a sources module dependency"
         def moduleSourceGroup = SOURCE_MODULE_GROUP

@@ -2,14 +2,13 @@ package com.etendoerp.legacy.modules.expand
 
 import com.etendoerp.EtendoPluginExtension
 import com.etendoerp.core.CoreMetadata
-import com.etendoerp.core.CoreType
 import com.etendoerp.legacy.LegacyScriptLoader
-import com.etendoerp.legacy.dependencies.ResolutionUtils
+import com.etendoerp.legacy.ant.AntMenuHelper
 import com.etendoerp.legacy.dependencies.ResolverDependencyUtils
 import com.etendoerp.legacy.dependencies.container.ArtifactDependency
 import com.etendoerp.legacy.dependencies.container.EtendoCoreZipArtifact
+import com.etendoerp.legacy.utils.NexusUtils
 import org.gradle.api.Project
-import org.gradle.api.artifacts.Dependency
 import org.gradle.api.tasks.Delete
 import org.gradle.api.tasks.Sync
 
@@ -30,6 +29,9 @@ class ExpandCore {
             doLast {
                 CoreMetadata coreMetadata = new CoreMetadata(project)
 
+                // Clean dir
+                project.delete(tempDir)
+
                 // Load the core metadata from the extension with the user options
                 coreMetadata.loadMetadataFromExtension()
 
@@ -49,6 +51,8 @@ class ExpandCore {
                 ArtifactDependency coreArtifactDependency = null
                 String displayName = coreMetadata.coreId
 
+                NexusUtils.askNexusCredentials(project)
+
                 project.logger.info("*****************************************************")
                 project.logger.info("* Starting expanding the core in SOURCES.")
                 project.logger.info("* '${coreMetadata.coreId}'")
@@ -56,11 +60,11 @@ class ExpandCore {
 
                 if (performResolutionConflicts) {
                     project.logger.info("* Running the resolution of conflicts of the 'expandCore' task.")
-                    def artifactDependencies = ExpandUtils.performExpandResolutionConflicts(project, coreMetadata, true, supportJars, false, true)
+                    def artifactDependencies = ExpandUtils.performExpandCoreResolutionConflicts(project, coreMetadata)
 
                     // Obtain the 'selected' Core version
                     String currentCoreDependency = "${coreMetadata.coreGroup}:${coreMetadata.coreName}"
-                    coreArtifactDependency = ResolverDependencyUtils.getCoreDependency(project, currentCoreDependency ,artifactDependencies)
+                    coreArtifactDependency = ResolverDependencyUtils.getCoreDependency(project, currentCoreDependency , artifactDependencies)
                 }
 
                 // Check the version to expand
@@ -85,14 +89,15 @@ class ExpandCore {
                 }
 
                 if (coreArtifactDependency instanceof EtendoCoreZipArtifact) {
-                    def core = coreArtifactDependency as EtendoCoreZipArtifact
-                    core.tempDir = tempDir
-                    core.extract()
+                    if (shouldExpandCore(project, coreArtifactDependency)) {
+                        def core = coreArtifactDependency as EtendoCoreZipArtifact
+                        core.tempDir = tempDir
+                        core.extract()
+                    }
                 } else {
                     throw new IllegalArgumentException("The artifact dependency to expand is not a instance of a EtendoCoreZipArtifact. Artifact: ${displayName}")
                 }
             }
-
         }
 
         project.tasks.register("expandCore", Sync) {
@@ -114,11 +119,17 @@ class ExpandCore {
             }
 
             doLast {
-                project.logger.info("The core was extracted successfully.")
+                project.logger.info("*** The expandCore task completed successfully. ***")
             }
-
         }
-
     }
 
+    static boolean shouldExpandCore(Project mainProject, EtendoCoreZipArtifact coreDisplayName) {
+        String message = """
+        |*************** CORE EXPANSION ***************
+        |* Core version to expand: ${coreDisplayName.displayName}
+        |* The expansion will overwrite and delete all the current core files.
+        |""".stripMargin()
+        return AntMenuHelper.confirmationMenu(mainProject, message)
+    }
 }
