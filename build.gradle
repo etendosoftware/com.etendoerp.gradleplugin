@@ -63,7 +63,7 @@ dependencies {
     implementation group: 'org.apache.commons', name: 'commons-dbcp2', version: '2.9.0'
 
     // https://mvnrepository.com/artifact/org.postgresql/postgresql
-    implementation group: 'org.postgresql', name: 'postgresql', version: '42.3.2'
+    implementation 'org.postgresql:postgresql:42.5.4'
 
     // https://mvnrepository.com/artifact/com.oracle.database.jdbc/ojdbc8
     implementation 'com.oracle.database.jdbc:ojdbc8:21.6.0.0.1'
@@ -86,7 +86,7 @@ dependencies {
     testImplementation( "com.athaydes:spock-reports:2.0-groovy-2.5" ) {
         transitive = false // this avoids affecting your version of Groovy/Spock
     }
-    testImplementation 'org.postgresql:postgresql:42.2.22'
+    testImplementation 'org.postgresql:postgresql:42.5.4'
 
 }
 
