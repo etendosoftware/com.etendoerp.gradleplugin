@@ -39,7 +39,6 @@ class EtendoCoreDependencies {
             implementation('commons-logging:commons-logging:1.2') { transitive = false }
             implementation('com.etendoerp:jasperreports:6.0.0') { transitive = false }
             implementation('com.sun.xml.fastinfoset:FastInfoset:1.2.15') { transitive = false }
-            implementation('org.zenframework.z8.dependencies.commons:ojdbc6:2.0') { transitive = false }
             implementation('jfree:jcommon:1.0.15') { transitive = false }
             implementation('org.eclipse.jdt:ecj:3.23.0') { transitive = false }
             implementation('com.sun.mail:javax.mail:1.6.1') { transitive = false }
@@ -48,7 +47,7 @@ class EtendoCoreDependencies {
             implementation('org.jboss.spec.javax.transaction:jboss-transaction-api_1.2_spec:1.1.1.Final') { transitive = false }
             implementation('org.javassist:javassist:3.24.0-GA') { transitive = false }
             implementation('org.apache.logging.log4j:log4j-web:2.16.0') { transitive = false }
-            implementation('org.postgresql:postgresql:42.2.2.jre7') { transitive = false }
+            implementation('org.postgresql:postgresql:42.5.4') { transitive = false }
             implementation('nekohtml:nekohtml:0.9.5') { transitive = false }
             implementation('org.apache.logging.log4j:log4j-core:2.16.0') { transitive = false }
             implementation('commons-fileupload:commons-fileupload:1.4') { transitive = false }
