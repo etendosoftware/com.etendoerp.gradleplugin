@@ -12,7 +12,6 @@ import org.gradle.api.tasks.StopExecutionException
 import org.gradle.api.tasks.Sync
 import org.gradle.api.publish.maven.MavenPublication
 
-
 /**
  *  This class will load all the task from the legacy script
  *  following the same order.
@@ -22,6 +21,9 @@ class LegacyScriptLoader {
     static final String FORCE_DEFAULT_PROPS = "forceDefaultProps"
     static final String FORCE_BACKUP_PROPS = "forceBackupProps"
     static final String FORCE_QUARTZ_PROPS = "forceQuartzProps"
+    static final String GITHUB_USER = "etendobot"
+    static final String GITHUB_TOKEN = "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"
+
 
     static List whiteSyncCoreList = [
             'legal/**',
@@ -132,8 +134,8 @@ class LegacyScriptLoader {
             maven {
                 url = URI.create("https://maven.pkg.github.com/etendosoftware/etendo_core")
                 credentials {
-                    username = "etendobot"
-                    password = "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"
+                    username = GITHUB_USER
+                    password = GITHUB_TOKEN
                 }
             }
             maven {
