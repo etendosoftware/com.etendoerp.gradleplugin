@@ -12,6 +12,7 @@ import org.gradle.api.tasks.StopExecutionException
 import org.gradle.api.tasks.Sync
 import org.gradle.api.publish.maven.MavenPublication
 
+
 /**
  *  This class will load all the task from the legacy script
  *  following the same order.
@@ -128,6 +129,13 @@ class LegacyScriptLoader {
 
         project.repositories {
             mavenCentral()
+            maven {
+                url = URI.create("https://maven.pkg.github.com/etendosoftware/etendo_core")
+                credentials {
+                    username = "etendobot"
+                    password = "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"
+                }
+            }
             maven {
                 url 'https://repo.futit.cloud/repository/maven-public-releases'
             }
