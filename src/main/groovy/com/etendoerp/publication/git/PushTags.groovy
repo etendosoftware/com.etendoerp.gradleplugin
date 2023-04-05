@@ -42,11 +42,11 @@ class PushTags {
 
                 Path directory = Paths.get(moduleNameFileLocation)
                 Git.gitStage(project, directory)
-                Git.gitCommit(project, directory, "Updating module version")
+                Git.gitCommit(project, directory, "Update version to ${moduleVersion} :zap:")
                 Git.gitPush(project, directory)
 
                 // Tag
-                Git.gitTag(project, directory, "v${moduleVersion}", "Tagging ${moduleVersion}")
+                Git.gitTag(project, directory, "${moduleVersion}", "Tagging ${moduleVersion}")
                 Git.gitPushTag(project, directory)
             } catch (IllegalAccessError e) {
                 project.logger.error("* Error updating the git repository of the module '${moduleName}'")

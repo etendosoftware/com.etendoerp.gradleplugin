@@ -8,7 +8,7 @@ import org.gradle.api.publish.maven.internal.publication.DefaultMavenPublication
 
 class VersionContainer {
     static final String VERSION_CONTAINER_PROPERTY = "VERSION_CONTAINER_PROPERTY"
-    static final String VERSION_COMMANDLINE_PROPERTY = "version"
+    static final String VERSION_COMMANDLINE_PROPERTY = "update"
 
     static final String MAYOR_VERSION = "mayor"
     static final String MINOR_VERSION = "minor"

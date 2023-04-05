@@ -16,7 +16,7 @@ def URL_DEV  = "https://repo.futit.cloud/repository/maven-public-snapshots"
 def mode = DEV
 
 // If the version is updated, make sure to change it in the 'EtendoPlugin' class
-def pluginVersion = "1.0.6"
+def pluginVersion = "1.0.7"
 
 static def gitBranch() {
     def branch = ""
@@ -56,8 +56,8 @@ publishing {
 }
 
 dependencies {
-    compile     gradleApi()
-    testCompile gradleTestKit()
+    implementation     gradleApi()
+    testImplementation gradleTestKit()
 
     // https://mvnrepository.com/artifact/org.apache.commons/commons-dbcp2
     implementation group: 'org.apache.commons', name: 'commons-dbcp2', version: '2.9.0'
@@ -78,12 +78,12 @@ dependencies {
         exclude group: 'jdom', module: 'jdom'
     }
 
-    testImplementation 'org.codehaus.groovy:groovy-all:2.5.14'
-    testImplementation platform("org.spockframework:spock-bom:2.0-M4-groovy-2.5")
+    testImplementation 'org.codehaus.groovy:groovy-all:3.0.9'
+    testImplementation platform("org.spockframework:spock-bom:2.0-M4-groovy-3.0")
     testImplementation 'org.spockframework:spock-core'
     testImplementation 'org.spockframework:spock-junit4'
     testImplementation 'junit:junit:4.13.1'
-    testImplementation( "com.athaydes:spock-reports:2.0-groovy-2.5" ) {
+    testImplementation( "com.athaydes:spock-reports:2.0-groovy-3.0" ) {
         transitive = false // this avoids affecting your version of Groovy/Spock
     }
     testImplementation 'org.postgresql:postgresql:42.5.4'
@@ -119,3 +119,4 @@ gradlePlugin {
         }
     }
 }
+
