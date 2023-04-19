@@ -21,8 +21,6 @@ class LegacyScriptLoader {
     static final String FORCE_DEFAULT_PROPS = "forceDefaultProps"
     static final String FORCE_BACKUP_PROPS = "forceBackupProps"
     static final String FORCE_QUARTZ_PROPS = "forceQuartzProps"
-    static final String GITHUB_USER = "etendobot"
-    static final String GITHUB_TOKEN = "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"
 
 
     static List whiteSyncCoreList = [
@@ -134,8 +132,8 @@ class LegacyScriptLoader {
             maven {
                 url = URI.create("https://maven.pkg.github.com/etendosoftware/etendo_core")
                 credentials {
-                    username = GITHUB_USER
-                    password = GITHUB_TOKEN
+                    username = project.ext.get("gitHubUser")
+                    password = project.ext.get("gitHubToken")
                 }
             }
             maven {
