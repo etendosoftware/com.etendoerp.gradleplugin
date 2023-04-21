@@ -56,7 +56,7 @@ class BuildMetadata {
     /**
      * Default Core version
      */
-    static final String DEFAULT_CORE_VERSION_DEPENDENCY = "[22.1.0, 22.2.0)"
+    static final String DEFAULT_CORE_VERSION_DEPENDENCY = "[22.1.0, x.y.z)"
 
     // Properties used to fill the build.gradle.template
     static final String DATE = "date"
@@ -103,7 +103,7 @@ class BuildMetadata {
     BuildMetadata(Project project, String moduleName, String repositoryName, File buildGradleTemplateFile) {
         this.project = project
         this.moduleName = moduleName
-        this.repository = "${PublicationUtils.BASE_REPOSITORY_URL}$repositoryName"
+        this.repository = repositoryName
         this.buildGradleTemplateFile = buildGradleTemplateFile
         this.subprojectDependencies = new TreeMap<>(String.CASE_INSENSITIVE_ORDER)
         loadModuleLocation(moduleName)
