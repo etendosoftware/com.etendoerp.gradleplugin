@@ -1,7 +1,7 @@
 package com.etendoerp.publication.taskloaders
 
 import com.etendoerp.gradleutils.GradleUtils
-import com.etendoerp.legacy.utils.NexusUtils
+import com.etendoerp.legacy.utils.GithubUtils
 import com.etendoerp.publication.PublicationUtils
 import com.etendoerp.publication.configuration.pom.PomConfigurationContainer
 import org.gradle.api.Project
@@ -74,9 +74,16 @@ class MavenTaskGenerator {
 
                     // Configure the credentials
                     subProject.publishing.repositories.maven.credentials {
-                        NexusUtils.askNexusCredentials(mainProject)
-                        username mainProject.ext.get("nexusUser")
-                        password mainProject.ext.get("nexusPassword")
+                        if(mainProject.ext.get("githubUser") && mainProject.ext.get("githubToken") ){
+                            GithubUtils.askCredentials(mainProject)
+                            username mainProject.ext.get("githubUser")
+                            password mainProject.ext.get("githubToken")
+                        } else{
+                            NexusUtils.askNexusCredentials(mainProject)
+                            username mainProject.ext.get("nexusUser")
+                            password mainProject.ext.get("nexusPassword")
+                        }
+
                     }
                 }
             }

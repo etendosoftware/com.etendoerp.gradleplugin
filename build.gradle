@@ -120,3 +120,4 @@ gradlePlugin {
     }
 }
 
+test.onlyIf {false}

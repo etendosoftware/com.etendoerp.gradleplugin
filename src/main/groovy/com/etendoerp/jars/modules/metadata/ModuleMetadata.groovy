@@ -1,6 +1,6 @@
 package com.etendoerp.jars.modules.metadata
 
-import com.etendoerp.legacy.utils.NexusUtils
+import com.etendoerp.legacy.utils.GithubUtils
 import org.gradle.api.Project
 import org.gradle.api.publish.maven.tasks.AbstractPublishToMaven
 
@@ -77,7 +77,7 @@ abstract class ModuleMetadata {
         if (group != null) {
             project.publishing.repositories.maven.url = repository
             project.publishing.repositories.maven.credentials {
-                NexusUtils.askNexusCredentials(project)
+                GithubUtils.askCredentials(project)
                 username project.ext.get("nexusUser")
                 password project.ext.get("nexusPassword")
             }

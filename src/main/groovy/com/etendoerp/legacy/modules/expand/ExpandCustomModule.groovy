@@ -1,7 +1,7 @@
 package com.etendoerp.legacy.modules.expand
 
 import com.etendoerp.jars.PathUtils
-import com.etendoerp.legacy.utils.NexusUtils
+import com.etendoerp.legacy.utils.GithubUtils
 import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
 import org.gradle.api.file.FileTree
@@ -22,7 +22,7 @@ class ExpandCustomModule {
             finalizedBy(project.tasks.findByName("cleanCustomExpandTmpDir"))
             doLast {
                 String moduleName = PublicationUtils.loadModuleName(project)
-                NexusUtils.askNexusCredentials(project)
+                GithubUtils.askCredentials(project)
 
                 String moduleLocation = PathUtils.createPath(
                         project.rootDir.absolutePath,

@@ -2,7 +2,7 @@ package com.etendoerp.jars.modules.mavenpublication
 
 import com.etendoerp.jars.PathUtils
 import com.etendoerp.jars.Utils
-import com.etendoerp.legacy.utils.NexusUtils
+import com.etendoerp.legacy.utils.GithubUtils
 import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
 import org.gradle.api.Task
@@ -100,7 +100,7 @@ class MavenPublicationConfig {
 
                 // Configure the credentials
                 moduleProject.publishing.repositories.maven.credentials {
-                    NexusUtils.askNexusCredentials(project)
+                    GithubUtils.askCredentials(project)
                     username project.ext.get("nexusUser")
                     password project.ext.get("nexusPassword")
                 }

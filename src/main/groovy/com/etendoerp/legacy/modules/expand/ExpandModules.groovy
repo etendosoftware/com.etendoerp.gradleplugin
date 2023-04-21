@@ -2,7 +2,7 @@ package com.etendoerp.legacy.modules.expand
 
 import com.etendoerp.core.CoreMetadata
 import com.etendoerp.core.CoreType
-import com.etendoerp.legacy.utils.NexusUtils
+import com.etendoerp.legacy.utils.GithubUtils
 import org.gradle.api.Project
 
 class ExpandModules {
@@ -17,7 +17,7 @@ class ExpandModules {
                     throw new IllegalArgumentException("The Etendo core is undefined.")
                 }
 
-                NexusUtils.askNexusCredentials(project)
+                GithubUtils.askCredentials(project)
                 def moduleDepsConfig = project.configurations.getByName("moduleDeps")
 
                 project.logger.info("*****************************************************")

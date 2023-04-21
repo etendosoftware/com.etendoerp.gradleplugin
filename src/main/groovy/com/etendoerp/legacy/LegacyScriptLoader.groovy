@@ -2,7 +2,7 @@ package com.etendoerp.legacy
 
 
 import com.etendoerp.legacy.utils.ModulesUtils
-import com.etendoerp.legacy.utils.NexusUtils
+import com.etendoerp.legacy.utils.GithubUtils
 import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
 import org.gradle.api.tasks.Copy
@@ -101,6 +101,7 @@ class LegacyScriptLoader {
         if(project.file('modules').exists() && project.file('modules').isDirectory()){
             project.file('modules').eachDir {
                 project.sourceSets.main.java.srcDirs += it.toString()+"/src"
+                project.sourceSets.main.resources.srcDirs += it.toString()+"/etendo-resources"
             }
         }
         //set the modules_core sources directories.
@@ -126,14 +127,14 @@ class LegacyScriptLoader {
         /**
          * REPOSITORIES CONFIGURATIONS
          */
-
+        GithubUtils.askCredentials(project)
         project.repositories {
             mavenCentral()
             maven {
                 url = URI.create("https://maven.pkg.github.com/etendosoftware/etendo_core")
                 credentials {
-                    username = project.ext.get("gitHubUser")
-                    password = project.ext.get("gitHubToken")
+                    username = project.ext.get("githubUser")
+                    password = project.ext.get("githubToken")
                 }
             }
             maven {
@@ -187,7 +188,7 @@ class LegacyScriptLoader {
                 }
             }
             from {
-                NexusUtils.askNexusCredentials(project)
+                GithubUtils.askCredentials(project)
                 project.configurations.coreDep.collect {
                     project.zipTree(it).getAsFileTree()
                 }
@@ -200,7 +201,7 @@ class LegacyScriptLoader {
             def extractDir = getTemporaryDir()
             dependsOn project.configurations.moduleDepsLegacy
             from {
-                NexusUtils.askNexusCredentials(project)
+                GithubUtils.askCredentials(project)
                 project.configurations.moduleDepsLegacy.findResults {
                     // Avoid extracting the core dependency inside the modules folder
                     it.getCanonicalPath().contains('com.smf.classic.core') ? null : project.zipTree(it)
@@ -425,7 +426,7 @@ class LegacyScriptLoader {
         project.task("registerModule"){
             dependsOn("createModuleBuild")
             doLast {
-                NexusUtils.askNexusCredentials(project)
+                GithubUtils.askCredentials(project)
                 def pkgVar = PublicationUtils.loadModuleName(project)
                 def repoVar = PublicationUtils.loadRepositoryName(project)
 
@@ -491,7 +492,7 @@ class LegacyScriptLoader {
          */
         project.task("normalize"){
             doLast {
-                NexusUtils.askNexusCredentials(project)
+                GithubUtils.askCredentials(project)
                 def files = project.file( "./modules").listFiles().sort()
                 files.each { File file ->
                     if (file.isDirectory() && !defaultModules.contains(file.getName())) {
@@ -515,7 +516,7 @@ class LegacyScriptLoader {
                 if (project.hasProperty("pkg")) {
                     String pkgVar = project.pkg
                     if (!defaultModules.contains(pkgVar)) {
-                        NexusUtils.askNexusCredentials(project)
+                        GithubUtils.askCredentials(project)
                         ModulesUtils.normalizeModule(project, new File("./modules/" + pkgVar), project.ext.get("nexusUser"), project.ext.get("nexusPassword"))
                     }
                 }
@@ -539,7 +540,7 @@ class LegacyScriptLoader {
             def extractDir = project.getBuildDir()
             dependsOn project.configurations.dockerDeps
             from {
-                NexusUtils.askNexusCredentials(project)
+                GithubUtils.askCredentials(project)
                 project.configurations.dockerDeps.findResults {
                     project.zipTree(it)
                 }
