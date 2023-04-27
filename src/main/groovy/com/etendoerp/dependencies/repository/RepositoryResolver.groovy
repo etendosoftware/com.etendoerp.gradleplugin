@@ -2,7 +2,7 @@ package com.etendoerp.dependencies.repository
 
 import com.etendoerp.dependencies.DependenciesLoader
 import com.etendoerp.dependencies.DependencyArtifact
-import com.etendoerp.legacy.utils.GithubUtils
+import com.etendoerp.legacy.utils.NexusUtils
 import groovy.json.JsonSlurper
 import org.gradle.api.Project
 
@@ -99,7 +99,7 @@ class RepositoryResolver {
 
         Map<String, DependencyArtifact> nexusArtifacts = new HashMap<>()
 
-        def (nexusUser, nexusPassword) = GithubUtils.getCredentials(project)
+        def (nexusUser, nexusPassword) = NexusUtils.getCredentials(project)
         String userpass = nexusUser + ":" + nexusPassword
         String basicAuth = "Basic " + new String(Base64.getEncoder().encode(userpass.getBytes()))
 

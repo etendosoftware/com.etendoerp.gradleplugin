@@ -101,8 +101,8 @@ class MavenPublicationConfig {
                 // Configure the credentials
                 moduleProject.publishing.repositories.maven.credentials {
                     GithubUtils.askCredentials(project)
-                    username project.ext.get("nexusUser")
-                    password project.ext.get("nexusPassword")
+                    username project.ext.get("githubUser")
+                    password project.ext.get("githubToken")
                 }
             }
         }

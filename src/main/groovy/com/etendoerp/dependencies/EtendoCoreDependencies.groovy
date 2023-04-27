@@ -1,6 +1,6 @@
 package com.etendoerp.dependencies
 
-import com.etendoerp.legacy.utils.GithubUtils
+import com.etendoerp.legacy.utils.NexusUtils
 import org.gradle.api.Project
 
 class EtendoCoreDependencies {
@@ -11,7 +11,7 @@ class EtendoCoreDependencies {
         // Resolved artifacts   = 88
         // Unresolved artifacts = 0
 
-        def (nexusUser, nexusPassword) = GithubUtils.getCredentials(project)
+        def (nexusUser, nexusPassword) = NexusUtils.getCredentials(project)
 
         project.repositories {
             mavenCentral()
@@ -122,7 +122,7 @@ class EtendoCoreDependencies {
         // Resolved artifacts   = 29
         // Unresolved artifacts = 0
 
-        def (nexusUser, nexusPassword) = GithubUtils.getCredentials(project)
+        def (nexusUser, nexusPassword) = NexusUtils.getCredentials(project)
 
         project.repositories {
             mavenCentral()

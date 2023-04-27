@@ -17,7 +17,7 @@ class ModulesUtils {
         def artifact = splitArtifact(javaPackage)
         println "TRYING TO NORMALIZE : >> Module: "+javaPackage+" Local Version:" + localVersion
         //Consult info from nexus
-        def nexusModuleInfo = GithubUtils.nexusModuleInfo(user, pass, group, artifact)
+        def nexusModuleInfo = NexusUtils.nexusModuleInfo(user, pass, group, artifact)
         if (!nexusModuleInfo.isEmpty()) {
             String[] versions = nexusModuleInfo
             if (versions.contains(localVersion)) {

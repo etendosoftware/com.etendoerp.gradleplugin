@@ -2,6 +2,7 @@ package com.etendoerp.publication.taskloaders
 
 import com.etendoerp.gradleutils.GradleUtils
 import com.etendoerp.legacy.utils.GithubUtils
+import com.etendoerp.legacy.utils.NexusUtils
 import com.etendoerp.publication.PublicationUtils
 import com.etendoerp.publication.configuration.pom.PomConfigurationContainer
 import org.gradle.api.Project

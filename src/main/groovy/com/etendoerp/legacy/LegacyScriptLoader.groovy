@@ -3,6 +3,7 @@ package com.etendoerp.legacy
 
 import com.etendoerp.legacy.utils.ModulesUtils
 import com.etendoerp.legacy.utils.GithubUtils
+import com.etendoerp.legacy.utils.NexusUtils
 import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
 import org.gradle.api.tasks.Copy
@@ -127,7 +128,6 @@ class LegacyScriptLoader {
         /**
          * REPOSITORIES CONFIGURATIONS
          */
-        GithubUtils.askCredentials(project)
         project.repositories {
             mavenCentral()
             maven {
@@ -201,7 +201,7 @@ class LegacyScriptLoader {
             def extractDir = getTemporaryDir()
             dependsOn project.configurations.moduleDepsLegacy
             from {
-                GithubUtils.askCredentials(project)
+                NexusUtils.askNexusCredentials(project)
                 project.configurations.moduleDepsLegacy.findResults {
                     // Avoid extracting the core dependency inside the modules folder
                     it.getCanonicalPath().contains('com.smf.classic.core') ? null : project.zipTree(it)
@@ -420,79 +420,12 @@ class LegacyScriptLoader {
         }
 
         /**
-         * This task create build.gradle and privileges to publish a new module in a specific repository
-         * This task require command line parameter -Ppkg=<package name> -Prepo=<Repository Name>
-         * */
-        project.task("registerModule"){
-            dependsOn("createModuleBuild")
-            doLast {
-                GithubUtils.askCredentials(project)
-                def pkgVar = PublicationUtils.loadModuleName(project)
-                def repoVar = PublicationUtils.loadRepositoryName(project)
-
-                //Variables to create Privilege
-                def nexusUser = project.ext.get("nexusUser")
-                def nexusPassword = project.ext.get("nexusPassword")
-                //Replace "." by "/" to endpoint format
-                def javaPackage = "/" + pkgVar.replace(".", "/")
-
-                def statusCodesMap = [
-                        202:"Privilege",
-                        226:"Content Selector"
-                ]
-                def responseCode = 0
-                def responseText
-                HttpURLConnection uc
-
-                // Creating permission to publish
-                try {
-                    def base_url = "https://api.futit.cloud/migrations"
-                    URL url = new URL(base_url + "/createPrivilegeToUpload?group=" + javaPackage + "&repository=" + repoVar)
-                    uc = url.openConnection();
-                    uc.setRequestMethod("POST")
-                    String userPass = nexusUser + ":" + nexusPassword;
-                    def auth = userPass.bytes.encodeBase64()
-                    uc.setRequestProperty("Authorization", "Basic ${auth}")
-                    print "*****************************************************************************\n"
-                    print "* This task only obtains permissions to publish a module for the first time *\n"
-                    print "* to publish the module you must run the following command                  *\n"
-                    print "* RUN  COMMAND>> ./gradlew publishVersion -Ppkg=<module Package>            *\n"
-                    print "*****************************************************************************\n"
-
-                    responseText = uc.getInputStream().getText()
-                    responseCode = uc.getResponseCode()
-
-                    // Content Selector or Privilege already exists
-                    def message = statusCodesMap[responseCode]?.concat(" already exists")
-                    if (message)
-                        project.logger.info(message)
-                    project.logger.info("Server response " + responseText)
-
-                    return responseText
-                } catch (IOException e) {
-                    project.logger.info("Error obtaining permissions to publish")
-                    if (uc != null) {
-                        project.logger.info("Response ERROR: ${uc.getErrorStream().text}")
-                        responseCode = uc.getResponseCode();
-                        // HTTP status code 400 group already exists
-                        if (responseCode == 400) {
-                            project.logger.info("*****************************************************************************")
-                            project.logger.info("* The group " + pkgVar + " already exists.")
-                            project.logger.info("*****************************************************************************")
-                        }
-                    }
-                    throw e
-                }
-            }
-        }
-
-        /**
          * This task changes all local dependencies by external dependencies deployed in Nexus.
          * Exclude modules declared in coreModules array.
          */
         project.task("normalize"){
             doLast {
-                GithubUtils.askCredentials(project)
+                NexusUtils.askNexusCredentials(project)
                 def files = project.file( "./modules").listFiles().sort()
                 files.each { File file ->
                     if (file.isDirectory() && !defaultModules.contains(file.getName())) {
@@ -516,7 +449,7 @@ class LegacyScriptLoader {
                 if (project.hasProperty("pkg")) {
                     String pkgVar = project.pkg
                     if (!defaultModules.contains(pkgVar)) {
-                        GithubUtils.askCredentials(project)
+                        NexusUtils.askNexusCredentials(project)
                         ModulesUtils.normalizeModule(project, new File("./modules/" + pkgVar), project.ext.get("nexusUser"), project.ext.get("nexusPassword"))
                     }
                 }
@@ -540,7 +473,7 @@ class LegacyScriptLoader {
             def extractDir = project.getBuildDir()
             dependsOn project.configurations.dockerDeps
             from {
-                GithubUtils.askCredentials(project)
+                NexusUtils.askNexusCredentials(project)
                 project.configurations.dockerDeps.findResults {
                     project.zipTree(it)
                 }

@@ -1,28 +1,19 @@
 package com.etendoerp.legacy.utils
 
-import groovy.json.JsonSlurper
 import org.gradle.api.Project
 import org.gradle.api.artifacts.repositories.PasswordCredentials
 import org.gradle.api.internal.tasks.userinput.NonInteractiveUserInputHandler
 import org.gradle.api.internal.tasks.userinput.UserInputHandler
 import org.gradle.api.artifacts.repositories.ArtifactRepository
 
-import java.net.http.HttpClient
-import java.net.http.HttpRequest
-import java.net.http.HttpResponse
-
 class GithubUtils {
-
-
-
-
 
     /**
      * Tries to get user credentials from the project extra properties.
      * If the credentials are not found, searches the properties defined in the gradle.properties file or System properties.
      * A user can set his credentials or System properties in the gradle.properties file adding the lines:
-     * githubUser=githubuser
-     * githubToken=githubpassword
+     * githubUser=
+     * githubToken=
      *
      * Or define System properties
      *
@@ -36,7 +27,7 @@ class GithubUtils {
 
         def (githubUser, githubToken) = getCredentials(project)
 
-        if (!githubUser || ! githubToken) {
+        if (!githubUser || !githubToken) {
             def input = project.getServices().get(UserInputHandler.class)
             githubUser = project.getServices().get(UserInputHandler.class).askQuestion("GitHub user", "")
             githubToken = project.getServices().get(UserInputHandler.class).askQuestion("GitHub Token", "")
@@ -69,7 +60,7 @@ class GithubUtils {
     }
 
     static def getCredentials(Project project) {
-        def githubUser     = ""
+        def githubUser = ""
         def githubToken = ""
 
         if (project.findProperty("githubUser") != null && project.findProperty("githubToken") != null) {
@@ -133,14 +124,19 @@ class GithubUtils {
          * This is used to resolved all subproject dependencies.
          */
         project.subprojects.each {
-            it.repositories.each {repo ->
+            it.repositories.each { repo ->
                 // Currently only maven repositories are taking into account.
                 def repoCredentials = repo["credentials"] as PasswordCredentials
 
-                // Configures subproject repositories without credentials.
-                if (repoCredentials.getUsername() == null && repoCredentials.getPassword() == null && usernameCredential && passwordCredential) {
-                    repoCredentials.setUsername(usernameCredential)
-                    repoCredentials.setPassword(passwordCredential)
+                if (repo.url.toString().contains("repo.futit.cloud")) {
+                    repoCredentials.setUsername(project.ext.get("nexusUser"))
+                    repoCredentials.setPassword(project.ext.get("nexusPassword"))
+                } else {
+                    // Configures subproject repositories without credentials.
+                    if (repoCredentials.getUsername() == null && repoCredentials.getPassword() == null && usernameCredential && passwordCredential) {
+                        repoCredentials.setUsername(usernameCredential)
+                        repoCredentials.setPassword(passwordCredential)
+                    }
                 }
 
                 /**
