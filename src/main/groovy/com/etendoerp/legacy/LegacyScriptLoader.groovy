@@ -142,6 +142,10 @@ class LegacyScriptLoader {
             }
             maven {
                 url 'https://repo.futit.cloud/repository/maven-releases'
+                credentials {
+                    username = project.ext.get("nexusUser")
+                    password = project.ext.get("nexusPassword")
+                }
             }
             maven {
                 url 'https://repo.futit.cloud/repository/maven-public-jars'

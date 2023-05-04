@@ -75,7 +75,7 @@ class MavenTaskGenerator {
 
                     // Configure the credentials
                     subProject.publishing.repositories.maven.credentials {
-                        if(mainProject.ext.get("githubUser") && mainProject.ext.get("githubToken") ){
+                        if (!subProject.publishing.repositories.maven.url.toString().contains("repo.futit.cloud")) {
                             GithubUtils.askCredentials(mainProject)
                             username mainProject.ext.get("githubUser")
                             password mainProject.ext.get("githubToken")

@@ -48,10 +48,7 @@ class GithubUtils {
         project.repositories {
             maven {
                 url "https://repo.futit.cloud/repository/maven-releases"
-                credentials {
-                    username githubUser
-                    password githubToken
-                }
+
             }
             maven {
                 url "https://repo.futit.cloud/repository/maven-public-releases"
