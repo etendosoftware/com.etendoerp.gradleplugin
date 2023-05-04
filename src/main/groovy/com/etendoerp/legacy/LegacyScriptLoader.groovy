@@ -99,12 +99,15 @@ class LegacyScriptLoader {
             }
         }
         //set the modules sources directories.
-        if(project.file('modules').exists() && project.file('modules').isDirectory()){
+        if (project.file('modules').exists() && project.file('modules').isDirectory()) {
             project.file('modules').eachDir {
-                project.sourceSets.main.java.srcDirs += it.toString()+"/src"
-                project.sourceSets.main.resources.srcDirs += it.toString()+"/etendo-resources"
+                project.sourceSets.main.java.srcDirs += it.toString() + "/src"
+                if (project.file('modules' + it + '/etendo-resources').exists()) {
+                    project.sourceSets.main.resources.srcDirs += it.toString() + "/etendo-resources"
+                }
             }
         }
+
         //set the modules_core sources directories.
         if(project.file('modules_core').exists() && project.file('modules_core').isDirectory()){
             project.file('modules_core').eachDir {
