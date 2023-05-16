@@ -3,7 +3,6 @@ package com.etendoerp.publication.taskloaders
 import com.etendoerp.gradleutils.GradleUtils
 import com.etendoerp.jars.modules.metadata.DependencyUtils
 import com.etendoerp.publication.PublicationUtils
-import com.etendoerp.publication.buildfile.BuildMetadata
 import org.gradle.api.Project
 import org.gradle.api.artifacts.DependencySet
 
@@ -48,14 +47,16 @@ class PublicationTaskLoader {
 
         // Verify that the subproject's core dependency top version has been changed from the default
         def regex = ", |,"
-        def coreVersionDep = containerSet.find { (it.name == "etendo-core") }
-                .getVersion()
-                .replace("[", "")
-                .replace(")", "")
-                .split(regex) // Get the version range
+        def coreDependency = containerSet.find { (it.name == "etendo-core") }
+        if (coreDependency != null) {
+            def coreDependencyVersion = coreDependency.getVersion()
+                    .replace("[", "")
+                    .replace(")", "")
+                    .split(regex) // Get the version range
 
-        if ('x.y.z' == coreVersionDep.last()) {
-            throw new IllegalArgumentException("The subproject ${subProject} core dependency top version must be different from 'x.y.z'.")
+            if ('x.y.z' == coreDependencyVersion.last()) {
+                throw new IllegalArgumentException("The subproject ${subProject} core dependency top version must be different from 'x.y.z'.")
+            }
         }
 
         // Verify that the subproject contains the MavenPublication
