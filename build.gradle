@@ -5,7 +5,7 @@ plugins {
     id 'maven-publish'
 }
 
-def MASTER = "master"
+def MAIN = "main"
 def DEV    = "dev"
 def PROD   = "prod"
 
@@ -27,7 +27,7 @@ static def gitBranch() {
     branch
 }
 
-if (MASTER == gitBranch()) {
+if (MAIN == gitBranch()) {
     mode = PROD
 }
 if (mode == DEV) {
