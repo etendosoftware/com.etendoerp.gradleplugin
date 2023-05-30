@@ -47,8 +47,13 @@ publishing {
     repositories {
         maven {
             credentials {
-                username "$githubUser"
-                password "$githubToken"
+                if (mode == PROD) {
+                    username "$githubUser"
+                    password "$githubToken"
+                } else {
+                    username "$nexusUser"
+                    password "$nexusPassword"
+                }
             }
             url(urlToPublish)
         }
