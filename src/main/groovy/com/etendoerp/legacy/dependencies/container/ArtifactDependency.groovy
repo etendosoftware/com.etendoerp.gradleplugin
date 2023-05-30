@@ -93,8 +93,8 @@ class ArtifactDependency {
     }
 
     void loadFromVersionIdentifier(ModuleVersionIdentifier moduleVersionIdentifier) {
-        this.group = moduleVersionIdentifier.group
-        this.name = moduleVersionIdentifier.name
+        this.group = moduleVersionIdentifier.group.toLowerCase()
+        this.name = moduleVersionIdentifier.name.toLowerCase()
         this.version = moduleVersionIdentifier.version
         this.moduleName = "${this.group}.${this.name}"
     }

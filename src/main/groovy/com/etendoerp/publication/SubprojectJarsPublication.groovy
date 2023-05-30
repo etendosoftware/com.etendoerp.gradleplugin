@@ -1,6 +1,6 @@
 package com.etendoerp.publication
 
-import com.etendoerp.legacy.utils.NexusUtils
+import com.etendoerp.legacy.utils.GithubUtils
 import org.gradle.api.Project
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.publish.maven.tasks.AbstractPublishToMaven
@@ -85,9 +85,9 @@ class SubprojectJarsPublication {
             project.publishing.repositories.maven.url = PROD_URL
         }
         project.publishing.repositories.maven.credentials {
-            NexusUtils.askNexusCredentials(project)
-            username project.ext.get("nexusUser")
-            password project.ext.get("nexusPassword")
+            GithubUtils.askCredentials(project)
+            username project.ext.get("githubUser")
+            password project.ext.get("githubToken")
         }
     }
 }

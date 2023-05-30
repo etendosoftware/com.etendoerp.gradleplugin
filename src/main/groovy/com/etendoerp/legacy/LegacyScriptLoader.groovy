@@ -2,6 +2,7 @@ package com.etendoerp.legacy
 
 
 import com.etendoerp.legacy.utils.ModulesUtils
+import com.etendoerp.legacy.utils.GithubUtils
 import com.etendoerp.legacy.utils.NexusUtils
 import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
@@ -21,8 +22,6 @@ class LegacyScriptLoader {
     static final String FORCE_DEFAULT_PROPS = "forceDefaultProps"
     static final String FORCE_BACKUP_PROPS = "forceBackupProps"
     static final String FORCE_QUARTZ_PROPS = "forceQuartzProps"
-    static final String GITHUB_USER = "etendobot"
-    static final String GITHUB_TOKEN = "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"
 
 
     static List whiteSyncCoreList = [
@@ -100,11 +99,15 @@ class LegacyScriptLoader {
             }
         }
         //set the modules sources directories.
-        if(project.file('modules').exists() && project.file('modules').isDirectory()){
+        if (project.file('modules').exists() && project.file('modules').isDirectory()) {
             project.file('modules').eachDir {
-                project.sourceSets.main.java.srcDirs += it.toString()+"/src"
+                project.sourceSets.main.java.srcDirs += it.toString() + "/src"
+                if (project.file('modules' + it + '/etendo-resources').exists()) {
+                    project.sourceSets.main.resources.srcDirs += it.toString() + "/etendo-resources"
+                }
             }
         }
+
         //set the modules_core sources directories.
         if(project.file('modules_core').exists() && project.file('modules_core').isDirectory()){
             project.file('modules_core').eachDir {
@@ -128,14 +131,13 @@ class LegacyScriptLoader {
         /**
          * REPOSITORIES CONFIGURATIONS
          */
-
         project.repositories {
             mavenCentral()
             maven {
                 url = URI.create("https://maven.pkg.github.com/etendosoftware/etendo_core")
                 credentials {
-                    username = GITHUB_USER
-                    password = GITHUB_TOKEN
+                    username = project.ext.get("githubUser")
+                    password = project.ext.get("githubToken")
                 }
             }
             maven {
@@ -143,6 +145,10 @@ class LegacyScriptLoader {
             }
             maven {
                 url 'https://repo.futit.cloud/repository/maven-releases'
+                credentials {
+                    username = project.ext.get("nexusUser")
+                    password = project.ext.get("nexusPassword")
+                }
             }
             maven {
                 url 'https://repo.futit.cloud/repository/maven-public-jars'
@@ -189,7 +195,7 @@ class LegacyScriptLoader {
                 }
             }
             from {
-                NexusUtils.askNexusCredentials(project)
+                GithubUtils.askCredentials(project)
                 project.configurations.coreDep.collect {
                     project.zipTree(it).getAsFileTree()
                 }
@@ -416,73 +422,6 @@ class LegacyScriptLoader {
             repositories {
                 maven {
                     url ""
-                }
-            }
-        }
-
-        /**
-         * This task create build.gradle and privileges to publish a new module in a specific repository
-         * This task require command line parameter -Ppkg=<package name> -Prepo=<Repository Name>
-         * */
-        project.task("registerModule"){
-            dependsOn("createModuleBuild")
-            doLast {
-                NexusUtils.askNexusCredentials(project)
-                def pkgVar = PublicationUtils.loadModuleName(project)
-                def repoVar = PublicationUtils.loadRepositoryName(project)
-
-                //Variables to create Privilege
-                def nexusUser = project.ext.get("nexusUser")
-                def nexusPassword = project.ext.get("nexusPassword")
-                //Replace "." by "/" to endpoint format
-                def javaPackage = "/" + pkgVar.replace(".", "/")
-
-                def statusCodesMap = [
-                        202:"Privilege",
-                        226:"Content Selector"
-                ]
-                def responseCode = 0
-                def responseText
-                HttpURLConnection uc
-
-                // Creating permission to publish
-                try {
-                    def base_url = "https://api.futit.cloud/migrations"
-                    URL url = new URL(base_url + "/createPrivilegeToUpload?group=" + javaPackage + "&repository=" + repoVar)
-                    uc = url.openConnection();
-                    uc.setRequestMethod("POST")
-                    String userPass = nexusUser + ":" + nexusPassword;
-                    def auth = userPass.bytes.encodeBase64()
-                    uc.setRequestProperty("Authorization", "Basic ${auth}")
-                    print "*****************************************************************************\n"
-                    print "* This task only obtains permissions to publish a module for the first time *\n"
-                    print "* to publish the module you must run the following command                  *\n"
-                    print "* RUN  COMMAND>> ./gradlew publishVersion -Ppkg=<module Package>            *\n"
-                    print "*****************************************************************************\n"
-
-                    responseText = uc.getInputStream().getText()
-                    responseCode = uc.getResponseCode()
-
-                    // Content Selector or Privilege already exists
-                    def message = statusCodesMap[responseCode]?.concat(" already exists")
-                    if (message)
-                        project.logger.info(message)
-                    project.logger.info("Server response " + responseText)
-
-                    return responseText
-                } catch (IOException e) {
-                    project.logger.info("Error obtaining permissions to publish")
-                    if (uc != null) {
-                        project.logger.info("Response ERROR: ${uc.getErrorStream().text}")
-                        responseCode = uc.getResponseCode();
-                        // HTTP status code 400 group already exists
-                        if (responseCode == 400) {
-                            project.logger.info("*****************************************************************************")
-                            project.logger.info("* The group " + pkgVar + " already exists.")
-                            project.logger.info("*****************************************************************************")
-                        }
-                    }
-                    throw e
                 }
             }
         }

@@ -7,7 +7,7 @@ import com.etendoerp.legacy.ant.AntMenuHelper
 import com.etendoerp.legacy.dependencies.ResolverDependencyUtils
 import com.etendoerp.legacy.dependencies.container.ArtifactDependency
 import com.etendoerp.legacy.dependencies.container.EtendoCoreZipArtifact
-import com.etendoerp.legacy.utils.NexusUtils
+import com.etendoerp.legacy.utils.GithubUtils
 import org.gradle.api.Project
 import org.gradle.api.tasks.Delete
 import org.gradle.api.tasks.Sync
@@ -51,7 +51,7 @@ class ExpandCore {
                 ArtifactDependency coreArtifactDependency = null
                 String displayName = coreMetadata.coreId
 
-                NexusUtils.askNexusCredentials(project)
+                GithubUtils.askCredentials(project)
 
                 project.logger.info("*****************************************************")
                 project.logger.info("* Starting expanding the core in SOURCES.")

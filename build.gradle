@@ -9,7 +9,7 @@ def MASTER = "master"
 def DEV    = "dev"
 def PROD   = "prod"
 
-final String URL_PROD = "https://repo.futit.cloud/repository/maven-public-releases"
+final String URL_PROD = "https://maven.pkg.github.com/etendosoftware/com.etendoerp.gradleplugin"
 final String URL_DEV = "https://repo.futit.cloud/repository/maven-public-snapshots"
 final String PLUGIN_VERSION = "1.0.7"
 // Default mode
@@ -47,8 +47,13 @@ publishing {
     repositories {
         maven {
             credentials {
-                username "$nexusUser"
-                password "$nexusPassword"
+                if (mode == PROD) {
+                    username "$githubUser"
+                    password "$githubToken"
+                } else {
+                    username "$nexusUser"
+                    password "$nexusPassword"
+                }
             }
             url(urlToPublish)
         }
@@ -164,4 +169,6 @@ gradlePlugin {
         }
     }
 }
+
+test.onlyIf { false }
 

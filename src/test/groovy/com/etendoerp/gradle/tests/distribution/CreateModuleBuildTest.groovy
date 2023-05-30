@@ -84,7 +84,7 @@ class CreateModuleBuildTest extends EtendoSpecification {
 
         def group    = ModulesUtils.splitGroup(javaPackage)
         def artifact = ModulesUtils.splitArtifact(javaPackage)
-        def repository = "${PublicationUtils.BASE_REPOSITORY_URL}$repo"
+        def repository = "$repo"
 
         assert taskOutput.contains("project: project ':${BASE_MODULE}:${module}'")
         assert taskOutput.contains("version: ${version}")
