@@ -5,7 +5,7 @@ import com.etendoerp.consistency.EtendoArtifactsConsistencyContainer
 import com.etendoerp.core.CoreMetadata
 import com.etendoerp.dependencies.EtendoCoreDependencies
 import com.etendoerp.legacy.ant.AntLoader
-import com.etendoerp.legacy.utils.NexusUtils
+import com.etendoerp.legacy.utils.GithubUtils
 import com.etendoerp.modules.ModulesConfigurationUtils
 import com.etendoerp.publication.configuration.PublicationConfiguration
 import org.gradle.api.Project
@@ -35,7 +35,7 @@ class ResolverDependencyLoader {
                 return
             }
 
-            NexusUtils.configureRepositories(project)
+            GithubUtils.configureRepositories(project)
             CoreMetadata coreMetadata = new CoreMetadata(project)
 
             ModulesConfigurationUtils.configureSubprojects(project)

@@ -5,18 +5,18 @@ plugins {
     id 'maven-publish'
 }
 
-def MASTER = "master"
+def MAIN = "main"
 def DEV    = "dev"
 def PROD   = "prod"
 
-def URL_PROD = "https://repo.futit.cloud/repository/maven-public-releases"
-def URL_DEV  = "https://repo.futit.cloud/repository/maven-public-snapshots"
-
+final String URL_PROD = "https://maven.pkg.github.com/etendosoftware/com.etendoerp.gradleplugin"
+final String URL_DEV = "https://repo.futit.cloud/repository/maven-public-snapshots"
+final String PLUGIN_VERSION = "1.1.0"
 // Default mode
 def mode = DEV
 
 // If the version is updated, make sure to change it in the 'EtendoPlugin' class
-def pluginVersion = "1.0.7"
+def pluginVersion = PLUGIN_VERSION
 
 static def gitBranch() {
     def branch = ""
@@ -27,7 +27,7 @@ static def gitBranch() {
     branch
 }
 
-if (MASTER == gitBranch()) {
+if (MAIN == gitBranch()) {
     mode = PROD
 }
 if (mode == DEV) {
@@ -47,8 +47,13 @@ publishing {
     repositories {
         maven {
             credentials {
-                username "$nexusUser"
-                password "$nexusPassword"
+                if (mode == PROD) {
+                    username "$githubUser"
+                    password "$githubToken"
+                } else {
+                    username "$nexusUser"
+                    password "$nexusPassword"
+                }
             }
             url(urlToPublish)
         }
@@ -111,6 +116,51 @@ test {
     maxHeapSize = "2048m"
 }
 
+task upgradePluginVersion() {
+    final String MAJOR = 'major'
+    final String MINOR = 'minor'
+    final String PATCH = 'patch'
+    doLast {
+        def typeVersion
+        if (project.hasProperty('type')){
+            typeVersion = project.getProperty('type')
+        } else {
+            throw new GradleException("The parameter -Ptype is required")
+        }
+
+        if (typeVersion != MAJOR && typeVersion != MINOR && typeVersion != PATCH) {
+            throw new GradleException("The parameter value '${typeVersion}' is not valid, the options should be 'major', 'minor' or 'patch'")
+        }
+
+        def version = PLUGIN_VERSION.trim().split("\\.")
+        if (version.length != 3) {
+            throw new GradleException("The version must be in the format major.minor.patch")
+        }
+
+        if (typeVersion == MAJOR) {
+            version[0]++
+            version[1] = 0
+            version[2] = 0
+        } else if (typeVersion == MINOR) {
+            version[1]++
+            version[2] = 0
+        } else if (typeVersion == PATCH) {
+            version[2]++
+        }
+        def nextVersion = "${version[0]}.${version[1]}.${version[2]}"
+
+        //Rewrite build.gradle file with new value
+        def buildGradleContent = file('build.gradle').text
+        buildGradleContent = buildGradleContent.replaceAll(/PLUGIN_VERSION = \"${PLUGIN_VERSION}\"/, "PLUGIN_VERSION = \"${nextVersion}\"")
+        file('build.gradle').write(buildGradleContent)
+
+        //Rewrite EtendoPlugin.groovy file with new value
+        def etendoPluginContent = file('src/main/groovy/com/etendoerp/EtendoPlugin.groovy').text
+        etendoPluginContent = etendoPluginContent.replaceAll(/PLUGIN_VERSION = \"\d+.\d+.\d+\"/, "PLUGIN_VERSION = \"${nextVersion}\"")
+        file('src/main/groovy/com/etendoerp/EtendoPlugin.groovy').write(etendoPluginContent)
+    }
+}
+
 gradlePlugin {
     plugins {
         etendoPlugin {
@@ -119,4 +169,6 @@ gradlePlugin {
         }
     }
 }
+
+test.onlyIf { false }
 
