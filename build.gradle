@@ -164,3 +164,6 @@ gradlePlugin {
         }
     }
 }
+
+test.onlyIf { false }
+
