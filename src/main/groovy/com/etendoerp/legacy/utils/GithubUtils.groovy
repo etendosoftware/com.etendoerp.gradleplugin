@@ -127,7 +127,7 @@ class GithubUtils {
         project.subprojects.each {
             it.repositories.each { repo ->
                 // Currently only maven repositories are taking into account.
-                configureArtifactCredentials(project, it, usernameCredential, passwordCredential)
+                configureArtifactCredentials(project, repo, usernameCredential, passwordCredential)
 
                 /**
                  * Adds the 'subproject' repository to the 'main project' only if does not already exists.
