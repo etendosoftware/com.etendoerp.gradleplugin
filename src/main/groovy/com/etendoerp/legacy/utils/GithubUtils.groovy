@@ -146,7 +146,7 @@ class GithubUtils {
     static void configureArtifactCredentials(Project project, ArtifactRepository artifactRepository, String usernameCredential, String passwordCredential){
         def repoCredentials = artifactRepository["credentials"] as PasswordCredentials
         // Configures only the repositories without credentials.
-        if(repoCredentials.getUsername().isBlank() && repoCredentials.getPassword().isBlank()){
+        if (repoCredentials.getUsername() == null && repoCredentials.getPassword() == null) {
             // Case of nexus repository
             if (FUTIT_REPO_HOST == artifactRepository.getProperties().url.host) {
                 repoCredentials.setUsername(project.ext.get("nexusUser"))
