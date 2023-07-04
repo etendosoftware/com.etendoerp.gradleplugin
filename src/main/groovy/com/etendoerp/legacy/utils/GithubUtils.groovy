@@ -2,6 +2,7 @@ package com.etendoerp.legacy.utils
 
 import org.gradle.api.Project
 import org.gradle.api.artifacts.repositories.PasswordCredentials
+import org.gradle.api.component.Artifact
 import org.gradle.api.internal.tasks.userinput.NonInteractiveUserInputHandler
 import org.gradle.api.internal.tasks.userinput.UserInputHandler
 import org.gradle.api.artifacts.repositories.ArtifactRepository
@@ -126,18 +127,7 @@ class GithubUtils {
         project.subprojects.each {
             it.repositories.each { repo ->
                 // Currently only maven repositories are taking into account.
-                def repoCredentials = repo["credentials"] as PasswordCredentials
-
-                if (repo.url.toString().contains(FUTIT_REPO_HOST)) {
-                    repoCredentials.setUsername(project.ext.get("nexusUser"))
-                    repoCredentials.setPassword(project.ext.get("nexusPassword"))
-                } else {
-                    // Configures subproject repositories without credentials.
-                    if (repoCredentials.getUsername() == null && repoCredentials.getPassword() == null && usernameCredential && passwordCredential) {
-                        repoCredentials.setUsername(usernameCredential)
-                        repoCredentials.setPassword(passwordCredential)
-                    }
-                }
+                configureArtifactCredentials(project, it, usernameCredential, passwordCredential)
 
                 /**
                  * Adds the 'subproject' repository to the 'main project' only if does not already exists.
@@ -148,19 +138,23 @@ class GithubUtils {
 
         if (usernameCredential && passwordCredential) {
             project.repositories.configureEach {
-                def repoCredentials = it["credentials"] as PasswordCredentials
-                // Configures only the repositories without credentials.
-                if(repoCredentials.getUsername() == null && repoCredentials.getPassword() == null){
-                    // Case of nexus repository
-                    if (FUTIT_REPO_HOST == it.getProperties().get("url").host) {
-                        repoCredentials.setUsername(project.ext.get("nexusUser"))
-                        repoCredentials.setPassword(project.ext.get("nexusPassword"))
-                    } else {
-                        // Other repos (github, etc...)
-                        repoCredentials.setUsername(usernameCredential)
-                        repoCredentials.setPassword(passwordCredential)
-                    }
-                }
+                configureArtifactCredentials(project, it, usernameCredential, passwordCredential)
+            }
+        }
+    }
+
+    static void configureArtifactCredentials(Project project, ArtifactRepository artifactRepository, String usernameCredential, String passwordCredential){
+        def repoCredentials = artifactRepository["credentials"] as PasswordCredentials
+        // Configures only the repositories without credentials.
+        if(repoCredentials.getUsername().isBlank() && repoCredentials.getPassword().isBlank()){
+            // Case of nexus repository
+            if (FUTIT_REPO_HOST == artifactRepository.getProperties().url.host) {
+                repoCredentials.setUsername(project.ext.get("nexusUser"))
+                repoCredentials.setPassword(project.ext.get("nexusPassword"))
+            } else {
+                // Other repos (github, etc...)
+                repoCredentials.setUsername(usernameCredential)
+                repoCredentials.setPassword(passwordCredential)
             }
         }
     }
