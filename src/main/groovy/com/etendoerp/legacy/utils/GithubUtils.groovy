@@ -23,6 +23,9 @@ class GithubUtils {
      * Once the credentials are found, it sets its on the Project extra properties
      *
      */
+
+    static String FUTIT_REPO_HOST = "repo.futit.cloud"
+
     static askCredentials(Project project) {
 
         def (githubUser, githubToken) = getCredentials(project)
@@ -125,7 +128,7 @@ class GithubUtils {
                 // Currently only maven repositories are taking into account.
                 def repoCredentials = repo["credentials"] as PasswordCredentials
 
-                if (repo.url.toString().contains("repo.futit.cloud")) {
+                if (repo.url.toString().contains(FUTIT_REPO_HOST)) {
                     repoCredentials.setUsername(project.ext.get("nexusUser"))
                     repoCredentials.setPassword(project.ext.get("nexusPassword"))
                 } else {
@@ -147,12 +150,20 @@ class GithubUtils {
             project.repositories.configureEach {
                 def repoCredentials = it["credentials"] as PasswordCredentials
                 // Configures only the repositories without credentials.
-                if (repoCredentials.getUsername() == null && repoCredentials.getPassword() == null) {
-                    repoCredentials.setUsername(usernameCredential)
-                    repoCredentials.setPassword(passwordCredential)
+                if(repoCredentials.getUsername() == null && repoCredentials.getPassword() == null){
+                    // Case of nexus repository
+                    if (FUTIT_REPO_HOST == it.getProperties().get("url").host) {
+                        repoCredentials.setUsername(project.ext.get("nexusUser"))
+                        repoCredentials.setPassword(project.ext.get("nexusPassword"))
+                    } else {
+                        // Other repos (github, etc...)
+                        repoCredentials.setUsername(usernameCredential)
+                        repoCredentials.setPassword(passwordCredential)
+                    }
                 }
             }
         }
     }
 
 }
+
