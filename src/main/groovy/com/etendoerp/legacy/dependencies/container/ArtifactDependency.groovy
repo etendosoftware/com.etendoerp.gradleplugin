@@ -24,6 +24,19 @@ class ArtifactDependency {
             PublicationUtils.ETENDO,
             PublicationUtils.BASE_MODULE_DIR
     )
+    
+    public static String JAR_ETENDO_MODULE_LOCATION_WOUT_ESCAPED_CHARS = PathUtils.createPathWithCustomSeparator(
+            "/",
+            PublicationUtils.META_INF,
+            PublicationUtils.ETENDO,
+            PublicationUtils.BASE_MODULE_DIR
+    )
+
+    public static String JAR_ETENDO_LOCATION_WOUT_ESCAPED_CHARS = PathUtils.createPathWithCustomSeparator(
+            "/",
+            PublicationUtils.META_INF,
+            PublicationUtils.ETENDO
+    )
 
     Project project
     Dependency dependency

@@ -45,13 +45,23 @@ class EtendoCoreJarArtifact extends ArtifactDependency{
             include "${JAR_ETENDO_LOCATION}"
         }
 
+        /*
+            If the system separator is "\" it must be replaced by "/"
+            to prevent the java.lang.String.replaceFirst method from
+            trying to escape characters in the file path when extracting, causing
+            java.util.regex.PatternSyntaxException
+        */
+        String metaInfPath = "\\" != File.separator ?
+                JAR_ETENDO_LOCATION :
+                JAR_ETENDO_LOCATION_WOUT_ESCAPED_CHARS
+
         project.sync {
             from {
                 metainfFilter
             }
             into ("${project.buildDir}/etendo")
             eachFile { f ->
-                f.path = f.path.replaceFirst("${JAR_ETENDO_LOCATION}", '')
+                f.path = f.path.replaceFirst(metaInfPath, '')
             }
             includeEmptyDirs = false
         }

@@ -14,6 +14,10 @@ class PathUtils {
     static String createPath(String... dirs) {
         return dirs.join(File.separator).concat(File.separator)
     }
+    
+    static String createPathWithCustomSeparator(String separator, String... dirs) {
+        return dirs.join(separator).concat(separator)
+    }
 
     static String fromPathToPackageFormat(String packagePath) {
         return packagePath.replace(File.separator, PACKAGE_SEPARATOR)
