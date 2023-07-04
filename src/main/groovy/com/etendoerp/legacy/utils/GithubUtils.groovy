@@ -136,11 +136,10 @@ class GithubUtils {
             }
         }
 
-        if (usernameCredential && passwordCredential) {
-            project.repositories.configureEach {
-                configureArtifactCredentials(project, it, usernameCredential, passwordCredential)
-            }
+        project.repositories.configureEach {
+            configureArtifactCredentials(project, it, usernameCredential, passwordCredential)
         }
+
     }
 
     static void configureArtifactCredentials(Project project, ArtifactRepository artifactRepository, String usernameCredential, String passwordCredential){
