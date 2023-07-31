@@ -103,7 +103,9 @@ class LegacyScriptLoader {
             project.file('modules').eachDir {
                 project.sourceSets.main.java.srcDirs += it.toString() + "/src"
                 if (project.file(it.toString() + '/etendo-resources').exists()) {
-                    project.sourceSets.main.resources.srcDirs += it.toString() + "/etendo-resources"
+                    if (!project.sourceSets.main.resources.srcDirs.any { it.toString().endsWith('/etendo-resources') }) {
+                        project.sourceSets.main.resources.srcDirs += it.toString() + "/etendo-resources"
+                    }
                 }
             }
         }
