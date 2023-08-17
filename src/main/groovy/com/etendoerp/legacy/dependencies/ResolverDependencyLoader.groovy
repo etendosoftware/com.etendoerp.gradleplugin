@@ -116,17 +116,6 @@ class ResolverDependencyLoader {
             project.ant.filelist(id: 'gradle.libs', files: dependencies.join(','))
 
             AntLoader.loadAntFile(project, coreMetadata)
-
-            //
-            project.ant.references.keySet().forEach {
-                if(it.contains("path")) {
-                    newPath.forEach { pth ->
-                        project.logger.log(LogLevel.DEBUG, "GRADLE - ant reference " + it + " add to classpath " + pth)
-                        project.ant.references[it].add(pth)
-                    }
-                }
-            }
-
         }
 
     }
