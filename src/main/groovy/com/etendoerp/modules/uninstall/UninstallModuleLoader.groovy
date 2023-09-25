@@ -8,7 +8,7 @@ import org.gradle.api.Project
 class UninstallModuleLoader {
 
     public static final String UNINSTALL_MODULE_TASK = "uninstallModule"
-    public static final String UNINSTALL_LINK = "https://docs.etendo.software/en/technical-documentation/modules/uninstall"
+    public static final String UNINSTALL_LINK = "https://docs.etendo.software/developer-guide/etendo-classic/developer-tools/etendo-gradle-plugin/?h=uninstall+modu#uninstall-modules"
     public static final String UNINSTALL_MESSAGE = "* To obtain more information about how to uninstall modules go to: ${UNINSTALL_LINK}"
 
     static void load(Project project) {
