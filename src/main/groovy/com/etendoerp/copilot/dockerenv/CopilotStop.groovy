@@ -7,7 +7,7 @@ class CopilotStop {
         project.tasks.register("copilot.stop") {
             dependsOn({ project.tasks.named("copilotEnvironmentVerification") })
             doLast {
-                String copilotPort = System.getenv("COPILOT_PORT")
+                String copilotPort = project.ext.get("copilotPort")
                 project.exec {
                     workingDir '.'
                     commandLine 'sh', '-c', 'docker stop $(docker ps -qf '+"\"publish=${copilotPort}\""+' -f "ancestor=etendo/etendo_copilot_core:develop")'

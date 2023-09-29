@@ -5,37 +5,18 @@ import org.gradle.api.Project
 
 class CopilotEnvironmentVerification {
 
-    final static String COPILOT_START_TASK = "copilot.start"
-
     private final static String ENVIRONMENT_ERROR_MESSAGE = "* The following mandatory environment variables have not been set: "
     private final static String COPILOT_MODULE_ABSENT = "* The Etendo Copilot module could not be found. Is it installed?"
 
-    private final static String OPENAI_API_KEY_ENV_VAR = "OPENAI_API_KEY"
-    private final static String BASTIAN_URL_ENV_VAR = "BASTIAN_URL"
-    private final static String COPILOT_PORT_ENV_VAR = "COPILOT_PORT"
+    private final static String OPENAI_API_KEY_PROPERTY = "OPENAI_API_KEY"
+    private final static String COPILOT_PORT_PROPERTY = "COPILOT_PORT"
 
     private final static String MODULES_PROJECT = "modules"
     private final static String COPILOT_MODULE = "com.etendoerp.copilot"
 
-    static boolean skipCopilotEnv(List<String> gradleTasks) {
-        if (!gradleTasks.contains(COPILOT_START_TASK) && !gradleTasks.contains(":${COPILOT_START_TASK}")) {
-            return true
-        }
-        return false
-    }
-
     static void load(Project project) {
         project.tasks.register("copilotEnvironmentVerification") {
             doLast {
-
-                // Check if the 'copilot.start' task is being run
-                // Identify the tasks being run
-                def local = System.getProperty("local")
-                if (skipCopilotEnv(project.gradle.startParameter.taskNames) || local == "no") {
-                    project.logger.info("* Ignoring Copilot environment verification.")
-                    return
-                }
-
                 project.logger.info("*****************************************************")
                 project.logger.info("* Performing Copilot environment verification.")
                 project.logger.info("*****************************************************")
@@ -53,16 +34,13 @@ class CopilotEnvironmentVerification {
         List<String> notSetVars = new ArrayList<>()
 
         String errorMsg = "${ENVIRONMENT_ERROR_MESSAGE}"
-        String openaiApiKey = System.getenv(OPENAI_API_KEY_ENV_VAR)
-        String bastianUrl = System.getenv(BASTIAN_URL_ENV_VAR)
-        String copilotPort = System.getenv(COPILOT_PORT_ENV_VAR)
+        String openaiApiKey = project.ext.get('openaiAPIKey')
+        String copilotPort = project.ext.get('copilotPort')
 
-        if (!openaiApiKey || openaiApiKey.isEmpty())
-            notSetVars.add(OPENAI_API_KEY_ENV_VAR)
-        if (!bastianUrl || bastianUrl.isEmpty())
-            notSetVars.add(BASTIAN_URL_ENV_VAR)
-        if (!copilotPort || copilotPort.isEmpty())
-            notSetVars.add(COPILOT_PORT_ENV_VAR)
+        if (openaiApiKey.isEmpty())
+            notSetVars.add(OPENAI_API_KEY_PROPERTY)
+        if (copilotPort.isEmpty())
+            notSetVars.add(COPILOT_PORT_PROPERTY)
         if (notSetVars.size() > 0)
             inconsistent = true
 
