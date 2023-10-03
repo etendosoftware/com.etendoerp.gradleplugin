@@ -1,5 +1,6 @@
 package com.etendoerp
 
+import com.etendoerp.copilot.configuration.CopilotConfigurationLoader
 import com.etendoerp.css.CssCompileLoader
 import com.etendoerp.dependencies.DependenciesLoader
 import com.etendoerp.jandex.JandexConfigLoader
@@ -48,5 +49,6 @@ class EtendoPlugin implements Plugin<Project> {
         JandexConfigLoader.load(project)
         CssCompileLoader.load(project)
         UninstallModuleLoader.load(project)
+        CopilotConfigurationLoader.load(project)
     }
 }
