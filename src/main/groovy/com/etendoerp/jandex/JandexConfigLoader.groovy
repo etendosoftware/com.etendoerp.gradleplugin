@@ -27,7 +27,7 @@ class JandexConfigLoader {
         project.sourceSets {
             jandexCustom {
                 java {
-                    outputDir = project.file("${project.buildDir}/etendo-jandex-classes/")
+                    classesDirectory.set(project.file("${project.buildDir}/etendo-jandex-classes/"))
                     srcDirs = ['build/javasqlc/src']
                     srcDirs 'src'
                 }

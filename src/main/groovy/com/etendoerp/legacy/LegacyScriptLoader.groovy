@@ -83,7 +83,7 @@ class LegacyScriptLoader {
         project.sourceSets{
             main {
                 java {
-                    outputDir = project.file("${project.buildDir}/classes/")
+                    classesDirectory.set(project.file("${project.buildDir}/classes/"))
                     srcDirs = ['build/javasqlc/src'] //clean the default sources directories.
                     srcDirs 'build/javasqlc/srcAD'
                     srcDirs 'src'
