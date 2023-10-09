@@ -10,6 +10,8 @@ import com.etendoerp.modules.ModulesConfigurationUtils
 import com.etendoerp.publication.configuration.PublicationConfiguration
 import org.gradle.api.Project
 import org.gradle.api.logging.LogLevel
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 
 class ResolverDependencyLoader {
 
@@ -82,10 +84,16 @@ class ResolverDependencyLoader {
              */
             project.ant.path(id:'gradle.custom')
 
+            File destDirectory = new File("./build/lib/runtime")
+            destDirectory.mkdirs()
+
             jarFiles.each {
                 newPath.add project.ant.path(location: it)
                 dependencies.add project.ant.path(location: it)
                 project.ant.references['gradle.custom'].add(project.ant.path(location: it))
+                // Copy dependencies to build/libs path
+                File destFile = new File(destDirectory, it.name)
+                Files.copy(it.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
             }
 
             project.logger.info("* gradle.custom classpath: ${project.ant.references['gradle.custom']}")
