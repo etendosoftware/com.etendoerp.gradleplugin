@@ -1,5 +1,6 @@
 package com.etendoerp.copilot.dockerenv
 
+import com.etendoerp.copilot.Constants
 import org.gradle.api.Project
 
 class CopilotStart {
@@ -13,23 +14,23 @@ class CopilotStart {
                 project.logger.info("* Performing copilot start task.")
                 project.logger.info("*****************************************************")
 
-                String openaiApiKey = project.ext.get('openaiAPIKey')
-                String copilotPort = project.ext.get('copilotPort')
+                String openaiApiKey = project.ext.get(Constants.OPENAI_API_KEY_PROPERTY)
+                String copilotPort = project.ext.get(Constants.COPILOT_PORT_PROPERTY)
                 String bastianUrl = null
                 try {
-                    bastianUrl = project.ext.get('bastianURL')
+                    bastianUrl = project.ext.get(Constants.BASTIAN_URL_PROPERTY)
                 } catch (ignored) {}
 
                 String dockerEnvVars = 'docker run -e OPENAI_API_KEY=' + "\"${openaiApiKey}\"" + ' -e COPILOT_PORT=' + "\"${copilotPort}\""
                 if (bastianUrl)
                     dockerEnvVars += ' -e BASTIAN_URL=' + "\"${bastianUrl}\""
                 String dockerCommand = dockerEnvVars + ' -p ' + "${copilotPort}" + ':' + "${copilotPort}" +
-                        ' -v \$(pwd)/modules/com.etendoerp.copilot/:/app/ ' +
-                        '-v \$(pwd)/modules:/modules/ etendo/etendo_copilot_core:develop'
+                        ' -v ' + "\$(pwd)/modules/${Constants.COPILOT_MODULE}/:/app/ " +
+                        '-v ' + "\$(pwd)/modules:/modules/ etendo/${Constants.COPILOT_DOCKER_REPO}:develop"
 
                 project.exec {
                     workingDir '.'
-                    commandLine 'sh', '-c', 'docker pull etendo/etendo_copilot_core:develop'
+                    commandLine 'sh', '-c', 'docker pull etendo/' + "${Constants.COPILOT_DOCKER_REPO}:develop"
                 }
                 project.exec {
                     workingDir '.'

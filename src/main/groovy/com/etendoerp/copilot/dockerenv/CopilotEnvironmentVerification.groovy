@@ -1,5 +1,6 @@
-package com.etendoerp.copilot
+package com.etendoerp.copilot.dockerenv
 
+import com.etendoerp.copilot.Constants
 import com.etendoerp.copilot.exceptions.CopilotEnvironmentConfException
 import org.gradle.api.Project
 
@@ -8,11 +9,6 @@ class CopilotEnvironmentVerification {
     private final static String ENVIRONMENT_ERROR_MESSAGE = "* The following mandatory environment variables have not been set: "
     private final static String COPILOT_MODULE_ABSENT = "* The Etendo Copilot module could not be found. Is it installed?"
 
-    private final static String OPENAI_API_KEY_PROPERTY = "OPENAI_API_KEY"
-    private final static String COPILOT_PORT_PROPERTY = "COPILOT_PORT"
-
-    private final static String MODULES_PROJECT = "modules"
-    private final static String COPILOT_MODULE = "com.etendoerp.copilot"
 
     static void load(Project project) {
         project.tasks.register("copilotEnvironmentVerification") {
@@ -34,13 +30,13 @@ class CopilotEnvironmentVerification {
         List<String> notSetVars = new ArrayList<>()
 
         String errorMsg = "${ENVIRONMENT_ERROR_MESSAGE}"
-        String openaiApiKey = project.ext.get('openaiAPIKey')
-        String copilotPort = project.ext.get('copilotPort')
+        String openaiApiKey = project.ext.get(Constants.OPENAI_API_KEY_PROPERTY)
+        String copilotPort = project.ext.get(Constants.COPILOT_PORT_PROPERTY)
 
         if (openaiApiKey.isEmpty())
-            notSetVars.add(OPENAI_API_KEY_PROPERTY)
+            notSetVars.add(Constants.OPENAI_API_KEY_PROPERTY)
         if (copilotPort.isEmpty())
-            notSetVars.add(COPILOT_PORT_PROPERTY)
+            notSetVars.add(Constants.COPILOT_PORT_PROPERTY)
         if (notSetVars.size() > 0)
             inconsistent = true
 
@@ -52,8 +48,8 @@ class CopilotEnvironmentVerification {
 
     static void verifyModuleIsInstalled(Project project) {
         String errorMsg = "${COPILOT_MODULE_ABSENT} \n"
-        Project modules = project.findProject(MODULES_PROJECT)
-        Project copilot = modules.findProject(COPILOT_MODULE)
+        Project modules = project.findProject(Constants.MODULES_PROJECT)
+        Project copilot = modules.findProject(Constants.COPILOT_MODULE)
 
         if (!copilot)
             throw new CopilotEnvironmentConfException(errorMsg)
