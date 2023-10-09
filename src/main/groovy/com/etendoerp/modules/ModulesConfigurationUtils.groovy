@@ -12,6 +12,7 @@ import org.gradle.api.artifacts.Configuration
 import org.gradle.api.internal.artifacts.configurations.DefaultConfiguration
 import org.gradle.api.internal.artifacts.dependencies.DefaultExternalModuleDependency
 import org.gradle.api.internal.artifacts.dependencies.DefaultProjectDependency
+import org.gradle.api.artifacts.component.ProjectComponentSelector
 
 class ModulesConfigurationUtils {
 
@@ -55,19 +56,21 @@ class ModulesConfigurationUtils {
     }
 
     /**
-     * Configures a List of {@link Configuration} to replace a dependency using a Source subproject
+     * Configures the main project to use the subprojects as dependencies.
      * @param mainProject
-     * @param configurations List of configurations to apply the dependency substitution
-     * @param subprojectSubstitutions Map of the Source subproject used to substitute a Dependency. The key has to be in the 'group:artifact' notation.
+     * @param configurations
+     * @param subprojectSubstitutions
      * @param becauseReason
      */
-    static void configureSubstitutions(Project mainProject, List<Configuration> configurations, Map<String, Project> subprojectSubstitutions, String becauseReason="") {
-        configurations.each {
-            it.resolutionStrategy.dependencySubstitution({dep ->
-                subprojectSubstitutions.each {
-                    dep.substitute(dep.module(it.key)).because(becauseReason).with(dep.project(it.value.path))
+    static void configureSubstitutions(Project mainProject, List<Configuration> configurations, Map<String, Project> subprojectSubstitutions, String becauseReason = "") {
+        configurations.each { configuration ->
+            configuration.resolutionStrategy.dependencySubstitution { dep ->
+                subprojectSubstitutions.each { key, project ->
+                    dep.substitute(dep.module(key))
+                            .because(becauseReason)
+                            .using(dep.project(project.path))
                 }
-            })
+            }
         }
     }
 
