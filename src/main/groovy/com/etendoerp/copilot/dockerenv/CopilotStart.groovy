@@ -21,12 +21,21 @@ class CopilotStart {
                     bastianUrl = project.ext.get(Constants.BASTIAN_URL_PROPERTY)
                 } catch (ignored) {}
 
+                File copilotJar = new File(project.buildDir.path, "etendo" + File.separator + Constants.MODULES_PROJECT + File.separator + Constants.COPILOT_MODULE)
+
                 String dockerEnvVars = 'docker run -e OPENAI_API_KEY=' + "\"${openaiApiKey}\"" + ' -e COPILOT_PORT=' + "\"${copilotPort}\""
                 if (bastianUrl)
                     dockerEnvVars += ' -e BASTIAN_URL=' + "\"${bastianUrl}\""
-                String dockerCommand = dockerEnvVars + ' -p ' + "${copilotPort}" + ':' + "${copilotPort}" +
-                        ' -v ' + "\$(pwd)/modules/${Constants.COPILOT_MODULE}/:/app/ " +
-                        '-v ' + "\$(pwd)/modules:/modules/ etendo/${Constants.COPILOT_DOCKER_REPO}:develop"
+                String dockerCommand = ''
+                if (copilotJar.exists()) {
+                    dockerCommand = dockerEnvVars + ' -p ' + "${copilotPort}" + ':' + "${copilotPort}" +
+                            ' -v ' + "${copilotJar.path}/:/app/ " +
+                            '-v ' + "\$(pwd)/modules:/modules/ etendo/${Constants.COPILOT_DOCKER_REPO}:develop"
+                } else {
+                    dockerCommand = dockerEnvVars + ' -p ' + "${copilotPort}" + ':' + "${copilotPort}" +
+                            ' -v ' + "\$(pwd)/${Constants.MODULES_PROJECT}/${Constants.COPILOT_MODULE}/:/app/ " +
+                            '-v ' + "\$(pwd)/modules:/modules/ etendo/${Constants.COPILOT_DOCKER_REPO}:develop"
+                }
 
                 project.exec {
                     workingDir '.'
