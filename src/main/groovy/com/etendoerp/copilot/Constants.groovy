@@ -13,4 +13,5 @@ class Constants {
     static final String OPENAI_API_KEY_PROPERTY = "openaiAPIKey"
     static final String BASTIAN_URL_PROPERTY = "bastianPort"
     static final String COPILOT_DOCKER_REPO = "etendo_copilot_core"
+    static final String TOOLS_CONFIG_FILE = "tools_config.json"
 }

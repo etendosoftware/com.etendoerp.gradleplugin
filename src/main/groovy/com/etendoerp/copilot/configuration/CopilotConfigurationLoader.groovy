@@ -1,5 +1,6 @@
 package com.etendoerp.copilot.configuration
 
+import com.etendoerp.copilot.Constants
 import com.etendoerp.publication.PublicationUtils
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
@@ -35,14 +36,14 @@ class CopilotConfigurationLoader {
      */
     static void load(Project project) {
         project.afterEvaluate {
-            File copilotDir = new File("${project.buildDir.path}/copilot")
+            File copilotDir = new File(project.buildDir.path, "copilot")
             copilotDir.deleteDir()
 
             Project moduleProject = project.findProject(":${PublicationUtils.BASE_MODULE_DIR}")
             if (moduleProject != null) {
-                Project copilotProject = moduleProject.findProject("com.etendoerp.copilot")
-                File jarModulesLocation = new File(project.buildDir, "etendo" + File.separator + "modules")
-                File copilotJarModule = new File(jarModulesLocation, "com.etendoerp.copilot")
+                Project copilotProject = moduleProject.findProject(Constants.COPILOT_MODULE)
+                File jarModulesLocation = new File(project.buildDir, "etendo" + File.separator + Constants.MODULES_PROJECT)
+                File copilotJarModule = new File(jarModulesLocation, Constants.COPILOT_MODULE)
 
                 boolean copilotExists = false
                 if (copilotProject != null) { // Copilot found in SOURCES
@@ -51,7 +52,7 @@ class CopilotConfigurationLoader {
                         from {
                             copilotProject.projectDir.path
                         }
-                        into "${project.buildDir.path}/copilot"
+                        into "${project.buildDir.path}${File.separator}copilot"
                         includeEmptyDirs false
                     }
                 } else if (copilotJarModule.exists()) { // Copilot found in JARS
@@ -60,24 +61,24 @@ class CopilotConfigurationLoader {
                         from {
                             copilotJarModule.path
                         }
-                        into "${project.buildDir.path}/copilot"
+                        into "${project.buildDir.path}${File.separator}copilot"
                         includeEmptyDirs false
                     }
                 }
 
                 if (copilotExists) {
-                    File toolsConfigFile = new File(project.buildDir, "copilot" + File.separator + "tools_config.json")
+                    File toolsConfigFile = new File(project.buildDir, "copilot" + File.separator + Constants.TOOLS_CONFIG_FILE)
                     def toolsConfigJson = new JsonSlurper().parseText(toolsConfigFile.readLines().join(" "))
 
                     // Get tools in SOURCES
                     moduleProject.subprojects.each { subproject ->
                         File toolsDir = new File(subproject.projectDir, "tools")
-                        if (toolsDir.exists() && !subproject.name.equals("com.etendoerp.copilot")) {
+                        if (toolsDir.exists() && !subproject.name.equals(Constants.COPILOT_MODULE)) {
                             project.copy {
                                 from {
                                     toolsDir.path
                                 }
-                                into "${project.buildDir.path}/copilot/tools"
+                                into "${project.buildDir.path}${File.separator}copilot${File.separator}tools"
                             }
                             toolsDir.listFiles().each { file ->
                                 toolsConfigJson.third_party_tools[file.name.replaceFirst(~/\.[^\.]+$/, '')] = true
@@ -90,12 +91,12 @@ class CopilotConfigurationLoader {
                     // Get tools in JARS
                     jarModulesLocation.listFiles().each { jarModule ->
                         File jarModuleToolsDir = new File(jarModule, "tools")
-                        if (jarModuleToolsDir.exists() && !jarModule.name.equals("com.etendoerp.copilot")) {
+                        if (jarModuleToolsDir.exists() && !jarModule.name.equals(Constants.COPILOT_MODULE)) {
                             project.copy {
                                 from {
                                     jarModuleToolsDir.path
                                 }
-                                into "${project.buildDir.path}/copilot/tools"
+                                into "${project.buildDir.path}${File.separator}copilot${File.separator}tools"
                             }
                             jarModuleToolsDir.listFiles().each { file ->
                                 toolsConfigJson.third_party_tools[file.name.replaceFirst(~/\.[^\.]+$/, '')] = true

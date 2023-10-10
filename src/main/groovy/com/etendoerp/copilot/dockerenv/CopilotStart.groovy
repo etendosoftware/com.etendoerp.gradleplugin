@@ -29,11 +29,9 @@ class CopilotStart {
                             '-v ' + "\$(pwd)/modules:/modules/ etendo/${Constants.COPILOT_DOCKER_REPO}:develop"
 
                 project.exec {
-                    workingDir '.'
                     commandLine 'sh', '-c', 'docker pull etendo/' + "${Constants.COPILOT_DOCKER_REPO}:develop"
                 }
                 project.exec {
-                    workingDir '.'
                     commandLine 'sh', '-c', dockerCommand
                 }
             }

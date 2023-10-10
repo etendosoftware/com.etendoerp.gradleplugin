@@ -48,15 +48,20 @@ class CopilotEnvironmentVerification {
 
     static void verifyModuleIsInstalled(Project project) {
         String errorMsg = "${COPILOT_MODULE_ABSENT} \n"
+
         // Check sources for copilot
         Project modules = project.findProject(Constants.MODULES_PROJECT)
         boolean copilotInSrc = modules.findProject(Constants.COPILOT_MODULE) != null
 
         // Check jars for copilot
-        File jarsDir = new File(project.buildDir.path, "etendo" + File.separator + Constants.MODULES_PROJECT)
-        boolean copilotInJars = jarsDir.listFiles().any {file ->
-            file.name == Constants.COPILOT_MODULE
+        FileFilter fileFilter = new FileFilter() {
+            @Override
+            boolean accept(File file) {
+                return file.name == Constants.COPILOT_MODULE
+            }
         }
+        File jarsDir = new File(project.buildDir.path, "etendo" + File.separator + Constants.MODULES_PROJECT)
+        boolean copilotInJars = jarsDir.listFiles(fileFilter)?.size() > 0
 
         if (!copilotInSrc && !copilotInJars)
             throw new CopilotEnvironmentConfException(errorMsg)
