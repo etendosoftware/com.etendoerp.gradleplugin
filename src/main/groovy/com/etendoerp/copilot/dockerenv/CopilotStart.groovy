@@ -25,15 +25,13 @@ class CopilotStart {
                 if (bastianUrl)
                     dockerEnvVars += ' -e BASTIAN_URL=' + "\"${bastianUrl}\""
                 String dockerCommand = dockerEnvVars + ' -p ' + "${copilotPort}" + ':' + "${copilotPort}" +
-                        ' -v ' + "\$(pwd)/modules/${Constants.COPILOT_MODULE}/:/app/ " +
-                        '-v ' + "\$(pwd)/modules:/modules/ etendo/${Constants.COPILOT_DOCKER_REPO}:develop"
+                            ' -v ' + "${project.buildDir.path}/copilot/:/app/ " +
+                            '-v ' + "\$(pwd)/modules:/modules/ etendo/${Constants.COPILOT_DOCKER_REPO}:develop"
 
                 project.exec {
-                    workingDir '.'
                     commandLine 'sh', '-c', 'docker pull etendo/' + "${Constants.COPILOT_DOCKER_REPO}:develop"
                 }
                 project.exec {
-                    workingDir '.'
                     commandLine 'sh', '-c', dockerCommand
                 }
             }
