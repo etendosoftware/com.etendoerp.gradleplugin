@@ -11,7 +11,6 @@ class Constants {
     static final String PKG_PROPERTY = "pkg"
     static final String COPILOT_PORT_PROPERTY = "COPILOT_PORT"
     static final String OPENAI_API_KEY_PROPERTY = "OPENAI_API_KEY"
-    static final String BASTIAN_URL_PROPERTY = "BASTIAN_URL"
     static final String COPILOT_DOCKER_REPO = "etendo_copilot_core"
     static final String TOOLS_CONFIG_FILE = "tools_config.json"
 }
