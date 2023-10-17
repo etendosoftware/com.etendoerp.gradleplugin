@@ -1,5 +1,6 @@
 package com.etendoerp
 
+import com.etendoerp.copilot.CopilotLoader
 import com.etendoerp.css.CssCompileLoader
 import com.etendoerp.dependencies.DependenciesLoader
 import com.etendoerp.jandex.JandexConfigLoader
@@ -19,7 +20,7 @@ import com.etendoerp.publication.git.CloneDependencies
 
 class EtendoPlugin implements Plugin<Project> {
 
-    final static String PLUGIN_VERSION = "1.1.3"
+    final static String PLUGIN_VERSION = "1.2.0"
 
     @Override
     void apply(Project project) {
@@ -48,5 +49,6 @@ class EtendoPlugin implements Plugin<Project> {
         JandexConfigLoader.load(project)
         CssCompileLoader.load(project)
         UninstallModuleLoader.load(project)
+        CopilotLoader.load(project)
     }
 }

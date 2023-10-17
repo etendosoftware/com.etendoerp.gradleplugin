@@ -1,0 +1,16 @@
+package com.etendoerp.copilot
+
+class Constants {
+
+    private Constants() {
+        // Private constructor to prevent instantiation
+    }
+
+    static final String MODULES_PROJECT = "modules"
+    static final String COPILOT_MODULE = "com.etendoerp.copilot"
+    static final String PKG_PROPERTY = "pkg"
+    static final String COPILOT_PORT_PROPERTY = "COPILOT_PORT"
+    static final String OPENAI_API_KEY_PROPERTY = "OPENAI_API_KEY"
+    static final String COPILOT_DOCKER_REPO = "etendo_copilot_core"
+    static final String TOOLS_CONFIG_FILE = "tools_config.json"
+}
