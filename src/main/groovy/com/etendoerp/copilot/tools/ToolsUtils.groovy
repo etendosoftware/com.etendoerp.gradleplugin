@@ -20,7 +20,7 @@ class ToolsUtils {
         }
 
         Project modulesProject = project.findProject("modules")
-        if (modulesProject.findProject(module) == null) {
+        if (modulesProject?.findProject(module) == null) {
             throw new IllegalArgumentException(String.format(MODULE_PKG_NOT_EXISTS, module))
         }
     }
