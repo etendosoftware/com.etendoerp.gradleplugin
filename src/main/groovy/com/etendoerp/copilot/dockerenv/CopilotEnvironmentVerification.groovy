@@ -51,7 +51,7 @@ class CopilotEnvironmentVerification {
 
         // Check sources for copilot
         Project modules = project.findProject(Constants.MODULES_PROJECT)
-        boolean copilotInSrc = modules.findProject(Constants.COPILOT_MODULE) != null
+        boolean copilotInSrc = modules?.findProject(Constants.COPILOT_MODULE) != null
 
         // Check jars for copilot
         FileFilter fileFilter = new FileFilter() {
@@ -60,6 +60,7 @@ class CopilotEnvironmentVerification {
                 return file.name == Constants.COPILOT_MODULE
             }
         }
+
         File jarsDir = new File(project.buildDir.path, "etendo" + File.separator + Constants.MODULES_PROJECT)
         boolean copilotInJars = jarsDir.listFiles(fileFilter)?.size() > 0
 

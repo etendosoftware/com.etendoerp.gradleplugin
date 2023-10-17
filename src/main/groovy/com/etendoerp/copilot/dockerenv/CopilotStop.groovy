@@ -12,7 +12,7 @@ class CopilotStop {
                 project.exec {
                     workingDir '.'
                     commandLine 'sh', '-c', 'docker stop $(docker ps -qf ' + "\"publish=${copilotPort}\"" +
-                            ' -f "ancestor=etendo/' + "${Constants.COPILOT_DOCKER_REPO}" + ':develop")'
+                            ' -f "ancestor=etendo/' + "${Constants.COPILOT_DOCKER_REPO}" + ':master")'
                 }
             }
         }
