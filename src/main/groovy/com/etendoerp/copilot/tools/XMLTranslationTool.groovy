@@ -9,7 +9,7 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 
 class XMLTranslationTool {
-    static final String TOOL_FILE_NAME = "XML_translation_tool.py"
+    static final String TOOL_FILE_NAME = "XMLTranslationTool.py"
 
     static void load(Project project) {
         project.tasks.register("copilot.translate") {
