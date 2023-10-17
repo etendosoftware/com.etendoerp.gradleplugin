@@ -18,10 +18,10 @@ class CopilotStart {
 
                 String dockerCommand = 'docker run --env-file=\$(pwd)/gradle.properties -p ' + "${copilotPort}" + ':' + "${copilotPort}" +
                             ' -v ' + "${project.buildDir.path}/copilot/:/app/ " +
-                            '-v ' + "\$(pwd)/modules:/modules/ etendo/${Constants.COPILOT_DOCKER_REPO}:develop"
+                            '-v ' + "\$(pwd)/modules:/modules/ etendo/${Constants.COPILOT_DOCKER_REPO}:master"
 
                 project.exec {
-                    commandLine 'sh', '-c', 'docker pull etendo/' + "${Constants.COPILOT_DOCKER_REPO}:develop"
+                    commandLine 'sh', '-c', 'docker pull etendo/' + "${Constants.COPILOT_DOCKER_REPO}:master"
                 }
                 project.exec {
                     commandLine 'sh', '-c', dockerCommand
