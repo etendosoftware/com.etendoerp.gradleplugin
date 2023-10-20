@@ -8,7 +8,7 @@ class Constants {
 
     static final String MODULES_PROJECT = "modules"
     static final String COPILOT_MODULE = "com.etendoerp.copilot"
-    static final String PKG_PROPERTY = "pkg"
+    static final String ARG_PROPERTY = "arg"
     static final String COPILOT_PORT_PROPERTY = "COPILOT_PORT"
     static final String OPENAI_API_KEY_PROPERTY = "OPENAI_API_KEY"
     static final String COPILOT_DOCKER_REPO = "etendo_copilot_core"
