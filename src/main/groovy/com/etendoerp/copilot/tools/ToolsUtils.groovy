@@ -5,7 +5,7 @@ import com.etendoerp.copilot.exceptions.CopilotEnvironmentConfException
 import org.gradle.api.Project
 
 class ToolsUtils {
-    static final String MODULE_PKG_NOT_SET = "The module package has not been provided. Specify it with the '-P${Constants.PKG_PROPERTY}' property."
+    static final String MODULE_PKG_NOT_SET = "The module package has not been provided. Specify it with the '-P${Constants.ARG_PROPERTY}' property."
     static final String MODULE_PKG_NOT_EXISTS = "The '%s' module does not exist in sources."
     static final String COPILOT_NOT_FOUND = "Etendo Copilot was not found. Is it installed?"
     static final String TOOL_NOT_FOUND = "The '%s' tool was not found. Is it installed?"
