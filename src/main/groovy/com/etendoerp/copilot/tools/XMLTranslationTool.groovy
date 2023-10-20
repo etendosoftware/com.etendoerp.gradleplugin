@@ -15,11 +15,11 @@ class XMLTranslationTool {
         project.tasks.register("copilot.translate") {
             dependsOn({ project.tasks.named("copilotEnvironmentVerification") })
             doLast {
-                ToolsUtils.verifyModuleExistsInSources(project, (String) project.findProperty(Constants.PKG_PROPERTY))
+                ToolsUtils.verifyModuleExistsInSources(project, (String) project.findProperty(Constants.ARG_PROPERTY))
                 ToolsUtils.verifyCopilotAndToolAreInstalled(project, TOOL_FILE_NAME)
 
                 String translationQuestion = "Translate the xml files from this relative path: " +
-                        "modules/${project.findProperty(Constants.PKG_PROPERTY)}/referencedata/translation/"
+                        "modules/${project.findProperty(Constants.ARG_PROPERTY)}/referencedata/translation/"
                 String translationURL = "http://0.0.0.0:${project.ext.get(Constants.COPILOT_PORT_PROPERTY)}/question"
 
                 project.logger.info("* Translating...")
