@@ -280,7 +280,7 @@ class LegacyScriptLoader {
         }
 
         /** Copy Openbravo.properties template */
-        project.task("createOBProperties", type: Copy) {
+        project.task("createOBProperties", type: Copy, dependsOn: "createBackupProperties") {
             outputs.upToDateWhen { return false }
             from project.file("config/Openbravo.properties.template")
             into project.file("config")
@@ -297,7 +297,7 @@ class LegacyScriptLoader {
         }
 
         /** Copy quartz.properties template */
-        project.task("createQuartzProperties", type: Copy) {
+        project.task("createQuartzProperties", type: Copy, dependsOn: "createOBProperties") {
             outputs.upToDateWhen { return false }
             from project.file("config/quartz.properties.template")
             into project.file("config")
