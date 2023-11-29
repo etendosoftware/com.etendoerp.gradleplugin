@@ -5,6 +5,7 @@ import com.etendoerp.publication.PublicationUtils
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 import org.gradle.api.Project
+import org.gradle.api.plugins.ExtraPropertiesExtension
 
 class CopilotConfigurationLoader {
 
@@ -70,6 +71,8 @@ class CopilotConfigurationLoader {
 
             if (copilotExists) {
                 File toolsConfigFile = new File(project.buildDir, "copilot" + File.separator + Constants.TOOLS_CONFIG_FILE)
+                String toolDependencyFileName = getToolsDependenciesFileName(project)
+                File toolsDependenciesFileMain = new File(project.buildDir, "copilot" + File.separator + toolDependencyFileName)
                 def toolsConfigJson = new JsonSlurper().parseText(toolsConfigFile.readLines().join(" "))
 
                 // Get tools in SOURCES
@@ -88,6 +91,12 @@ class CopilotConfigurationLoader {
                             }
                             def json_data = JsonOutput.toJson(toolsConfigJson)
                             toolsConfigFile.write(JsonOutput.prettyPrint(json_data))
+                            //lets read the Dependencies file of the subproject and add it to the main one
+                            File toolsDependenciesFile = new File(subproject.projectDir, toolDependencyFileName)
+                            if (toolsDependenciesFile.exists()) {
+                                toolsDependenciesFileMain.append(toolsDependenciesFile.text)
+                                project.logger.info("Added dependencies from ${subproject.name} to main dependencies file")
+                            }
                         }
                     }
                 }
@@ -111,5 +120,19 @@ class CopilotConfigurationLoader {
                 }
             }
         }
+    }
+
+    private static String getToolsDependenciesFileName(Project project) {
+        String tools_dependencies_file = "tools_deps.toml"
+        try {
+            String tools_dependencies_file_prop = project.ext.get(Constants.DEPENDENCIES_TOOLS_FILENAME)
+            if (tools_dependencies_file_prop.isEmpty()) {
+                return tools_dependencies_file
+            }
+            return tools_dependencies_file_prop
+        } catch (ExtraPropertiesExtension.UnknownPropertyException e) {
+            project.logger.info("Failed to get TOOLS_DEPENDENCIES_FILE: ${e.getMessage()}. Default value 'tools_deps.toml' will be used.")
+        }
+        return tools_dependencies_file
     }
 }
