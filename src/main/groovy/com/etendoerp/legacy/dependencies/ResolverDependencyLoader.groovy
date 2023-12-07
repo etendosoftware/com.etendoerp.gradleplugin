@@ -12,6 +12,9 @@ import org.gradle.api.Project
 import org.gradle.api.logging.LogLevel
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import org.gradle.api.file.FileTree
+import org.gradle.internal.os.OperatingSystem
+
 
 class ResolverDependencyLoader {
 
@@ -53,7 +56,7 @@ class ResolverDependencyLoader {
 
             def extension = project.extensions.findByType(EtendoPluginExtension)
             boolean loadCompilationDependencies = extension.loadCompilationDependencies
-            boolean loadTestDependencies        = extension.loadTestDependencies
+            boolean loadTestDependencies = extension.loadTestDependencies
 
             // Load Etendo core compilation dependencies when the core is in jar
             if (loadCompilationDependencies) {
@@ -120,7 +123,6 @@ class ResolverDependencyLoader {
              *
              */
             project.ant.properties['gradle.custom.dependencies'] = project.ant.references['gradle.custom'].toString()
-
             project.ant.project.setProperty("env.GRADLE_CLASSPATH", project.ant.references['gradle.custom'].toString())
 
             // This gets all dependencies and sets them in ant as a file list with id: "gradle.libs"
