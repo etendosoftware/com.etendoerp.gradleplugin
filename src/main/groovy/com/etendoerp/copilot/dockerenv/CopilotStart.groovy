@@ -11,6 +11,7 @@ class CopilotStart {
     public static final String TRUE = 'true'
     public static final String SH = 'sh'
     public static final String DASH_C = '-c'
+    public static final String EQUAL = '='
 
     static void load(Project project) {
 
@@ -97,10 +98,46 @@ class CopilotStart {
     }
 
     private static void runNewContainer(String containerName, String port, Project project, String tag) {
-        String dockerRunCommand = "docker run --env-file=\$(pwd)/gradle.properties --name ${containerName}  -p ${port}:${port} -v ${project.buildDir.path}/copilot/:/app/ -v \$(pwd)/modules:/modules/ etendo/${Constants.COPILOT_DOCKER_REPO}:${tag}"
+        // edit the file gradle.properties and replace the . in key names with _ . Remember that the keys are the text before the = sign.
+        // If there is a . in the value it not need to be replaced.
+        String pwd
+        ByteArrayOutputStream stdOut = new ByteArrayOutputStream()
+        project.exec {
+            commandLine SH, DASH_C, 'pwd'
+            stdOut
+        }
+        pwd = stdOut
+        // open the file
+        File file = new File(pwd + 'gradle.properties')
+        // read the file and iterate over the lines, replace the . in the key names with _ and save in a new file
+        File newFile = new File(pwd + 'build/copilot/copilot.properties')
+        if (newFile.exists()) {
+            newFile.delete()
+        }
+        newFile.createNewFile()
+        // iterate over the lines and replace the . in the key names with _
+        newFile.withWriter { writer ->
+            file.eachLine { line ->
+                if (line.contains(EQUAL)) {
+                    String[] split = line.split(EQUAL, 2)
+                    String key = split[0].replaceAll('\\.', '_')
+                    String value = ''
+                    if (split.length > 1) {
+                        value = split[1]
+                    }
+                    writer.writeLine(key + EQUAL + value)
+                } else {
+                    writer.writeLine(line)
+                }
+            }
+        }
+        // run the docker container
+        String dockerRunCommand = "docker run --env-file=\$(pwd)/build/copilot/copilot.properties --name ${containerName}  -p ${port}:${port} -v ${project.buildDir.path}/copilot/:/app/ -v \$(pwd)/modules:/modules/ etendo/${Constants.COPILOT_DOCKER_REPO}:${tag}"
         project.exec {
             commandLine SH, DASH_C, dockerRunCommand
         }
+        // delete the new file
+        newFile.delete()
     }
 
     private static void delete_container(Project project, String copilotDockerContainerName) {
