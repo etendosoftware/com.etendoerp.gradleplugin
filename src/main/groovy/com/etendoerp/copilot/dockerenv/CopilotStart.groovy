@@ -5,13 +5,13 @@ import org.gradle.api.Project
 import org.gradle.api.plugins.ExtraPropertiesExtension
 import org.gradle.process.ExecResult
 import org.gradle.process.internal.ExecException
-import org.slf4j.ILoggerFactory
 
 class CopilotStart {
 
     public static final String TRUE = 'true'
     public static final String SH = 'sh'
     public static final String DASH_C = '-c'
+    public static final String EQUAL = '='
 
     static void load(Project project) {
 
@@ -107,9 +107,9 @@ class CopilotStart {
             stdOut
         }
         pwd = stdOut
-        //open the file
+        // open the file
         File file = new File(pwd + 'gradle.properties')
-        //read the file and iterate over the lines, replace the . in the key names with _ and save in a new file
+        // read the file and iterate over the lines, replace the . in the key names with _ and save in a new file
         File newFile = new File(pwd + 'copilot.properties')
         if (newFile.exists()) {
             newFile.delete()
@@ -118,14 +118,14 @@ class CopilotStart {
         // iterate over the lines and replace the . in the key names with _
         newFile.withWriter { writer ->
             file.eachLine { line ->
-                if (line.contains('=')) {
-                    String[] split = line.split('=', 2)
+                if (line.contains(EQUAL)) {
+                    String[] split = line.split(EQUAL, 2)
                     String key = split[0].replaceAll('\\.', '_')
                     String value = ''
                     if (split.length > 1) {
                         value = split[1]
                     }
-                    writer.writeLine(key + '=' + value)
+                    writer.writeLine(key + EQUAL + value)
                 } else {
                     writer.writeLine(line)
                 }
