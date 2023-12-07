@@ -110,7 +110,7 @@ class CopilotStart {
         // open the file
         File file = new File(pwd + 'gradle.properties')
         // read the file and iterate over the lines, replace the . in the key names with _ and save in a new file
-        File newFile = new File(pwd + 'copilot.properties')
+        File newFile = new File(pwd + 'build/copilot/copilot.properties')
         if (newFile.exists()) {
             newFile.delete()
         }
@@ -132,7 +132,7 @@ class CopilotStart {
             }
         }
         // run the docker container
-        String dockerRunCommand = "docker run --env-file=\$(pwd)/copilot.properties --name ${containerName}  -p ${port}:${port} -v ${project.buildDir.path}/copilot/:/app/ -v \$(pwd)/modules:/modules/ etendo/${Constants.COPILOT_DOCKER_REPO}:${tag}"
+        String dockerRunCommand = "docker run --env-file=\$(pwd)/build/copilot/copilot.properties --name ${containerName}  -p ${port}:${port} -v ${project.buildDir.path}/copilot/:/app/ -v \$(pwd)/modules:/modules/ etendo/${Constants.COPILOT_DOCKER_REPO}:${tag}"
         project.exec {
             commandLine SH, DASH_C, dockerRunCommand
         }
