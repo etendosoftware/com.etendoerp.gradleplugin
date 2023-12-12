@@ -10,7 +10,7 @@ class AddTasks {
 
             if (sources.exists()) {
                 project.fileTree(dir: sources).matching {
-                    include '**/tasks.gradle'
+                    include 'tasks.gradle'
                 }.each { fileSrc ->
                     project.apply from: fileSrc.path
                 }
@@ -18,7 +18,7 @@ class AddTasks {
 
             if (jars.exists()) {
                 project.fileTree(dir: jars).matching {
-                    include '**/tasks.gradle'
+                    include 'tasks.gradle'
                 }.each { fileJar ->
                     project.apply from: fileJar.path
                 }
