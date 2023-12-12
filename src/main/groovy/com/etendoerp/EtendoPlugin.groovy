@@ -41,6 +41,7 @@ class EtendoPlugin implements Plugin<Project> {
 
         AntLoader.load(project)
         EtendoLegacy.load(project)
+        DBDependenciesLoader.load(project)
         JarLoader.load(project)
         PublicationLoader.load(project)
         ModulesConfigurationLoader.load(project)
