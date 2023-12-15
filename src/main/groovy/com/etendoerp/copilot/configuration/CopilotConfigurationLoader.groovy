@@ -122,6 +122,7 @@ class CopilotConfigurationLoader {
                         //lets read the Dependencies file of the subproject and add it to the main one
                         File toolsDependenciesFile = new File(jarModule, toolDependencyFileName)
                         if (toolsDependenciesFile.exists()) {
+                            toolsDependenciesFileMain.append('\n')
                             toolsDependenciesFileMain.append(toolsDependenciesFile.text)
                             project.logger.info("Added dependencies from ${jarModule.name} to main dependencies file")
                         }
