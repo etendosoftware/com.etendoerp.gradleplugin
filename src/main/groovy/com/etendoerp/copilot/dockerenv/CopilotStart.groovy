@@ -132,7 +132,7 @@ class CopilotStart {
             }
         }
         // run the docker container
-        String dockerRunCommand = "docker run --env-file=\$(pwd)/build/copilot/copilot.properties --name ${containerName}  -p ${port}:${port} -v ${project.buildDir.path}/copilot/:/app/ -v \$(pwd)/modules:/modules/ etendo/${Constants.COPILOT_DOCKER_REPO}:${tag}"
+        String dockerRunCommand = "docker run --env-file=\$(pwd)/build/copilot/copilot.properties --name ${containerName} --add-host=host.docker.internal:host-gateway -p ${port}:${port} -v ${project.buildDir.path}/copilot/:/app/ -v \$(pwd)/modules:/modules/ etendo/${Constants.COPILOT_DOCKER_REPO}:${tag}"
         project.exec {
             commandLine SH, DASH_C, dockerRunCommand
         }
