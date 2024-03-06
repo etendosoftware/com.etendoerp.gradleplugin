@@ -76,32 +76,25 @@ class ResolverDependencyLoader {
             // see https://github.com/gradle/gradle/issues/11914 for more info
             def antClassLoader = org.apache.tools.ant.Project.class.classLoader
             def dependencies = []
-            def files = []
             //
 
             /**
              * aux ant path used to hold gradle jar files
              */
-            File destDirectory = new File(sourcePath, "./build/lib/runtime")
+            File destDirectory = new File(project.buildDir, "etendo/lib")
             destDirectory.mkdirs()
             jarFiles.each {
                 // Copy the jar to the runtime directory
-                File destFile = new File(destDirectory, it.name)
-                Files.copy(it.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
-                files.add("./" + it.getName())
-                // Add the jar to the ant path to be used to create WebContent
                 dependencies.add(it.absolutePath)
             }
             def classpathJarName = "classpath.jar";
             // CREATE JAR HERE FROM gradle.custom and create a Manifest with the classpath
             project.ant.jar(destfile: "${destDirectory.absolutePath}/${classpathJarName}") {
                 manifest {
-                    attribute(name: "Class-Path", value: files.join(' '))
+                    attribute(name: "Class-Path", value: dependencies.join(' '))
                 }
             }
-            project.ant.path(id:'gradle.custom')
-            project.ant.references['gradle.custom'].add(project.ant.path(location: new File(destDirectory.absolutePath, classpathJarName)))
-
+            project.ant.property(name: "base.lib", location: new File("${sourcePath}/build/etendo", "lib"))
             /**
              * Creates an Ant property with the value of the gradle Jar paths.
              * Ex: '/path/to/jar0:/path/to/jar1/'
