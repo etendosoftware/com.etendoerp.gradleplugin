@@ -9,6 +9,7 @@ import com.etendoerp.legacy.utils.GithubUtils
 import com.etendoerp.modules.ModulesConfigurationUtils
 import com.etendoerp.publication.configuration.PublicationConfiguration
 import org.gradle.api.Project
+import org.gradle.api.file.FileTree
 import org.gradle.api.logging.LogLevel
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
@@ -87,11 +88,27 @@ class ResolverDependencyLoader {
                 // Copy the jar to the runtime directory
                 dependencies.add(it.absolutePath)
             }
+            def files = dependencies
+            def DIRS = [
+                new File("${project.rootDir.absolutePath}/lib"),
+                new File("${project.rootDir.absolutePath}/modules"),
+                new File("${project.rootDir.absolutePath}/modules_core")
+            ]
+            DIRS.each {
+                if (it.exists()) {
+                    FileTree libFiles = project.fileTree(it).include("**/*.jar")
+                    // Search recursively for all jars in the lib directory and add to classpath jar
+                    libFiles.each {
+                        files.add(it)
+                    }
+                }
+            }
+
             def classpathJarName = "classpath.jar";
             // CREATE JAR HERE FROM gradle.custom and create a Manifest with the classpath
             project.ant.jar(destfile: "${destDirectory.absolutePath}/${classpathJarName}") {
                 manifest {
-                    attribute(name: "Class-Path", value: dependencies.join(' '))
+                    attribute(name: "Class-Path", value: files.join(' '))
                 }
             }
             project.ant.property(name: "base.lib", location: new File("${sourcePath}/build/etendo", "lib"))
