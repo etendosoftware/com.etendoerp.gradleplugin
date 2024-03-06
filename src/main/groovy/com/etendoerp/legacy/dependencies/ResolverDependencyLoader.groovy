@@ -9,6 +9,7 @@ import com.etendoerp.legacy.utils.GithubUtils
 import com.etendoerp.modules.ModulesConfigurationUtils
 import com.etendoerp.publication.configuration.PublicationConfiguration
 import org.gradle.api.Project
+import org.gradle.api.file.FileTree
 import org.gradle.api.logging.LogLevel
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
@@ -75,29 +76,42 @@ class ResolverDependencyLoader {
             // otherwise doing a antClassLoader.addURL for each dependency will bring back the previous behaviour, but it will cause problems
             // see https://github.com/gradle/gradle/issues/11914 for more info
             def antClassLoader = org.apache.tools.ant.Project.class.classLoader
-            def newPath = []
             def dependencies = []
             //
 
             /**
              * aux ant path used to hold gradle jar files
              */
-            project.ant.path(id:'gradle.custom')
-
-            File destDirectory = new File("./build/lib/runtime")
+            File destDirectory = new File(project.buildDir, "etendo/lib")
             destDirectory.mkdirs()
-
             jarFiles.each {
-                newPath.add project.ant.path(location: it)
-                dependencies.add project.ant.path(location: it)
-                project.ant.references['gradle.custom'].add(project.ant.path(location: it))
-                // Copy dependencies to build/libs path
-                File destFile = new File(destDirectory, it.name)
-                Files.copy(it.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
+                // Copy the jar to the runtime directory
+                dependencies.add(it.absolutePath)
+            }
+            def files = dependencies
+            def DIRS = [
+                new File("${project.rootDir.absolutePath}/lib"),
+                new File("${project.rootDir.absolutePath}/modules"),
+                new File("${project.rootDir.absolutePath}/modules_core")
+            ]
+            DIRS.each {
+                if (it.exists()) {
+                    FileTree libFiles = project.fileTree(it).include("**/*.jar")
+                    // Search recursively for all jars in the lib directory and add to classpath jar
+                    libFiles.each {
+                        files.add(it)
+                    }
+                }
             }
 
-            project.logger.info("* gradle.custom classpath: ${project.ant.references['gradle.custom']}")
-
+            def classpathJarName = "classpath.jar";
+            // CREATE JAR HERE FROM gradle.custom and create a Manifest with the classpath
+            project.ant.jar(destfile: "${destDirectory.absolutePath}/${classpathJarName}") {
+                manifest {
+                    attribute(name: "Class-Path", value: files.join(' '))
+                }
+            }
+            project.ant.property(name: "base.lib", location: new File("${sourcePath}/build/etendo", "lib"))
             /**
              * Creates an Ant property with the value of the gradle Jar paths.
              * Ex: '/path/to/jar0:/path/to/jar1/'
@@ -126,5 +140,12 @@ class ResolverDependencyLoader {
             AntLoader.loadAntFile(project, coreMetadata)
         }
 
+    }
+
+    static String getSourcePath() {
+        def propsFile = new File("config/Openbravo.properties")
+        def props = new Properties()
+        props.load(propsFile.newReader())
+        return props.getProperty("source.path")
     }
 }
