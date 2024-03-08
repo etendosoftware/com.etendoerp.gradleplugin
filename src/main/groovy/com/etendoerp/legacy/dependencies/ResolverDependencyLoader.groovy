@@ -15,7 +15,6 @@ import java.nio.file.StandardCopyOption
 import org.gradle.api.file.FileTree
 import org.gradle.internal.os.OperatingSystem
 
-
 class ResolverDependencyLoader {
 
     final static String CONSISTENCY_CONTAINER = "CONSISTENCY_CONTAINER"
@@ -78,16 +77,16 @@ class ResolverDependencyLoader {
             // otherwise doing a antClassLoader.addURL for each dependency will bring back the previous behaviour, but it will cause problems
             // see https://github.com/gradle/gradle/issues/11914 for more info
             def antClassLoader = org.apache.tools.ant.Project.class.classLoader
-            def dependencies = []
-            def files = []
+            List<String> dependencies = []
             //
 
             /**
              * aux ant path used to hold gradle jar files
              */
-            File destDirectory = new File(sourcePath, "./build/lib/runtime")
+            final String LIB_DIR = 'lib'
+            File destDirectory = new File(project.buildDir, LIB_DIR)
             destDirectory.mkdirs()
-            jarFiles.each {
+            jarFiles.each { File jarFile ->
                 // Copy the jar to the runtime directory
                 File destFile = new File(destDirectory, it.name)
                 Files.copy(it.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
@@ -137,6 +136,9 @@ class ResolverDependencyLoader {
     static String getSourcePath() {
         def propsFile = new File("config/Openbravo.properties")
         def props = new Properties()
+        if(propsFile.exists() == false) {
+            return "."
+        }
         props.load(propsFile.newReader())
         return props.getProperty("source.path")
     }
