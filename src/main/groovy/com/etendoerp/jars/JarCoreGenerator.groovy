@@ -10,7 +10,7 @@ class JarCoreGenerator {
 
     public static final String RESOURCES_DIR = 'build/resources'
     public static final String RESOURCES_JAR_DESTINATION = 'META-INF/'
-    public static final String BUILD_CLASES = 'build/classes'
+    public static final String BUILD_CLASSES = 'build/classes'
     public static final String ETENDO_CORE = 'etendo-core'
 
     static load(Project project) {
@@ -244,4 +244,3 @@ class JarCoreGenerator {
 
     }
 }
-

@@ -7,12 +7,12 @@ import org.gradle.api.internal.project.DefaultProject
 import org.gradle.api.publish.maven.internal.publication.DefaultMavenPublication
 
 class VersionContainer {
-    static final String VERSION_CONTAINER_PROPERTY = "VERSION_CONTAINER_PROPERTY"
-    static final String VERSION_COMMANDLINE_PROPERTY = "update"
+    static final String VERSION_CONTAINER_PROPERTY = 'VERSION_CONTAINER_PROPERTY'
+    static final String VERSION_COMMANDLINE_PROPERTY = 'update'
 
-    static final String MAYOR_VERSION = "mayor"
-    static final String MINOR_VERSION = "minor"
-    static final String PATCH_VERSION = "patch"
+    static final String MAYOR_VERSION = 'mayor'
+    static final String MINOR_VERSION = 'minor'
+    static final String PATCH_VERSION = 'patch'
 
     static final List<String> VERSION_TYPES = [
             MAYOR_VERSION,
@@ -57,7 +57,7 @@ class VersionContainer {
     }
 
     void processVersion() {
-        def splitVersion = version.split("\\.")
+        def splitVersion = version.split('\.')
         // TODO: Improvement - Check restrictions on the version
         if (splitVersion.size() >= 3) {
             this.mayor = validateVersion(splitVersion[0], MAYOR_VERSION)
@@ -77,7 +77,7 @@ class VersionContainer {
      * @return
      */
     static String parsePatchVersion(String version) {
-        return version.replace("-SNAPSHOT", "")
+        return version.replace('-SNAPSHOT', '')
     }
 
     String loadVersionTypeToUpgrade() {
@@ -106,7 +106,7 @@ class VersionContainer {
                 this.upgradePatchVersion()
                 break
             default:
-                mainProject.logger.info("Specified version to upgrade not found.")
+                mainProject.logger.info('Specified version to upgrade not found.')
         }
         def updatedVersion = this.getVersion()
 
@@ -159,9 +159,8 @@ class VersionContainer {
 
     int validateVersion(String version, String versionType) {
         if (!version.isInteger()) {
-            throw new IllegalArgumentException("The '${versionType}' version '${version}' could not be converted to integer to be upgraded. Location: ${this.mainProject.projectDir}")
+            throw new IllegalArgumentException('The ' + versionType + ' version ' + version + ' could not be converted to integer to be upgraded. Location: ' + this.mainProject.projectDir)
         }
         return version as Integer
     }
-
 }

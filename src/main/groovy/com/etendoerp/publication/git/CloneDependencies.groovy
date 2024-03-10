@@ -6,15 +6,22 @@ import org.gradle.api.Project
 import java.nio.file.Path
 import java.nio.file.Paths
 
+/**
+ * Class to handle cloning dependencies
+ */
 class CloneDependencies {
 
-    static String[] filesToDelete = ["pom.xml", "assembly.xml", ".hgtags"]
-    static String subFolder = "modules/"
+    static String[] filesToDelete = ['pom.xml', 'assembly.xml', '.hgtags']
+    static String subFolder = 'modules/'
 
-    static final EXTENSION_MODULES_LIST = "defaultExtensionModules"
+    static final EXTENSION_MODULES_LIST = 'defaultExtensionModules'
 
+    /**
+     * Load dependencies
+     * @param project The project to load dependencies for
+     */
     static void load(Project project) {
-        project.tasks.register("cloneDependencies") {
+        project.tasks.register('cloneDependencies') {
             doLast {
                 def javaPackage = PublicationUtils.loadModuleName(project)
                 def moduleProject = project.findProject(":${PublicationUtils.BASE_MODULE_DIR}")
@@ -27,7 +34,7 @@ class CloneDependencies {
                 List<String> repoList = subProject.findProperty(EXTENSION_MODULES_LIST) as List
 
                 repoList.each {
-                    String[] splitURI = ((String) it).split("/")
+                    String[] splitURI = ((String) it).split('/')
                     String nameDirectory = splitURI[1].substring(0, splitURI[1].size() - 4)
                     Path modulesDirectory = Paths.get(subFolder + nameDirectory)
                     Git.gitClone(project, modulesDirectory, (String) it)
@@ -61,11 +68,11 @@ class CloneDependencies {
 
                     // Commit and push the changes produced by files removed
                     if (filesDeleted) {
-                        project.logger.debug("Removing unused files from " + folder.getName())
+                        project.logger.debug('Removing unused files from ' + folder.getName())
                         Path directory = Paths.get(subFolder + folder.getName())
                         Git.gitStage(project, directory)
-                        Git.gitCommit(project, directory, "Remove unused files")
-                        project.logger.debug("Push to " + folder.getName())
+                        Git.gitCommit(project, directory, 'Remove unused files')
+                        project.logger.debug('Push to ' + folder.getName())
                         Git.gitPush(project, directory)
                     }
                 }

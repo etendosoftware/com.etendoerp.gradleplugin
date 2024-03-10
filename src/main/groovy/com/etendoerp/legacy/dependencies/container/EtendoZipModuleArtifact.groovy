@@ -7,19 +7,26 @@ import org.gradle.api.Project
 import org.gradle.api.artifacts.ResolvedArtifact
 import org.gradle.api.file.FileTree
 
-class EtendoZipModuleArtifact extends ArtifactDependency{
+// Class representing EtendoZipModuleArtifact
+// Extends ArtifactDependency class
+// Handles extraction of ZIP modules
 
+class EtendoZipModuleArtifact extends ArtifactDependency {
+
+    // Constructor for EtendoZipModuleArtifact
+    // Initializes type as ETENDOZIPMODULE
     EtendoZipModuleArtifact(Project project, ResolvedArtifact resolvedArtifact) {
         super(project, resolvedArtifact)
         this.type = DependencyType.ETENDOZIPMODULE
     }
 
+    // Method to extract ZIP module
     @Override
     void extract() {
         project.logger.info("")
         project.logger.info("Extracting ZIP module '${this.group}:${this.name}:${this.version}'.")
 
-        // Delete the JAR module if already exists.
+        // Delete the JAR module if already exists
         File modulesJarLocation = new File("${project.buildDir.absolutePath}${File.separator}etendo${File.separator}${PublicationUtils.BASE_MODULE_DIR}")
         File jarModule = ModulesUtils.searchFileInDirIgnoreCase(project, modulesJarLocation.absolutePath, this.moduleName)
 
@@ -28,7 +35,7 @@ class EtendoZipModuleArtifact extends ArtifactDependency{
             jarModule.deleteDir()
         }
 
-        String taskName = "extractZip-${this.moduleName}" + UUID.randomUUID().toString().replace("-","")
+        String taskName = "extractZip-${this.moduleName}" + UUID.randomUUID().toString().replace("-", "")
         File tempDir = project.tasks.register(taskName).get().temporaryDir
 
         // Clean tmp dir
@@ -56,5 +63,4 @@ class EtendoZipModuleArtifact extends ArtifactDependency{
         // Clean tmp dir
         project.delete(tempDir)
     }
-
 }

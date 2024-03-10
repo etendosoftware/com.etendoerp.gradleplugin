@@ -1,9 +1,9 @@
 package com.etendoerp.connections
 
 enum DatabaseType {
-    POSTGRE    ("POSTGRE"),
-    ORACLE     ("ORACLE"),
-    UNDEFINED  ("UNDEFINED")
+    POSTGRE    ('POSTGRE'),
+    ORACLE     ('ORACLE'),
+    UNDEFINED  ('UNDEFINED')
 
     private final String type
 
@@ -35,5 +35,4 @@ enum DatabaseType {
                 return UNDEFINED
         }
     }
-
 }

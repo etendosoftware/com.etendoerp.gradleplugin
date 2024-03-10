@@ -1,6 +1,5 @@
 package com.etendoerp.jars.modules.metadata
 
-
 import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
 import org.gradle.api.artifacts.DependencySet
@@ -9,7 +8,7 @@ import org.gradle.api.artifacts.Configuration
 
 /**
  * This class is used to obtain all the necessary information to publish.
- * The information will be took from a 'build.gradle' file (a Gradle Project object).
+ * The information will be taken from a 'build.gradle' file (a Gradle Project object).
  */
 class ModuleBuildMetadata extends ModuleMetadata {
 
@@ -17,7 +16,7 @@ class ModuleBuildMetadata extends ModuleMetadata {
     DependencySet dependencies
 
     // Contains all the configurations of the project
-    // All the dependencies are obtained from the configurations to create te pom.xml
+    // All the dependencies are obtained from the configurations to create the pom.xml
     List<Configuration> configurations
 
     Project moduleProject
@@ -32,7 +31,7 @@ class ModuleBuildMetadata extends ModuleMetadata {
         moduleProject = project.findProject(":${PublicationUtils.BASE_MODULE_DIR}:$moduleName")
 
         if (moduleProject == null) {
-            throw new IllegalArgumentException("The gradle project :$moduleName does not exists.")
+            throw new IllegalArgumentException("The gradle project :$moduleName does not exist.")
         }
 
         this.group = moduleProject.group
@@ -83,7 +82,7 @@ class ModuleBuildMetadata extends ModuleMetadata {
     }
 
     /**
-     * Verifies that all the dependencies set by a user exists and are resolvable.
+     * Verifies that all the dependencies set by a user exist and are resolvable.
      */
     @Override
     void validateDependencies() {
@@ -117,6 +116,5 @@ class ModuleBuildMetadata extends ModuleMetadata {
             }
         }
     }
-
 
 }

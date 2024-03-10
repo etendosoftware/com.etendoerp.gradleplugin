@@ -2,8 +2,8 @@ package com.etendoerp.dependencies.processor
 
 enum JarScope {
 
-    COMPILATION ("COMPILATION", "implementation"),
-    TEST        ("TEST", "testImplementation"),
+    COMPILATION ('COMPILATION', 'implementation'),
+    TEST        ('TEST', 'testImplementation'),
 
     private final String scope
     private final String configuration

@@ -10,11 +10,10 @@ import org.gradle.api.Project
 class JandexConfigLoader {
 
     static void load(Project project) {
-
-        def jandexTask = project.tasks.findByName("jandex")
+        def jandexTask = project.tasks.findByName('jandex')
 
         if (!jandexTask) {
-            project.logger.info("The jandex task does not exists. Ignoring creation of jandex index.")
+            project.logger.info('The jandex task does not exists. Ignoring creation of jandex index.')
             return
         }
 
@@ -39,7 +38,7 @@ class JandexConfigLoader {
         //set the modules_core sources directories.
         if (project.file('modules_core').exists() && project.file('modules_core').isDirectory()) {
             project.file('modules_core').eachDir {
-                def moduleSrcDir = new File(it, "src")
+                def moduleSrcDir = new File(it, 'src')
                 if (moduleSrcDir.exists() && moduleSrcDir.isDirectory()) {
                     project.logger.info("Adding '${moduleSrcDir.toString()}' to jandex sourceSets.")
                     project.sourceSets.jandexCustom?.java?.srcDirs += moduleSrcDir.toString()

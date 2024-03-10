@@ -13,9 +13,17 @@ import org.gradle.api.internal.artifacts.configurations.DefaultConfiguration
 import org.gradle.api.internal.artifacts.dependencies.DefaultExternalModuleDependency
 import org.gradle.api.internal.artifacts.dependencies.DefaultProjectDependency
 
+import java.util.Optional
+import java.util.ArrayList
+import java.util.Map
+import java.util.TreeMap
+
+/**
+ * Utility class for configuring modules in a project
+ */
 class ModulesConfigurationUtils {
 
-    static final String DEFAULT_CONFIG_COPY = "defaultCopy"
+    static final String DEFAULT_CONFIG_COPY = 'defaultCopy'
 
     /**
      * Configure each subproject with the POM container which holds the defined dependencies,
@@ -51,7 +59,7 @@ class ModulesConfigurationUtils {
 
         def validConfigs = subProject.configurations.findAll().collect()
 
-        configureSubstitutions(mainProject, validConfigs, subprojectNamesMap, "Source module already present.")
+        configureSubstitutions(mainProject, validConfigs, subprojectNamesMap, 'Source module already present.')
     }
 
     /**
@@ -95,7 +103,7 @@ class ModulesConfigurationUtils {
                 String dependencyName = "${details.requested.group}:${details.requested.name}"
                 if (dependencyMap.containsKey(dependencyName)) {
                     details.useVersion(dependencyMap.get(dependencyName).version)
-                    details.because("Dependency resolution.")
+                    details.because('Dependency resolution.')
                 }
             })
         }
@@ -135,7 +143,7 @@ class ModulesConfigurationUtils {
                                            List<Configuration> configurations, Map<String, Project> subprojectNamesMap) {
         for (Configuration configuration : configurations) {
             configuration.allDependencies.each {
-                String name = it.group + ":" + it.name
+                String name = it.group + ':' + it.name
                 String version = it.version
                 PomProjectContainer projectContainer = new PomProjectContainer(it, name, version)
 
@@ -223,24 +231,24 @@ class ModulesConfigurationUtils {
         def artifact = splitSubprojectArtifact(mainProject, subProject.projectDir.name)
 
         if (group.isPresent() && artifact.isPresent()) {
-            return Optional.of(group.get()+":"+artifact.get())
+            return Optional.of(group.get() + ':' + artifact.get())
         }
         Optional.empty()
     }
 
     static Optional<String> splitSubprojectGroup(Project mainProject, String subprojectName) {
-        ArrayList<String> parts = subprojectName.split('\\.')
+        ArrayList<String> parts = subprojectName.split('\.')
         if (parts.size() >= 2) {
-            return Optional.of(parts[0]+"."+parts[1])
+            return Optional.of(parts[0] + '.' + parts[1])
         }
         return Optional.empty()
     }
 
-    static Optional<String> splitSubprojectArtifact(Project mainProject, String subprojectName){
-        ArrayList<String> parts = subprojectName.split("\\.")
+    static Optional<String> splitSubprojectArtifact(Project mainProject, String subprojectName) {
+        ArrayList<String> parts = subprojectName.split('\.')
         if (parts.size() >= 2) {
-            parts= parts.subList(2, parts.size())
-            return Optional.of(parts.join("."))
+            parts = parts.subList(2, parts.size())
+            return Optional.of(parts.join('.'))
         }
         return Optional.empty()
     }

@@ -26,14 +26,14 @@ class ArtifactDependency {
     )
     
     public static String JAR_ETENDO_MODULE_LOCATION_WOUT_ESCAPED_CHARS = PathUtils.createPathWithCustomSeparator(
-            "/",
+            '/',
             PublicationUtils.META_INF,
             PublicationUtils.ETENDO,
             PublicationUtils.BASE_MODULE_DIR
     )
 
     public static String JAR_ETENDO_LOCATION_WOUT_ESCAPED_CHARS = PathUtils.createPathWithCustomSeparator(
-            "/",
+            '/',
             PublicationUtils.META_INF,
             PublicationUtils.ETENDO
     )
@@ -90,7 +90,7 @@ class ArtifactDependency {
         this.project = project
         this.displayName = replaceSnapshot(displayName)
 
-        def splitName = displayName.split(":")
+        def splitName = displayName.split(':')
         if (splitName.size() >= 3) {
             this.group   = splitName[0]
             this.name    = splitName[1]
@@ -113,8 +113,8 @@ class ArtifactDependency {
     }
 
     static String replaceSnapshot(String displayName) {
-        if (displayName.contains("SNAPSHOT:")) {
-            displayName = displayName.replace("SNAPSHOT:","")
+        if (displayName.contains('SNAPSHOT:')) {
+            displayName = displayName.replace('SNAPSHOT:','')
         }
         return displayName
     }

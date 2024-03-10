@@ -42,7 +42,7 @@ class DependencyContainer {
     }
 
     static void showUnresolvedArtifactsException(Project project, ResolveException resolveException) {
-        project.logger.error("* Error resolving the dependencies")
+        project.logger.error('* Error resolving the dependencies')
         project.logger.error("* ERROR: ${resolveException.getMessage()}")
 
         resolveException.causes.each {
@@ -78,9 +78,7 @@ class DependencyContainer {
         // TODO: Improvement, detect the unresolved dependencies if the flag 'ignoreUnresolvedArtifacts'
         // Use the resolved dependencies  'this.configuration.resolvedConfiguration.lenientConfiguration.getFiles(Specs.satisfyAll())'
         // Remove from the ':compileClasspath' the unresolved dependencies to prevent failing
-
         for (ResolvedArtifact resolvedArtifact : resolvedArtifacts) {
-
             if (resolvedArtifact.id.componentIdentifier instanceof DefaultModuleComponentIdentifier) {
                 ArtifactDependency artifactDependency = getArtifactDependency(project, resolvedArtifact)
 
@@ -106,7 +104,7 @@ class DependencyContainer {
 
     static ArtifactDependency getArtifactDependency(Project project, ResolvedArtifact resolvedArtifact) {
         // If the extension is 'zip' then could be a Etendo module or Core in zip format
-        if (resolvedArtifact.extension == "zip") {
+        if (resolvedArtifact.extension == 'zip') {
             // TODO - Improvement: Verify that is a Etendo artifact
             String fileName = resolvedArtifact.file.absolutePath
 
@@ -146,13 +144,12 @@ class DependencyContainer {
     static Map<String, ArtifactDependency> parseArtifactDependency(Project project, Collection<ArtifactDependency> artifacts) {
         Map<String, ArtifactDependency> map = new TreeMap<>(String.CASE_INSENSITIVE_ORDER)
 
-        artifacts.stream().filter({
+        artifacts.stream().filter {
             it.group != null && !it.group.isBlank() && it.name != null && !it.name.isBlank()
-        }).each {
+        }.each {
             String name = "${it.group}:${it.name}"
             map.put(name.toString(), it)
         }
         return map
     }
-
 }
