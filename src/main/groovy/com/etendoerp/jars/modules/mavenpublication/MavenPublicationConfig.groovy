@@ -16,8 +16,8 @@ class MavenPublicationConfig {
 
         String moduleName = project.findProperty(PublicationUtils.MODULE_NAME_PROP)
 
-        // This code will be always executed
-        // Prevent trying to configure the jar task of a unknown module
+        // This code will always be executed
+        // Prevent trying to configure the jar task of an unknown module
         // Because the module is obtained from the -Ppkg command line parameter
         if (!moduleName) {
             return
@@ -123,7 +123,7 @@ class MavenPublicationConfig {
             // Maven Publish configuration
             def mavenModuleTask = moduleProject.tasks.findByName(mavenTask)
             if (!mavenModuleTask) {
-                project.logger.warn("WARNING: The subproject ${moduleProject} is missing the maven publiction task '${mavenTask}'.")
+                project.logger.warn("WARNING: The subproject ${moduleProject} is missing the maven publication task '${mavenTask}'.")
                 project.logger.warn("*** Make sure that the 'build.gradle' file contains the MavenPublication '${moduleName}'.")
             }
             mavenModuleTask?.dependsOn("mavenPublishConfig")

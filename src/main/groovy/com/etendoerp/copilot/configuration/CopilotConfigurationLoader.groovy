@@ -45,7 +45,7 @@ class CopilotConfigurationLoader {
 
             boolean copilotExists = false
             Project moduleProject = project.findProject(":${PublicationUtils.BASE_MODULE_DIR}")
-            File jarModulesLocation = new File(project.buildDir, "etendo" + File.separator + Constants.MODULES_PROJECT)
+            File jarModulesLocation = new File(project.buildDir, 'etendo' + File.separator + Constants.MODULES_PROJECT)
             File copilotJarModule = new File(jarModulesLocation, Constants.COPILOT_MODULE)
             Project copilotProject = null
             if (moduleProject != null) {
@@ -76,12 +76,12 @@ class CopilotConfigurationLoader {
                 File toolsConfigFile = new File(project.buildDir, COPILOT + File.separator + Constants.TOOLS_CONFIG_FILE)
                 String toolDependencyFileName = getToolsDependenciesFileName(project)
                 File toolsDependenciesFileMain = new File(project.buildDir, COPILOT + File.separator + toolDependencyFileName)
-                def toolsConfigJson = new JsonSlurper().parseText(toolsConfigFile.readLines().join(" "))
+                def toolsConfigJson = new JsonSlurper().parseText(toolsConfigFile.readLines().join(' '))
 
                 // Get tools in SOURCES
                 if (moduleProject != null) {
                     moduleProject.subprojects.each { subproject ->
-                        File toolsDir = new File(subproject.projectDir, "tools")
+                        File toolsDir = new File(subproject.projectDir, 'tools')
                         if (toolsDir.exists() && !subproject.name.equals(Constants.COPILOT_MODULE)) {
                             project.copy {
                                 from {
@@ -106,7 +106,7 @@ class CopilotConfigurationLoader {
 
                 // Get tools in JARS
                 jarModulesLocation.listFiles().each { jarModule ->
-                    File jarModuleToolsDir = new File(jarModule, "tools")
+                    File jarModuleToolsDir = new File(jarModule, 'tools')
                     if (jarModuleToolsDir.exists() && !jarModule.name.equals(Constants.COPILOT_MODULE)) {
                         project.copy {
                             from {

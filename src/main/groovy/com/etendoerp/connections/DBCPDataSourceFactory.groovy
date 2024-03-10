@@ -8,10 +8,10 @@ class DBCPDataSourceFactory {
     static DataSource getDatasource(DatabaseProperties databaseProperties) {
         BasicDataSource ds = new BasicDataSource()
 
-        ds.setDriverClassName(databaseProperties.driver)
-        ds.setUrl(databaseProperties.getDatabaseUrl())
-        ds.setUsername(databaseProperties.user)
-        ds.setPassword(databaseProperties.password)
+        ds.driverClassName = databaseProperties.driver
+        ds.url = databaseProperties.getDatabaseUrl()
+        ds.username = databaseProperties.user
+        ds.password = databaseProperties.password
 
         return ds
     }

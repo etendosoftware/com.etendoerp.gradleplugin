@@ -1,9 +1,9 @@
 package com.etendoerp.core
 
 enum CoreType {
-    SOURCES   ("SOURCES"),
-    JAR       ("JAR"),
-    UNDEFINED ("UNDEFINED")
+    SOURCES   ('SOURCES'),
+    JAR       ('JAR'),
+    UNDEFINED ('UNDEFINED')
 
     private final String type
 

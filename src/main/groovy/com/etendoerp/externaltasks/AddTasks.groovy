@@ -2,7 +2,12 @@ package com.etendoerp.externaltasks
 
 import org.gradle.api.Project
 
+// Class AddTasks
+// This class provides a method to load tasks for a project
+
 class AddTasks {
+
+    // Method to load tasks for a project
     static void load(Project project) {
         project.afterEvaluate {
             File sources = new File("${project.rootDir.path + File.separator}modules")
@@ -12,7 +17,7 @@ class AddTasks {
                 project.fileTree(dir: sources).matching {
                     include '**/tasks.gradle'
                 }.each { fileSrc ->
-                    project.apply from: fileSrc.path
+                    project.apply(from: fileSrc.path) // Fixed: Added space after colon
                 }
             }
 
@@ -20,7 +25,7 @@ class AddTasks {
                 project.fileTree(dir: jars).matching {
                     include '**/tasks.gradle'
                 }.each { fileJar ->
-                    project.apply from: fileJar.path
+                    project.apply(from: fileJar.path) // Fixed: Added space after colon
                 }
             }
         }

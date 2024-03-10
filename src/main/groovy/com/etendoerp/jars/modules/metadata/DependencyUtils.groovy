@@ -6,15 +6,18 @@ import org.gradle.api.artifacts.DependencySet
 import org.gradle.api.internal.artifacts.dependencies.DefaultExternalModuleDependency
 import org.gradle.api.internal.artifacts.dependencies.DefaultProjectDependency
 
+/**
+ * Utility class for handling dependencies in Gradle projects.
+ */
 class DependencyUtils {
 
-    final static String IMPLEMENTATION     = "implementation"
-    final static String COMPILE            = "compile"
-    final static String COMPILE_ONLY       = "compileOnly"
-    final static String COMPILE_CLASSPATH  = "compileClasspath"
+    final static String IMPLEMENTATION     = 'implementation'
+    final static String COMPILE            = 'compile'
+    final static String COMPILE_ONLY       = 'compileOnly'
+    final static String COMPILE_CLASSPATH  = 'compileClasspath'
 
-    final static String RUNTIME_ONLY       = "runtimeOnly"
-    final static String RUNTIME_CLASSPATH  = "runtimeClasspath"
+    final static String RUNTIME_ONLY       = 'runtimeOnly'
+    final static String RUNTIME_CLASSPATH  = 'runtimeClasspath'
 
     final static List<String> VALID_CONFIGURATIONS = [
             IMPLEMENTATION    ,
@@ -44,10 +47,9 @@ class DependencyUtils {
         return allProjectConfigurations
     }
 
-
     /**
-     * Gets the configurations of a Project passed has a parameter.
-     * Only the configuration in the configToSearch list are returned.
+     * Gets the configurations of a Project passed as a parameter.
+     * Only the configurations in the configToSearch list are returned.
      *
      * @param project
      * @param configToSearch
@@ -74,7 +76,7 @@ class DependencyUtils {
             }
             it.allDependencies.each {
                 // Used to prevent adding dependencies related to /lib/runtime
-                // when needs to be load to the ANT classpath
+                // when needs to be loaded to the ANT classpath
                 if (onlyExternalDependencies) {
                     if (it instanceof DefaultExternalModuleDependency || it instanceof DefaultProjectDependency) {
                         set.add(it)
@@ -101,10 +103,9 @@ class DependencyUtils {
             }
             return removed
         } catch (Exception e) {
-            mainProject.logger.warn("* Error removing the dependencies of the '${subProject}'.")
-            mainProject.logger.warn("* Error: ${e.getMessage()}")
+            mainProject.logger.warn('* Error removing the dependencies of the ' + subProject + '.')
+            mainProject.logger.warn('* Error: ' + e.getMessage())
             return 0
         }
     }
-
 }

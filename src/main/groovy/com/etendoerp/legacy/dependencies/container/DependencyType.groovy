@@ -1,11 +1,11 @@
 package com.etendoerp.legacy.dependencies.container
 
 enum DependencyType {
-    MAVEN           ("MAVEN"),
-    ETENDOJARMODULE ("ETENDOJARMODULE"),
-    ETENDOZIPMODULE ("ETENDOZIPMODULE"),
-    ETENDOCOREJAR   ("ETENDOCOREJAR"),
-    ETENDOCOREZIP   ("ETENDOCOREZIP")
+    MAVEN           ('MAVEN'),
+    ETENDOJARMODULE ('ETENDOJARMODULE'),
+    ETENDOZIPMODULE ('ETENDOZIPMODULE'),
+    ETENDOCOREJAR   ('ETENDOCOREJAR'),
+    ETENDOCOREZIP   ('ETENDOCOREZIP')
 
     private final String type
 
@@ -24,5 +24,4 @@ enum DependencyType {
     String toString() {
         type
     }
-
 }

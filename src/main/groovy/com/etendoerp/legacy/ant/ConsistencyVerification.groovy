@@ -7,14 +7,14 @@ import org.gradle.api.logging.LogLevel
 
 class ConsistencyVerification {
 
-    final static String CONSISTENCY_VERIFICATION_TASK = "consistencyVerification"
+    final static String CONSISTENCY_VERIFICATION_TASK = 'consistencyVerification'
 
-    final static String IGNORE_CONSISTENCY = "ignoreConsistency"
+    final static String IGNORE_CONSISTENCY = 'ignoreConsistency'
 
     final static List<String> IGNORE_TASKS = [
-            "install",
-            "update.database",
-            "create.database"
+            'install',
+            'update.database',
+            'create.database'
     ]
 
     static boolean skipConsistency(List<String> gradleTasks) {
@@ -33,22 +33,22 @@ class ConsistencyVerification {
 
                 // Check if the 'install' or 'update.database' is being run
                 // Identify the tasks being ran
-                def local = System.getProperty("local")
-                if (skipConsistency(project.gradle.startParameter.taskNames) || local == "no") {
-                    project.logger.info("* Ignoring version consistency verification.")
+                def local = System.getProperty('local')
+                if (skipConsistency(project.gradle.startParameter.taskNames) || local == 'no') {
+                    project.logger.info('* Ignoring version consistency verification.')
                     return
                 }
 
                 EtendoArtifactsConsistencyContainer consistencyContainer = project.ext.get(ResolverDependencyLoader.CONSISTENCY_CONTAINER)
                 if (!consistencyContainer) {
-                    project.logger.info("* The consistency container is not set. Ignoring version consistency verification.")
+                    project.logger.info('* The consistency container is not set. Ignoring version consistency verification.')
                     return
                 }
 
                 LogLevel logLevel = LogLevel.ERROR
 
                 // Reload the installed artifacts
-                project.logger.info("* Reloading installed artifacts to run the consistency verification.")
+                project.logger.info('* Reloading installed artifacts to run the consistency verification.')
                 consistencyContainer.loadInstalledArtifacts()
                 consistencyContainer.runArtifactConsistency()
 
@@ -62,5 +62,4 @@ class ConsistencyVerification {
         }
 
     }
-
 }

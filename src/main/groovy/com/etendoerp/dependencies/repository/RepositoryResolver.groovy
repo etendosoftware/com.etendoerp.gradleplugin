@@ -15,8 +15,8 @@ import java.net.http.HttpResponse
  */
 class RepositoryResolver {
 
-    static String MAVEN_REPOSITORY = "https://search.maven.org/"
-    static String NEXUS_REPOSITORY = "https://repo.futit.cloud/service/rest/v1/components"
+    static String MAVEN_REPOSITORY = 'https://search.maven.org/'
+    static String NEXUS_REPOSITORY = 'https://repo.futit.cloud/service/rest/v1/components'
 
     static Map<String, DependencyArtifact> nexusArtifacts = null
 
@@ -42,13 +42,13 @@ class RepositoryResolver {
         def returnpage = new URL(searchUrl).getText()
         def json = new JsonSlurper().parseText(returnpage)
         def jsonResponse = json.response
-        def numFound = jsonResponse["numFound"]
+        def numFound = jsonResponse['numFound']
         if (numFound == 1) {
             def docs = jsonResponse.docs[0]
-            artifact.fullId     = docs["id"]
-            artifact.groupId    = docs["g"]
-            artifact.artifactId = docs["a"]
-            artifact.version    = docs["v"]
+            artifact.fullId     = docs['id']
+            artifact.groupId    = docs['g']
+            artifact.artifactId = docs['a']
+            artifact.version    = docs['v']
             artifact.resolved   = true
             artifact.repositoryLocation = MAVEN_REPOSITORY
             artifact.project.logger.info("Artifact '${artifact.originalName}' has been resolved using the maven repository ${MAVEN_REPOSITORY}")
@@ -100,10 +100,10 @@ class RepositoryResolver {
         Map<String, DependencyArtifact> nexusArtifacts = new HashMap<>()
 
         def (nexusUser, nexusPassword) = NexusUtils.getCredentials(project)
-        String userpass = nexusUser + ":" + nexusPassword
-        String basicAuth = "Basic " + new String(Base64.getEncoder().encode(userpass.getBytes()))
+        String userpass = nexusUser + ':' + nexusPassword
+        String basicAuth = 'Basic ' + new String(Base64.getEncoder().encode(userpass.getBytes()))
 
-        final String CONTINUATION_TOKEN_END = "CONTINUATION_TOKEN_END"
+        final String CONTINUATION_TOKEN_END = 'CONTINUATION_TOKEN_END'
         def continuationToken = null
 
         while (continuationToken != CONTINUATION_TOKEN_END) {
@@ -112,11 +112,11 @@ class RepositoryResolver {
 
             HttpClient client = HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).build()
             URI nexus = URI.create(url)
-            HttpRequest request = HttpRequest.newBuilder(nexus).GET().header("Authorization", basicAuth).build()
+            HttpRequest request = HttpRequest.newBuilder(nexus).GET().header('Authorization', basicAuth).build()
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString())
 
             if (!response || ! response.body()) {
-                project.logger.info("Http response not found for '$repository' repository.")
+                project.logger.info("Http response not found for '${repository}' repository.")
                 break
             }
 
@@ -137,7 +137,7 @@ class RepositoryResolver {
                     for (Object asset : assets) {
                         def maven2 = asset.maven2
                         def extension = maven2.extension
-                        if (extension == "jar") {
+                        if (extension == 'jar') {
                             // If the asset is the jar file, get the checksum 'sha1'
                             String sha1 = asset.checksum.sha1
                             DependencyArtifact nexusArtifact = new DependencyArtifact()

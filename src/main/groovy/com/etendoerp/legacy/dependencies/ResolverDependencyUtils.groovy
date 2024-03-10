@@ -17,12 +17,20 @@ import org.gradle.api.internal.artifacts.dependencies.DefaultExternalModuleDepen
 import org.gradle.api.internal.artifacts.dependencies.DefaultProjectDependency
 import org.gradle.api.internal.artifacts.ivyservice.resolutionstrategy.DefaultResolutionStrategy
 
+/**
+ * Utility class for resolving dependencies
+ */
 class ResolverDependencyUtils {
 
+    /**
+     * Loads resolution dependencies for the main project
+     * @param mainProject the main project
+     * @return the resolution configuration
+     */
     static Configuration loadResolutionDependencies(Project mainProject) {
-        Configuration resolutionConfiguration = createRandomConfiguration(mainProject, "resolution")
+        Configuration resolutionConfiguration = createRandomConfiguration(mainProject, 'resolution')
 
-        // Contains a map between the subproject name "group:artifact" and the subproject
+        // Contains a map between the subproject name 'group:artifact' and the subproject
         Map<String, Project> subprojectNames = ModulesConfigurationUtils.getSubprojectNames(mainProject)
 
         // Obtain the main project dependencies
@@ -53,6 +61,12 @@ class ResolverDependencyUtils {
         return resolutionConfiguration
     }
 
+    /**
+     * Obtains the main project dependencies
+     * @param mainProject the main project
+     * @param subprojectNames the map of subproject names
+     * @return the main project dependencies configuration
+     */
     static Configuration mainProjectDependencies(Project mainProject, Map<String, Project> subprojectNames) {
         Configuration configuration = null
 
@@ -74,7 +88,7 @@ class ResolverDependencyUtils {
             })
 
             subprojectNames.each {
-                def nameSplit = it.key.split(":")
+                def nameSplit = it.key.split(':')
                 if (nameSplit.size() >= 2) {
                     conf.exclude([group: nameSplit[0], module: nameSplit[1]])
                 }

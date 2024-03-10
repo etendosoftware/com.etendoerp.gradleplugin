@@ -32,18 +32,18 @@ import org.gradle.api.internal.artifacts.configurations.DefaultConfiguration
  */
 class ModulesConfigurationLoader {
 
-    final static String JAVA_SOURCES = "src"
-    final static String ERROR_MISSING_PLUGIN = "Make sure that the 'build.gradle' file is using the 'java' plugin."
+    final static String JAVA_SOURCES = 'src'
+    final static String ERROR_MISSING_PLUGIN = 'Make sure that the 'build.gradle' file is using the 'java' plugin.'
 
     static void load(Project project) {
-        def moduleProject = project.findProject(":${PublicationUtils.BASE_MODULE_DIR}")
+        def moduleProject = project.findProject(':${PublicationUtils.BASE_MODULE_DIR}')
 
         if (moduleProject != null) {
             def extension = project.extensions.findByType(EtendoPluginExtension)
 
             moduleProject.subprojects.each {subproject ->
-                subproject.pluginManager.apply("java")
-                subproject.pluginManager.apply("maven-publish")
+                subproject.pluginManager.apply('java')
+                subproject.pluginManager.apply('maven-publish')
 
                 // Create the configuration used to reference other subproject dependencies
                 if (!subproject.configurations.findByName(PomConfigurationContainer.SUBPROJECT_DEPENDENCIES_CONFIGURATION_CONTAINER)) {
@@ -55,9 +55,9 @@ class ModulesConfigurationLoader {
                     PublicationTaskLoader.load(project, subproject)
 
                     // Throw error when a module subproject does not have the java plugin
-                    if (!subproject.getPluginManager().hasPlugin("java")) {
-                        throw new IllegalArgumentException("WARNING: The subproject ${subproject} is missing the 'java' plugin. \n" +
-                                "*** ${ERROR_MISSING_PLUGIN}")
+                    if (!subproject.getPluginManager().hasPlugin('java')) {
+                        throw new IllegalArgumentException('WARNING: The subproject ${subproject} is missing the 'java' plugin. \n' +
+                                '*** ${ERROR_MISSING_PLUGIN}')
                     }
 
                     // Configuration used later to perform the resolution of dependencies
@@ -79,7 +79,7 @@ class ModulesConfigurationLoader {
                      * The BuildValidationHandler tries to load the classes but
                      * if a class contains a library not included in the classpath, the 'update.database' task fails.
                      */
-                    def output = subproject.file("${subproject.buildDir.absolutePath}/etendo-classes")
+                    def output = subproject.file('${subproject.buildDir.absolutePath}/etendo-classes')
                     subproject.sourceSets.main.java.destinationDirectory.set(output)
 
                     subproject.sourceSets.main.java.srcDirs += JAVA_SOURCES

@@ -29,13 +29,13 @@ import org.gradle.api.artifacts.Dependency
  */
 class CoreMetadata {
 
-    public final static String CLASSIC_ETENDO_CORE_GROUP = "com.smf.classic.core"
-    public final static String CLASSIC_ETENDO_CORE_NAME  = "ob"
+    public final static String CLASSIC_ETENDO_CORE_GROUP = 'com.smf.classic.core'
+    public final static String CLASSIC_ETENDO_CORE_NAME  = 'ob'
 
-    public final static String DEFAULT_ETENDO_CORE_GROUP = "com.etendoerp.platform"
-    public final static String DEFAULT_ETENDO_CORE_NAME  = "etendo-core"
+    public final static String DEFAULT_ETENDO_CORE_GROUP = 'com.etendoerp.platform'
+    public final static String DEFAULT_ETENDO_CORE_NAME  = 'etendo-core'
 
-    public static final String CORE_METADATA_PROPERTY = "coreMetadataProperty"
+    public static final String CORE_METADATA_PROPERTY = 'coreMetadataProperty'
 
     Project project
     CoreType coreType
@@ -81,19 +81,19 @@ class CoreMetadata {
         def extension = project.extensions.findByType(EtendoPluginExtension)
         // The CORE jar dependency is in the build.gradle of the root project
         if (coreType == CoreType.SOURCES && getCoreDependency(this.project) && !extension.ignoreCoreJarDependency) {
-            throw new IllegalStateException("* Core in SOURCES." +
+            throw new IllegalStateException('* Core in SOURCES.' +
                                             EtendoPluginExtension.ignoreCoreJarDependencyMessage())
         }
     }
 
     void inform() {
-        project.logger.info("*****************************************************")
+        project.logger.info('*****************************************************')
         project.logger.info("Defined core: ${this.coreGroup}:${this.coreName}")
         project.logger.info("Core version: ${this.coreVersion}")
         project.logger.info("Core type: ${this.coreType}")
         project.logger.info("Core status: ${this.coreStatus}")
         project.logger.info("Core support JARs: ${this.supportJars}")
-        project.logger.info("*****************************************************")
+        project.logger.info('*****************************************************')
     }
 
     boolean loadMetadataFromPropertiesFile(String parentLocation) {
@@ -153,21 +153,21 @@ class CoreMetadata {
         int versionNumber = 0
 
         if (!version) {
-            project.logger.error("The version is not defined.")
+            project.logger.error('The version is not defined.')
             return versionNumber
         }
 
         try {
             String versionPrefix = version
-            if (version.contains(".")) {
-                def versionSplit = version?.split("\\.")
+            if (version.contains('.')) {
+                def versionSplit = version?.split('\.')
                 if (versionSplit.size() >= 1) {
                     versionPrefix = versionSplit[0]
                 }
             }
             versionNumber = versionPrefix.toInteger()
         } catch (Exception e) {
-            project.logger.info("Error parsing the core version")
+            project.logger.info('Error parsing the core version')
             project.logger.info(e.getMessage())
         }
         return versionNumber
@@ -201,7 +201,7 @@ class CoreMetadata {
     }
 
     String getResolvedJarCoreId() {
-        File root = new File(project.buildDir, "etendo")
+        File root = new File(project.buildDir, 'etendo')
         // Try to load the metadata from the artifact.properties file
         def loaded = loadMetadataFromPropertiesFile(root.absolutePath)
 
@@ -272,8 +272,8 @@ class CoreMetadata {
     }
 
     boolean isCoreInSources() {
-        def modulesCoreLocation = project.file("modules_core")
-        def srcCoreLocation = project.file("src-core")
+        def modulesCoreLocation = project.file('modules_core')
+        def srcCoreLocation = project.file('src-core')
         return modulesCoreLocation.exists() && srcCoreLocation.exists()
     }
 

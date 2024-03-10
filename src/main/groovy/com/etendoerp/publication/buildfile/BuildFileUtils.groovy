@@ -6,8 +6,8 @@ import org.gradle.api.Project
 
 class BuildFileUtils {
 
-    static final String BUNDLE_PROPERTY = "bundle"
-    static final String BUNDLE_NOT_FOUND_ERROR = "* The passed bundle project does not exists:"
+    static final String BUNDLE_PROPERTY = 'bundle'
+    static final String BUNDLE_NOT_FOUND_ERROR = '* The passed bundle project does not exists:'
 
     static Project getBundleSubproject(Project project) {
         Project bundleProject = null
