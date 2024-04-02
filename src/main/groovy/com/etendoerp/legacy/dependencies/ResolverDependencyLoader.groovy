@@ -140,7 +140,7 @@ class ResolverDependencyLoader {
     static String getSourcePath() {
         def propsFile = new File("config/Openbravo.properties")
         def props = new Properties()
-        if(propsFile.exists() == false) {
+        if(!propsFile.exists()) {
             return "."
         }
         props.load(propsFile.newReader())
