@@ -14,6 +14,9 @@ import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import org.gradle.api.file.FileTree
 import org.gradle.internal.os.OperatingSystem
+import org.gradle.api.logging.LogLevel
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 
 class ResolverDependencyLoader {
 
@@ -78,15 +81,15 @@ class ResolverDependencyLoader {
             // see https://github.com/gradle/gradle/issues/11914 for more info
             def antClassLoader = org.apache.tools.ant.Project.class.classLoader
             List<String> dependencies = []
+            List<String> files = []
             //
 
             /**
              * aux ant path used to hold gradle jar files
              */
-            final String LIB_DIR = 'lib'
-            File destDirectory = new File(project.buildDir, LIB_DIR)
+            File destDirectory = new File(sourcePath, "./build/lib/runtime")
             destDirectory.mkdirs()
-            jarFiles.each { File jarFile ->
+            jarFiles.each {
                 // Copy the jar to the runtime directory
                 File destFile = new File(destDirectory, it.name)
                 Files.copy(it.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
@@ -122,6 +125,7 @@ class ResolverDependencyLoader {
              *
              */
             project.ant.properties['gradle.custom.dependencies'] = project.ant.references['gradle.custom'].toString()
+
             project.ant.project.setProperty("env.GRADLE_CLASSPATH", project.ant.references['gradle.custom'].toString())
 
             // This gets all dependencies and sets them in ant as a file list with id: "gradle.libs"
