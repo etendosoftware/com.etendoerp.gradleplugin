@@ -32,7 +32,7 @@ class DBDepsLoader {
             return
         }
         // Execute a select query to fetch dependencies from the database
-        List<GroovyRowResult> rowResult = databaseConnection.executeSelectQuery("select depgroup, artifact, version, format from etdep_dependency")
+        List<GroovyRowResult> rowResult = databaseConnection.executeSelectQuery("select depgroup, artifact, version, format from etdep_dependency where format <> 'L'")
         // If the query returned null, return
         if (rowResult == null) {
             return
