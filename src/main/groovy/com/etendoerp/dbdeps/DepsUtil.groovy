@@ -26,6 +26,10 @@ class DepsUtil {
                 project.logger.info("* The connection with the database could not be established. Skipping version consistency verification.")
                 return false
             }
+            def exists = databaseConnection.executeSelectQuery("select 1 from information_schema.tables where table_name = 'etdep_dependency'")
+            if(exists == null || exists.size() == 0) {
+                return false
+            }
             // Execute a select query to fetch dependencies from the database
             def rowResult = databaseConnection.executeSelectQuery("select depgroup, artifact, version, format from etdep_dependency")
             // If the query returned null or empty, return false

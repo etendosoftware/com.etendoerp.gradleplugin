@@ -122,7 +122,7 @@ class SyncDepsLoader {
                                     ") values (get_uuid(), now(), '0', now(), '0', '0', '0', ?, ?, ?, ?)", [dep.group, dep.artifact, dep.version, dep.depType])
                             project.logger.info("Dependency ${dep.group}:${dep.artifact}:${dep.version} added to etdep_dependency table")
                         } else {
-                            throw new Exception("*** Dependency inconsistency ${dep.group}:${dep.artifact} exists in dynamic dependencies. Check changes in build.gradle file ")
+                            throw new Exception("*** Dependency inconsistency found, the package ${dep.group}:${dep.artifact} is already declared in Etendo Classic in the Dependency Management window. It is recommended to manage dependencies from this window.")
                         }
                     }
                     // Commit the transaction
@@ -130,7 +130,7 @@ class SyncDepsLoader {
                 } catch (Exception e) {
                     // Rollback the transaction in case of an error
                     connection.rollback()
-                    throw new GradleException("🐞Error syncing dependencies: ${e.getMessage()}")
+                    throw new GradleException("🐞Error when synchronizing dependencies: ${e.getMessage()}")
                 } finally {
                     // Close the database connection
                     connection.setAutoCommit(true)
