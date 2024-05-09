@@ -2,6 +2,7 @@ package com.etendoerp
 
 import com.etendoerp.copilot.CopilotLoader
 import com.etendoerp.css.CssCompileLoader
+import com.etendoerp.dbdeps.DepsLoader
 import com.etendoerp.dependencies.DependenciesLoader
 import com.etendoerp.externaltasks.ExternalTasksLoader
 import com.etendoerp.jandex.JandexConfigLoader
@@ -42,6 +43,7 @@ class EtendoPlugin implements Plugin<Project> {
 
         AntLoader.load(project)
         EtendoLegacy.load(project)
+        DepsLoader.load(project)
         JarLoader.load(project)
         PublicationLoader.load(project)
         ModulesConfigurationLoader.load(project)
