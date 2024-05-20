@@ -5,34 +5,41 @@ import com.etendoerp.consistency.EtendoArtifactsConsistencyContainer
 import com.etendoerp.copilot.Constants
 import groovy.sql.GroovyRowResult
 import org.gradle.api.Project
+import org.postgresql.util.PSQLException
 
 class InstallationStatusUpdate {
-
 
     private static final String UPDATE_DATABASE_TASK = "update.database"
     private static final String INSTALLATION_STATUS_UPDATE_TASK = "installationStatusUpdate"
 
     static void load(Project project) {
-
         project.tasks.register(INSTALLATION_STATUS_UPDATE_TASK) {
             mustRunAfter(UPDATE_DATABASE_TASK)
             doLast {
                 if (!depManagerIsInstalled(project)) {
                     return
                 }
-                String infoMsg = ""
-                infoMsg += "\n\n************* DEPENDENCIES INSTALLATION STATUS UPDATE ************* \n"
-                infoMsg += "* The Dependency Manager module is installed in the system.\n"
-                infoMsg += "* Performing Installation Status Update.\n"
-                infoMsg += "*******************************************************************\n\n"
-                project.logger.info(infoMsg)
+                StringBuilder infoMsg = new StringBuilder()
+                infoMsg.append("\n\n************* DEPENDENCIES INSTALLATION STATUS UPDATE ************* \n")
+                infoMsg.append("* The Dependency Manager module is installed in the system.\n")
+                infoMsg.append("* Performing Installation Status Update.\n")
+                infoMsg.append("*******************************************************************\n\n")
+                project.logger.info(infoMsg.toString())
 
                 DatabaseConnection conn = new DatabaseConnection(project)
-                conn.loadDatabaseConnection()
-                List<String> dependenciesToMarkAsInstalled = getDependenciesToMarkAsInstalled(conn)
-                if (!dependenciesToMarkAsInstalled.isEmpty()) {
-                    markDependenciesAsInstalled(conn, dependenciesToMarkAsInstalled)
-                    conn.getConnection()
+                try {
+                    conn.loadDatabaseConnection()
+                    List<String> dependenciesToMarkAsInstalled = getDependenciesToMarkAsInstalled(conn)
+                    if (!dependenciesToMarkAsInstalled.isEmpty()) {
+                        markDependenciesAsInstalled(conn, dependenciesToMarkAsInstalled)
+                        conn.getConnection()
+                    }
+                } catch (PSQLException e) {
+                    project.logger.error("Error during Installation Status update: ${e.message}", e)
+                } finally {
+                    if (conn.getConnection() != null) {
+                        conn.getConnection().close()
+                    }
                 }
             }
         }
@@ -47,19 +54,15 @@ class InstallationStatusUpdate {
         }
     }
 
-
     static boolean depManagerIsInstalled(Project project) {
         // Check sources for Dependency Manager
         Project modules = project.findProject(Constants.MODULES_PROJECT)
         boolean depManagerInSrc = modules?.findProject(EtendoArtifactsConsistencyContainer.DEPENDENCY_MANAGER_PKG) != null
 
         // Check jars for Dependency Manager
-        FileFilter fileFilter = new FileFilter() {
-            @Override
-            boolean accept(File file) {
-                return file.name == EtendoArtifactsConsistencyContainer.DEPENDENCY_MANAGER_PKG
-            }
-        }
+        FileFilter fileFilter = { File file ->
+            file.name == EtendoArtifactsConsistencyContainer.DEPENDENCY_MANAGER_PKG
+        } as FileFilter
 
         File jarsDir = new File(project.buildDir.path, "etendo" + File.separator + Constants.MODULES_PROJECT)
         boolean depManagerInJars = jarsDir.listFiles(fileFilter)?.size() > 0
@@ -69,15 +72,16 @@ class InstallationStatusUpdate {
 
     static List<String> getDependenciesToMarkAsInstalled(DatabaseConnection conn) {
         List<String> dependencyList = new ArrayList<>()
-        StringBuilder sqlQuery = new StringBuilder()
-        sqlQuery.append("SELECT DEP.ETDEP_DEPENDENCY_ID FROM ETDEP_DEPENDENCY DEP ")
-        sqlQuery.append("JOIN AD_MODULE MOD ON (MOD.JAVAPACKAGE = CONCAT(DEP.DEPGROUP, '.', DEP.ARTIFACT) ")
-        sqlQuery.append("    AND MOD.VERSION = DEP.VERSION) ")
-        sqlQuery.append("WHERE DEP.INSTALLATION_STATUS = 'PENDING' ")
-        sqlQuery.append("UNION ")
-        sqlQuery.append("    (SELECT DEP.ETDEP_DEPENDENCY_ID FROM ETDEP_DEPENDENCY DEP ")
-        sqlQuery.append("    WHERE DEP.ISEXTERNALDEPENDENCY = 'Y' ")
-        sqlQuery.append("    AND DEP.INSTALLATION_STATUS = 'PENDING')")
+        String sqlQuery = """
+            SELECT DEP.ETDEP_DEPENDENCY_ID FROM ETDEP_DEPENDENCY DEP
+            JOIN AD_MODULE MOD ON (MOD.JAVAPACKAGE = CONCAT(DEP.DEPGROUP, '.', DEP.ARTIFACT)
+                AND MOD.VERSION = DEP.VERSION)
+            WHERE DEP.INSTALLATION_STATUS = 'PENDING'
+            UNION
+                (SELECT DEP.ETDEP_DEPENDENCY_ID FROM ETDEP_DEPENDENCY DEP
+                WHERE DEP.ISEXTERNALDEPENDENCY = 'Y'
+                AND DEP.INSTALLATION_STATUS = 'PENDING')
+        """
 
         List<GroovyRowResult> queryResults = conn.executeSelectQuery(sqlQuery.toString())
         for (GroovyRowResult result : queryResults) {
@@ -87,11 +91,15 @@ class InstallationStatusUpdate {
     }
 
     static void markDependenciesAsInstalled(DatabaseConnection conn, List<String> dependencyIds) {
-        String idsString = dependencyIds.collect { "'${it}'" }.join(", ")
-        StringBuilder sqlUpdate = new StringBuilder()
-        sqlUpdate.append("UPDATE ETDEP_DEPENDENCY SET INSTALLATION_STATUS = 'INSTALLED' ")
         // Put a placeholder for a hardcoded param, as at least one is required in the 'update' method
-        sqlUpdate.append("WHERE ETDEP_DEPENDENCY_ID IN (${idsString}) AND ISACTIVE = ?")
+        String sqlUpdate = """
+        UPDATE ETDEP_DEPENDENCY SET INSTALLATION_STATUS = 'INSTALLED'
+        WHERE ETDEP_DEPENDENCY_ID IN
+            (${dependencyIds.collect { dependencyId -> "'${dependencyId}'" }.join(", ")})
+            AND ISACTIVE = ?
+        """
+
         conn.update(conn.getConnection(), sqlUpdate.toString(), ["Y"])
     }
+
 }
