@@ -54,6 +54,13 @@ class InstallationStatusUpdate {
         }
     }
 
+    /**
+     * Checks if the Dependency Manager module is installed in the project by
+     * searching for it in the project sources and jars.
+     *
+     * @param project the project to check for Dependency Manager installation
+     * @return true if the Dependency Manager is installed, false otherwise
+     */
     static boolean depManagerIsInstalled(Project project) {
         // Check sources for Dependency Manager
         Project modules = project.findProject(Constants.MODULES_PROJECT)
@@ -70,6 +77,17 @@ class InstallationStatusUpdate {
         return depManagerInSrc || depManagerInJars
     }
 
+    /**
+     * Retrieves a list of dependencies that need to be marked as installed
+     * using the provided DatabaseConnection. Dependencies must match any of the following conditions
+     * to be marked as 'Installed':
+     * - There exists a module whose javapackage and version match the dependency's, and
+     *   the dependency status is 'Pending Installation'
+     * - The dependency is marked as external, and its status is 'Pending Installation'
+     *
+     * @param conn the DatabaseConnection object to execute the query
+     * @return a list of dependency IDs to mark as installed
+     */
     static List<String> getDependenciesToMarkAsInstalled(DatabaseConnection conn) {
         List<String> dependencyList = new ArrayList<>()
         String sqlQuery = """
@@ -90,6 +108,12 @@ class InstallationStatusUpdate {
         return dependencyList
     }
 
+    /**
+     * Marks the specified dependencies as installed in the database using the provided DatabaseConnection.
+     *
+     * @param conn the DatabaseConnection object to execute the update query
+     * @param dependencyIds the list of dependency IDs to mark as installed
+     */
     static void markDependenciesAsInstalled(DatabaseConnection conn, List<String> dependencyIds) {
         // Put a placeholder for a hardcoded param, as at least one is required in the 'update' method
         String sqlUpdate = """
