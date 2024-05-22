@@ -11,6 +11,10 @@ class InstallationStatusUpdate {
 
     private static final String UPDATE_DATABASE_TASK = "update.database"
     private static final String INSTALLATION_STATUS_UPDATE_TASK = "installationStatusUpdate"
+    public static final String SMARTBUILD_TASK = "smartbuild"
+    public static final String DLOCAL_PROPERTY = "local"
+    public static final String COLON = ":"
+    public static final String INSTALL_TASK = "install"
 
     static void load(Project project) {
         project.tasks.register(INSTALLATION_STATUS_UPDATE_TASK) {
@@ -45,12 +49,29 @@ class InstallationStatusUpdate {
         }
 
         Iterable<String> taskNames = project.getGradle().getStartParameter().getTaskNames()
-        if (taskNames.contains(UPDATE_DATABASE_TASK) || taskNames.contains(":" + UPDATE_DATABASE_TASK)) {
-            List<String> modifiedTaskNames = new ArrayList<>(taskNames)
-            int indexToAdd = modifiedTaskNames.indexOf(UPDATE_DATABASE_TASK) + 1
-            modifiedTaskNames.add(indexToAdd, INSTALLATION_STATUS_UPDATE_TASK)
+        Map<String, String> currentSystemProperties = project.getGradle().getStartParameter().getSystemPropertiesArgs()
+        boolean updateOrInstallWillExecute = taskNames.contains(UPDATE_DATABASE_TASK) ||
+                taskNames.contains(COLON + UPDATE_DATABASE_TASK) || taskNames.contains(INSTALL_TASK) ||
+                taskNames.contains(COLON + INSTALL_TASK)
+        boolean smartbuildWillExecute = taskNames.contains(SMARTBUILD_TASK) ||
+                taskNames.contains(COLON + SMARTBUILD_TASK)
+        boolean dLocalPropertyIsNo = currentSystemProperties.containsKey(DLOCAL_PROPERTY) &&
+                currentSystemProperties.get(DLOCAL_PROPERTY) == "no"
+        if (updateOrInstallWillExecute || (smartbuildWillExecute && dLocalPropertyIsNo)) {
+            if (updateOrInstallWillExecute) {
+                List<String> modifiedTaskNames = new ArrayList<>(taskNames)
+                String taskExecuted = (taskNames.contains(INSTALL_TASK)) ? INSTALL_TASK : UPDATE_DATABASE_TASK
+                int indexToAdd = modifiedTaskNames.indexOf(taskExecuted) + 1
+                modifiedTaskNames.add(indexToAdd, INSTALLATION_STATUS_UPDATE_TASK)
 
-            project.getGradle().getStartParameter().setTaskNames(modifiedTaskNames)
+                project.getGradle().getStartParameter().setTaskNames(modifiedTaskNames)
+            } else {
+                List<String> modifiedTaskNames = new ArrayList<>(taskNames)
+                int indexToAdd = modifiedTaskNames.indexOf(SMARTBUILD_TASK) + 1
+                modifiedTaskNames.add(indexToAdd, INSTALLATION_STATUS_UPDATE_TASK)
+
+                project.getGradle().getStartParameter().setTaskNames(modifiedTaskNames)
+            }
         }
     }
 
