@@ -4,6 +4,7 @@ import com.etendoerp.copilot.CopilotLoader
 import com.etendoerp.css.CssCompileLoader
 import com.etendoerp.dbdeps.DepsLoader
 import com.etendoerp.dependencies.DependenciesLoader
+import com.etendoerp.dependencymanager.DependencyManagerLoader
 import com.etendoerp.externaltasks.ExternalTasksLoader
 import com.etendoerp.jandex.JandexConfigLoader
 import com.etendoerp.jars.JarLoader
@@ -54,5 +55,6 @@ class EtendoPlugin implements Plugin<Project> {
         UninstallModuleLoader.load(project)
         ExternalTasksLoader.load(project)
         CopilotLoader.load(project)
+        DependencyManagerLoader.load(project)
     }
 }
