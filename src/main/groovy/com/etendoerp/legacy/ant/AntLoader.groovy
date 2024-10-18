@@ -162,6 +162,17 @@ class AntLoader {
             }
         }
 
+        // Dependencies sync
+        def depSync = project.tasks.findByName("dependencies.sync")
+        if (depSync != null) {
+            ['smartbuild', 'compile.complete', 'compile.complete.deploy', 'update.database', 'export.database', 'expandModules'].each {
+                def task = project.tasks.findByName(it)
+                if (task != null) {
+                    task.dependsOn(depSync)
+                }
+            }
+        }
+
         // Adding java dummy task to prevent deleting 'build/classes' dir when
         // the task 'compileJava' is executed for first time.
         def antInitTask = project.tasks.findByName("antInit")

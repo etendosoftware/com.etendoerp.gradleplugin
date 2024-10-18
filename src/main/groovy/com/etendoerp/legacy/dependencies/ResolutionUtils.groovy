@@ -10,11 +10,8 @@ import groovy.io.FileType
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.ModuleVersionIdentifier
-import org.gradle.api.artifacts.component.ComponentIdentifier
 import org.gradle.api.artifacts.result.DependencyResult
 import org.gradle.api.internal.artifacts.DefaultProjectComponentIdentifier
-import org.gradle.api.internal.artifacts.dependencies.DefaultExternalModuleDependency
-import org.gradle.api.internal.artifacts.dependencies.DefaultProjectDependency
 import org.gradle.api.internal.artifacts.ivyservice.resolveengine.result.ComponentSelectionReasonInternal
 import org.gradle.api.internal.artifacts.result.DefaultResolvedDependencyResult
 import org.gradle.api.internal.artifacts.result.DefaultUnresolvedDependencyResult
@@ -22,7 +19,6 @@ import org.gradle.api.logging.LogLevel
 import org.gradle.api.tasks.diagnostics.DependencyInsightReportTask
 import org.gradle.internal.component.external.model.DefaultModuleComponentSelector
 import org.gradle.internal.component.local.model.DefaultProjectComponentSelector
-import org.gradle.internal.impldep.org.apache.commons.lang.StringUtils
 
 /**
  * Class containing helper methods to perform resolution version conflicts.
@@ -41,6 +37,8 @@ class ResolutionUtils {
             "${CoreMetadata.CLASSIC_ETENDO_CORE_GROUP}:${CoreMetadata.CLASSIC_ETENDO_CORE_NAME}",
             "${CoreMetadata.DEFAULT_ETENDO_CORE_GROUP}:${CoreMetadata.DEFAULT_ETENDO_CORE_NAME}"
     ]
+    public static final String MODULES_PROJECT = "modules"
+    public static final String DEPENDENCY_MANAGER_PKG = "com.etendoerp.dependencymanager"
 
     /**
      * Obtains the incoming dependencies and performs the resolution versions conflicts.
@@ -83,6 +81,7 @@ class ResolutionUtils {
 
     static void handleResolutionConflict(Project project, Configuration configuration, ComponentSelectionReasonInternal reason, ModuleVersionIdentifier module, boolean force,
                                          List<String> modulesToReport=[], List<String> modulesToNotReport=[]) {
+
         def isCoreDependency = isCoreDependency(module.toString())
         def group = module.group
         def name = module.name
@@ -111,12 +110,33 @@ class ResolutionUtils {
             }
         }
 
-        // Throw on core conflict
-        if (isCoreDependency && !force) {
+        // Throw on core conflict, unless Dependency Manager module is installed
+        if (isCoreDependency && !(force || depManagerModuleInstalled(project))) {
             def errorMessage = "${CORE_CONFLICTS_ERROR_MESSAGE} - ${module} \n"
             errorMessage += EtendoPluginExtension.forceResolutionMessage()
             throw new IllegalArgumentException(errorMessage)
         }
+    }
+
+    /**
+     * Checks if the Dependency Manager module is installed in the specified project.
+     * This method determines if the module is installed by checking two potential locations:
+     * (1) within the project structure under the 'modules' directory (Sources),
+     * (2) as a jar file in a predefined modules directory within the project's build directory (Jar).
+     *
+     * @param project The project in which to check for the installation of the Dependency Manager module.
+     * @return {@code true} if the Dependency Manager module is either found as a project module or exists as
+     * a jar file in the specified location; {@code false} otherwise.
+     */
+    private static boolean depManagerModuleInstalled(Project project) {
+        Project moduleProject = project.findProject(":${PublicationUtils.BASE_MODULE_DIR}")
+        File jarModulesLocation = new File(project.buildDir, "etendo" + File.separator + MODULES_PROJECT)
+        File depManagerJarModule = new File(jarModulesLocation, DEPENDENCY_MANAGER_PKG)
+        Project depManagerProject = null
+        if (moduleProject != null) {
+            depManagerProject = moduleProject.findProject(DEPENDENCY_MANAGER_PKG)
+        }
+        return depManagerProject != null || depManagerJarModule.exists()
     }
 
     /**
@@ -261,7 +281,7 @@ class ResolutionUtils {
         if (!modulesLocation.exists()) {
             return sourcesModulesContainer
         }
-        
+
         project.logger.info("Loading source modules dependencies from 'modules/'.")
 
         List<File> sourceModules = new ArrayList<>()

@@ -2,7 +2,9 @@ package com.etendoerp
 
 import com.etendoerp.copilot.CopilotLoader
 import com.etendoerp.css.CssCompileLoader
+import com.etendoerp.dbdeps.DepsLoader
 import com.etendoerp.dependencies.DependenciesLoader
+import com.etendoerp.dependencymanager.DependencyManagerLoader
 import com.etendoerp.externaltasks.ExternalTasksLoader
 import com.etendoerp.jandex.JandexConfigLoader
 import com.etendoerp.jars.JarLoader
@@ -21,7 +23,7 @@ import com.etendoerp.publication.git.CloneDependencies
 
 class EtendoPlugin implements Plugin<Project> {
 
-    final static String PLUGIN_VERSION = "1.3.3"
+    final static String PLUGIN_VERSION = "1.4.0"
 
     @Override
     void apply(Project project) {
@@ -42,6 +44,7 @@ class EtendoPlugin implements Plugin<Project> {
 
         AntLoader.load(project)
         EtendoLegacy.load(project)
+        DepsLoader.load(project)
         JarLoader.load(project)
         PublicationLoader.load(project)
         ModulesConfigurationLoader.load(project)
@@ -52,5 +55,6 @@ class EtendoPlugin implements Plugin<Project> {
         UninstallModuleLoader.load(project)
         ExternalTasksLoader.load(project)
         CopilotLoader.load(project)
+        DependencyManagerLoader.load(project)
     }
 }

@@ -30,6 +30,10 @@ class DatabaseConnection {
 
     }
 
+    Connection getConnection() {
+        return this.dataSource.getConnection()
+    }
+
     boolean validateConnection(DatabaseProperties databaseProperties) {
         try {
             def sql = new Sql(dataSource)
@@ -53,18 +57,18 @@ class DatabaseConnection {
         return query
     }
 
-    List<GroovyRowResult> executeSelectQuery(String query) {
+    List<GroovyRowResult> executeSelectQuery(String query, List<Object> params = []) {
         List<GroovyRowResult> rowResult = []
         def sql = new Sql(dataSource)
         try {
-            rowResult = sql.rows(query)
+            rowResult = sql.rows(query, params)
         } catch (SQLException e) {
             project.logger.info("* WARNING: The query '${query}' could not be executed.")
             project.logger.info("* MESSAGE: ${e.message}")
             throw e
         } finally {
             try {
-               sql.close()
+                sql.close()
             } catch (SQLException e) {
                 project.logger.info("* WARNING: The connection could not be closed.")
                 project.logger.info("* MESSAGE: ${e.message}")
@@ -74,5 +78,38 @@ class DatabaseConnection {
         return rowResult
     }
 
+    List<GroovyRowResult> executeSelectQuery(Connection connection, String query, List<Object> params = []) {
+        List<GroovyRowResult> rowResult = []
+        def sql = new Sql(connection: connection)
+        try {
+            rowResult = sql.rows(query, params)
+        } catch (SQLException e) {
+            project.logger.info("* WARNING: The query '${query}' could not be executed.")
+            project.logger.info("* MESSAGE: ${e.message}")
+            throw e
+        }
+        return rowResult
+    }
 
+    void insert(Connection connection, String query, List<Object> params) {
+        def sql = new Sql(connection: connection)
+        try {
+            sql.executeInsert(query, params)
+        } catch (SQLException e) {
+            project.logger.info("* WARNING: The query '${query}' could not be executed.")
+            project.logger.info("* MESSAGE: ${e.message}")
+            throw e
+        }
+    }
+
+    void update(Connection connection, String query, List<Object> params) {
+        def sql = new Sql(connection: connection )
+        try {
+            sql.executeUpdate(query, params)
+        } catch (SQLException e) {
+            project.logger.info("* WARNING: The query '${query}' could not be executed.")
+            project.logger.info("* MESSAGE: ${e.message}")
+            throw e
+        }
+    }
 }

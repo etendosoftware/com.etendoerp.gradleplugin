@@ -27,6 +27,7 @@ import org.gradle.api.logging.LogLevel
 class EtendoArtifactsConsistencyContainer {
 
     static final String CORE_MODULE = "org.openbravo"
+    public static final String DEPENDENCY_MANAGER_PKG = "com.etendoerp.dependencymanager"
 
     Project project
     EtendoPluginExtension extension
@@ -196,8 +197,8 @@ class EtendoArtifactsConsistencyContainer {
         EtendoArtifactsComparator comparator = new EtendoArtifactsComparator(project, localArtifact, installedArtifact)
         comparator.loadVersionStatus()
 
-        // Fail on MINOR version
-        if (comparator.versionStatus == VersionStatus.MINOR) {
+        // Fail on MINOR version, only if com.etendoerp.dependencymanager module is not installed
+        if (comparator.versionStatus == VersionStatus.MINOR && !this.installedArtifacts.containsKey(DEPENDENCY_MANAGER_PKG)) {
 
             String warningMessage = "* The local version to update is '${comparator.versionStatus}' to the installed one. \n"
 
