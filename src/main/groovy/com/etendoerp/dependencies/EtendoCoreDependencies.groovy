@@ -90,7 +90,7 @@ class EtendoCoreDependencies {
             implementation('commons-dbcp:commons-dbcp:1.4') { transitive = false }
             implementation('org.glassfish.jaxb:txw2:2.3.1') { transitive = false }
             implementation('net.sourceforge.jexcelapi:jxl:2.6.10') { transitive = false }
-            implementation('net.bytebuddy:byte-buddy:1.9.10') { transitive = false }
+            implementation('net.bytebuddy:byte-buddy:1.15.3') { transitive = false }
             implementation('oro:oro:2.0.8') { transitive = false }
             implementation('com.etendoerp:wstx-asl:3.0.2') { transitive = false }
             implementation('commons-betwixt:commons-betwixt:0.8') { transitive = false }
