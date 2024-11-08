@@ -1,11 +1,15 @@
 package com.etendoerp.copilot.configuration
 
+import com.etendoerp.connections.DatabaseConnection
 import com.etendoerp.copilot.Constants
 import com.etendoerp.publication.PublicationUtils
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
+import groovy.sql.GroovyRowResult
 import org.gradle.api.Project
 import org.gradle.api.plugins.ExtraPropertiesExtension
+
+import com.etendoerp.consistency.EtendoArtifactsConsistencyContainer
 
 class CopilotConfigurationLoader {
 
@@ -38,12 +42,65 @@ class CopilotConfigurationLoader {
      */
     public static final String COPILOT = 'copilot'
 
+    static Map<String, GroovyRowResult> getMapOfModules(Project prj, DatabaseConnection dbConnection) {
+        Map<String, GroovyRowResult> map = new HashMap<>()
+        if (!dbConnection) {
+            return map
+        }
+        String qry = "select * from ad_module"
+        def rowResult
+        try {
+            rowResult = dbConnection.executeSelectQuery(qry)
+        } catch (Exception e) {
+            prj.logger.info("* WARNING: The modules from the database could not be loaded to perform the version consistency verification.")
+            prj.logger.info("* MESSAGE: ${e.message}")
+        }
+        if (rowResult) {
+            for (GroovyRowResult row : rowResult) {
+                def javaPackage = row.javapackage as String
+                if (javaPackage) {
+                    map.put(javaPackage, row)
+                }
+            }
+        }
+        return map
+    }
+
     static void load(Project project) {
         project.afterEvaluate {
+            //only do the copilot build if the task copilot.start is present
+            if (!project.gradle.startParameter.taskNames.contains("copilot.start")) {
+                return
+            }
+            def databaseConnection = new DatabaseConnection(project)
+            def validConnection = databaseConnection.loadDatabaseConnection()
+            Map<String, GroovyRowResult> modulesMap = getMapOfModules(project, databaseConnection)
+            boolean copilotExists = false
+            boolean doCopilotBuild = false
+            int copilotVersionMayor = 1
+            int copilotVersionMinor = 7
+            String version = '0.0.0'
+            if (modulesMap.containsKey("com.etendoerp.copilot")) {
+                copilotExists = true
+                version = modulesMap.get("com.etendoerp.copilot").get("version")
+                copilotVersionMayor = version.split("\\.")[0].toInteger()
+                copilotVersionMinor = version.split("\\.")[1].toInteger()
+                if (copilotVersionMayor > 1 || (copilotVersionMayor == 1 && copilotVersionMinor >= 7)) {
+                    doCopilotBuild = true
+                }
+            }
+            if (!copilotExists || !doCopilotBuild) {
+                return
+            }
+            if (copilotVersionMayor == 1 && copilotVersionMinor < 8) {
+                project.logger.error("The version of Copilot is ${version}, please upgrade to 1.8.0 or higher," +
+                        " because in that version Copilot is integrated with the Etendo Docker Management" +
+                        " and this will be the supported way to run Copilot in next versions.")
+
+            }
             File copilotDir = new File(project.buildDir.path, COPILOT)
             copilotDir.deleteDir()
 
-            boolean copilotExists = false
             Project moduleProject = project.findProject(":${PublicationUtils.BASE_MODULE_DIR}")
             File jarModulesLocation = new File(project.buildDir, "etendo" + File.separator + Constants.MODULES_PROJECT)
             File copilotJarModule = new File(jarModulesLocation, Constants.COPILOT_MODULE)
