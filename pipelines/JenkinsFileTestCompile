@@ -1,0 +1,388 @@
+def updateCommitStatus(repositoryName, status, description, accessToken, gitCommit, buildUrl, contextBuild) {
+  sh "./pipelines/utils/build-update.sh ${repositoryName} ${status} \"${description}\" ${accessToken} ${gitCommit} ${buildUrl} \"${contextBuild}\""
+}
+
+pipeline {
+  options {
+    disableConcurrentBuilds()
+    buildDiscarder(logRotator(numToKeepStr: '7', artifactNumToKeepStr: '7'))
+  }
+
+  environment {
+    CONTEXT_NAME    = "etendo"
+    BBDD_SID        = "etendo"
+    BBDD_SID2       = "etendo2"
+    BBDD_PORT       = "5432"
+    BBDD_SYSTEMUSER = "postgres"
+    BBDD_SYSTEMPASS = "syspass"
+    BBDD_USER       = "tad"
+    BBDD_PASSWORD   = "tad"
+    NEXUS_USER      = credentials('nexus-admin-user')
+    NEXUS_PASSWORD  = credentials('nexus-admin-passwd')
+    GITHUB_USER     = "etendobot"
+    GITHUB_TOKEN    = credentials('github-read-package-token')
+    EMAIL_ADDRESS   = credentials('email_builds')
+
+    URL_ORG_GITHUB  = "https://github.com/etendosoftware"
+    ETENDO_BASE_URL = "https://github.com/etendosoftware/etendo_base"
+    PLUGIN_URL      = " https://github.com/etendosoftware/com.etendoerp.gradleplugin.git"
+
+    SUCCESS         = "SUCCESS"
+    FAILED          = "FAILED"
+    UNSTABLE        = "UNSTABLE"
+
+    ETENDO_DIR      = "etendo_base"
+    REPOSITORY_NAME = "com.etendoerp.gradleplugin"
+
+    ACCESS_TOKEN = credentials('access_token_github')
+      
+    COMMIT_INPROGRESS_STATUS = "pending"
+    COMMIT_SUCCESS_STATUS    = "success"
+    COMMIT_FAILED_STATUS     = "failure"
+
+    CONTEXT_BUILD = "Testing Compilation in JAR and Source Format"
+  }
+
+  agent {
+    kubernetes {
+        inheritFrom 'jenkins-node-pg'
+        defaultContainer 'jnlp'
+        yaml """
+apiVersion: v1
+kind: Pod
+metadata:
+  name: jenkins-node-pg-0
+  namespace: jenkins
+  labels:
+    app.kubernetes.io/name: jenkins-node-pg
+spec:
+  volumes:
+    - name: rsa-keys
+      configMap:
+        name: rsa-keys
+        defaultMode: 384
+    - name: docker-sock
+      hostPath:
+        path: /var/run/docker.sock
+        type: ''
+  containers:
+    - name: compiler
+      image: etendo/compiler_jenkins:1.0.6
+      ports:
+        - name: ssh
+          containerPort: 22
+          protocol: TCP
+        - name: visualvm
+          containerPort: 8000
+          protocol: TCP
+      resources:
+        requests:
+          cpu: 1072m
+          memory: 4000Mi
+        limits:
+          cpu: 2072m
+          memory: 6500Mi
+      volumeMounts:
+        - name: rsa-keys
+          mountPath: /root/.ssh/
+        - name: docker-sock
+          mountPath: /var/run/docker.sock
+      lifecycle:
+        postStart:
+          exec:
+            command:
+              - bash
+              - '-c'
+              - >-
+                chmod a+x /var/run/docker.sock && rm
+                /etc/apt/sources.list.d/pgdg.list || echo 0 && apt update && apt
+                install -y curl
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      imagePullPolicy: IfNotPresent
+    - name: postgres
+      image: postgres:14
+      workingDir: /home/jenkins
+      env:
+        - name: POSTGRES_PASSWORD
+          value: syspass
+      resources:
+        requests:
+          cpu: 1000m
+          memory: 1000Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      imagePullPolicy: IfNotPresent
+  restartPolicy: Always
+  terminationGracePeriodSeconds: 30
+  dnsPolicy: ClusterFirst
+  serviceAccountName: default
+  serviceAccount: default
+  securityContext: {}
+  """
+    }
+  }
+
+  stages {
+    stage ('Build Enviroment with Etendo Classic in JAR format') {
+      steps {
+        container('compiler') {
+          script {
+            try {
+              echo "---------------- Build JAR Environment ----------------"
+
+              echo "---------------- Print Environment ----------------"
+              sh "printenv"
+              def rootDir = pwd()
+              def infoCommit = load "${rootDir}/pipelines/utils/infoCommits.groovy"
+
+              def description = "Compiling Environment in JAR"
+              updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, description, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+
+              echo "--------------- Building Etendo JAR Environment ----------------"
+              sh """
+              git clone ${ETENDO_BASE_URL}
+              cd ${ETENDO_DIR}
+
+              echo -e "context.name=${CONTEXT_NAME}
+              bbdd.sid=${BBDD_SID}
+              bbdd.port=${BBDD_PORT}
+              bbdd.systemUser=${BBDD_SYSTEMUSER}
+              bbdd.systemPassword=${BBDD_SYSTEMPASS}
+              bbdd.user=${BBDD_USER}
+              bbdd.password=${BBDD_PASSWORD}
+              nexusUser=${NEXUS_USER}
+              nexusPassword=${NEXUS_PASSWORD}
+              githubUser=${GITHUB_USER}
+              githubToken=${GITHUB_TOKEN}
+              allow.root=true
+              org.gradle.vfs.watch=false
+              org.gradle.jvmargs=-Dfile.encoding=UTF-8" > gradle.properties
+              """
+
+              sh """
+              cd ${ETENDO_DIR}
+              git clone ${PLUGIN_URL} buildSrc
+              cd buildSrc
+              git checkout ${GIT_COMMIT}
+              cp gradle.properties.template gradle.properties
+              """
+
+              echo "-------------------------- Commit Information Collected --------------------------"
+              env.PLUGIN_DIR = "${ETENDO_DIR}/buildSrc"
+              def commitInfoTemplate = infoCommit.generateCommitInfo(env.URL_ORG_GITHUB, null, REPOSITORY_NAME, true, env.PLUGIN_DIR)
+              env.COMMIT_INFO_TEMPLATE = "${commitInfoTemplate}"
+              echo "${env.COMMIT_INFO_TEMPLATE}"
+
+              sh """
+              sed -i "s/id 'com.etendoerp.gradleplugin'/id 'com.etendoerp.gradleplugin' \\/\\//" "${ETENDO_DIR}/build.gradle"
+              """
+
+              echo "---------------- Add dependencies ----------------"
+              def dependencies = env.DEPENDENCIES_FOR_BASE.split(',')
+              def dependenciesBlock = dependencies.collect {
+                  "moduleDeps(\"com.etendoerp:$it:latest.release@zip\") {transitive=true}"
+              }.join('\n')
+
+              dependenciesBlock += "\nimplementation(\"com.etendoerp.platform:etendo-core:latest.release\")"
+
+              def buildGradleContent = """
+              dependencies {
+                  $dependenciesBlock
+              }
+              """              
+
+              sh """
+              cd ${ETENDO_DIR}
+              echo '${buildGradleContent}' >> build.gradle
+              cat build.gradle
+              """
+              
+              echo "---------------- Build & Compile ----------------"
+              sh """
+              cd etendo_base
+              echo "y" > yes
+              ./gradlew expandModules --info < yes
+              ./gradlew prepareConfig --info
+              ./gradlew setup --info
+              ./gradlew install --info
+              ./gradlew update.database
+              ./gradlew compile.complete
+              ./gradlew smartbuild --info
+              """
+
+              sh "rm -rf ${ETENDO_DIR}"
+              echo "---------------- Build JAR Environment Succesful ----------------"
+              currentBuild.result = SUCCESS
+            } catch (Exception e) {
+              echo "---------------- Build JAR Environment Failed ----------------"
+              description = "Compiling Environment in JAR Failed"
+              updateCommitStatus(REPOSITORY_NAME, COMMIT_FAILED_STATUS, description, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+              echo "Exception occurred: " + e.toString()
+              currentBuild.result = FAILED
+              error('Build Failed in Etendo JAR Environment')
+            }
+          }
+        }
+      }
+    }
+    stage ('Build Enviroment with Etendo Classic in Source format') {
+      steps {
+        container('compiler') {
+          script {
+            try {
+              description = "Compiling Environment in Source"
+              updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, description, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+              echo "---------------- Build Source Environment ----------------"
+
+              echo "---------------- Print Environment ----------------"
+              sh "printenv"
+
+              echo "--------------- Building Etendo Source Environment ----------------"
+              sh """
+              git clone ${ETENDO_BASE_URL}
+              cd ${ETENDO_DIR}
+
+              echo -e "context.name=${CONTEXT_NAME}
+              bbdd.sid=${BBDD_SID2}
+              bbdd.port=${BBDD_PORT}
+              bbdd.systemUser=${BBDD_SYSTEMUSER}
+              bbdd.systemPassword=${BBDD_SYSTEMPASS}
+              bbdd.user=${BBDD_USER}
+              bbdd.password=${BBDD_PASSWORD}
+              nexusUser=${NEXUS_USER}
+              nexusPassword=${NEXUS_PASSWORD}
+              githubUser=${GITHUB_USER}
+              githubToken=${GITHUB_TOKEN}
+              allow.root=true
+              org.gradle.vfs.watch=false
+              org.gradle.jvmargs=-Dfile.encoding=UTF-8" > gradle.properties
+              """
+
+              sh """
+              cd ${ETENDO_DIR}
+              git clone ${PLUGIN_URL} buildSrc
+              cd buildSrc
+              git checkout ${GIT_COMMIT}
+              cp gradle.properties.template gradle.properties
+              """
+              
+              sh """
+              sed -i "s/id 'com.etendoerp.gradleplugin'/id 'com.etendoerp.gradleplugin' \\/\\//" "${ETENDO_DIR}/build.gradle"
+              """
+
+              echo "---------------- Add dependencies ----------------"
+              def dependencies = env.DEPENDENCIES_FOR_BASE.split(',')
+              def dependenciesBlock = dependencies.collect {
+                  "moduleDeps(\"com.etendoerp:$it:latest.release@zip\") {transitive=true}"
+              }.join('\n')
+
+              def buildGradleContent = """
+              dependencies {
+                  $dependenciesBlock
+              }
+              """              
+
+              sh """
+              cd ${ETENDO_DIR}
+              echo '${buildGradleContent}' >> build.gradle
+              cat build.gradle
+              """
+              
+              echo "---------------- Build & Compile ----------------"
+              sh """
+              cd etendo_base
+              echo "y" > yes
+              ./gradlew expandCore --info < yes
+              ./gradlew expandModules --info < yes
+              ./gradlew prepareConfig --info
+              ./gradlew setup --info
+              ./gradlew install --info
+              ./gradlew update.database
+              ./gradlew compile.complete
+              ./gradlew smartbuild --info
+              """
+
+              echo "---------------- Build Source Environment Succesful ----------------"
+              currentBuild.result = SUCCESS
+            } catch (Exception e) {
+              echo "---------------- Build Source Environment Failed ----------------"
+              description = "Compiling Environment in Source Failed"
+              updateCommitStatus(REPOSITORY_NAME, COMMIT_FAILED_STATUS, description, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+              echo "Exception occurred: " + e.toString()
+              currentBuild.result = FAILED
+              error('Build Failed in Etendo Source Environment')
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  post {
+    success {
+      script {
+        echo "---------------- DONE ----------------"
+        description = "Compilation Environment Successful"
+        updateCommitStatus(REPOSITORY_NAME, COMMIT_SUCCESS_STATUS, "Compilation Environment Successful", ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+      }
+    }
+    fixed {
+      mail to: EMAIL_ADDRESS,
+      subject: "✅ FIXED - ${currentBuild.fullDisplayName}",
+       mimeType: "text/html",
+      body: """
+        <html>
+          <head>
+              <style>
+                  body { font-family: 'Arial', sans-serif; }
+                  .header { font-size: 16px; font-weight: bold; color: #333; }
+              </style>
+          </head>
+          <body>
+            <p><em>${new Date()}</em></p>
+            <p>__________________________________________________________</p>
+
+            <h2 class="header">✅ ERRORS FIXED ✅ ✅</h2>
+
+            ${env.COMMIT_INFO_TEMPLATE}
+
+            <p>The problems found in the previous run/s have been fixed!  💪<br>Check out the output in the following link:
+            ${env.BUILD_URL}</p>
+
+            <p class="footer"><em>Best regards,<br>#EtendoBot 🤖</em></p>
+            <p>__________________________________________________________</p>
+          </body>
+        </html>
+      """
+    }
+    failure {
+      mail to: EMAIL_ADDRESS,
+      subject: "🚫 ERROR IN ${currentBuild.fullDisplayName}",
+      mimeType: "text/html",
+      body:  """
+        <html>
+          <head>
+              <style>
+                  body { font-family: 'Arial', sans-serif; }
+                  .header { font-size: 16px; font-weight: bold; color: #333; }
+              </style>
+          </head>
+          <body>
+            <p><em>${new Date()}</em></p>
+            <p>__________________________________________________________</p>
+
+            <h2 class="header">🚫 COMPILATION FAILED 🚫</h2>
+
+            ${env.COMMIT_INFO_TEMPLATE}
+
+            <p>The build has failed unexpectedly.<br>To more information on the failing run visit: ${env.BUILD_URL}</p>
+
+            <p class="footer"><em>Best regards,<br>#EtendoBot 🤖</em></p>
+            <p>__________________________________________________________</p>
+          </body>
+        </html>
+      """
+    }
+  }
+}
