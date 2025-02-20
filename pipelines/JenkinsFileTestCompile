@@ -141,7 +141,7 @@ spec:
 
               echo "--------------- Building Etendo JAR Environment ----------------"
               sh """
-              git clone ${ETENDO_BASE_URL}
+              git clone ${ETENDO_BASE_URL} --branch epic/ETP-1004
               cd ${ETENDO_DIR}
 
               echo -e "context.name=${CONTEXT_NAME}
