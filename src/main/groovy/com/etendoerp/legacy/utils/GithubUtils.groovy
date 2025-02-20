@@ -3,6 +3,7 @@ package com.etendoerp.legacy.utils
 import org.gradle.api.Project
 import org.gradle.api.artifacts.repositories.PasswordCredentials
 import org.gradle.api.component.Artifact
+import org.gradle.api.internal.tasks.userinput.DefaultUserInputHandler
 import org.gradle.api.internal.tasks.userinput.NonInteractiveUserInputHandler
 import org.gradle.api.internal.tasks.userinput.UserInputHandler
 import org.gradle.api.artifacts.repositories.ArtifactRepository
@@ -32,13 +33,14 @@ class GithubUtils {
         def (githubUser, githubToken) = getCredentials(project)
 
         if (!githubUser || !githubToken) {
-            def input = project.getServices().get(UserInputHandler.class)
-            githubUser = project.getServices().get(UserInputHandler.class).askQuestion("GitHub user", "")
-            githubToken = project.getServices().get(UserInputHandler.class).askQuestion("GitHub Token", "")
+            UserInputHandler input = project.getServices().get(UserInputHandler.class)
             if (!(input instanceof NonInteractiveUserInputHandler)) {
-                // Do not send prompt when using an non interactive console.
-                // Avoids a failure when refreshing gradle projects that use this function, in IntelliJ or other IDEs
-                input.sendPrompt("\033[F\r" + "GitHub Token (default: ): **************************************** \n")
+                githubUser= input.askUser {
+                    return it.askQuestion("GitHub User", "")
+                }.get()
+                githubToken= input.askUser {
+                    return it.askQuestion("GitHub Token", "")
+                }.get()
             }
         }
 
