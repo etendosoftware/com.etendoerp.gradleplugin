@@ -141,7 +141,7 @@ spec:
 
               echo "--------------- Building Etendo JAR Environment ----------------"
               sh """
-              git clone ${ETENDO_BASE_URL}
+              git clone ${ETENDO_BASE_URL} --branch epic/ETP-1004 # TODO remove branch setting when the branch is merged
               cd ${ETENDO_DIR}
 
               echo -e "context.name=${CONTEXT_NAME}
@@ -180,9 +180,12 @@ spec:
 
               echo "---------------- Add dependencies ----------------"
               def dependencies = env.DEPENDENCIES_FOR_BASE.split(',')
+              /*
               def dependenciesBlock = dependencies.collect {
                   "moduleDeps(\"com.etendoerp:$it:latest.release@zip\") {transitive=true}"
               }.join('\n')
+              */
+              def dependenciesBlock = "" // TODO remove when branch is merged
 
               dependenciesBlock += "\nimplementation(\"com.etendoerp.platform:etendo-core:latest.release\")"
 
@@ -240,7 +243,7 @@ spec:
 
               echo "--------------- Building Etendo Source Environment ----------------"
               sh """
-              git clone ${ETENDO_BASE_URL}
+              git clone ${ETENDO_BASE_URL} --branch epic/ETP-1004 # TODO remove branch setting when the branch is merged 
               cd ${ETENDO_DIR}
 
               echo -e "context.name=${CONTEXT_NAME}
@@ -273,9 +276,12 @@ spec:
 
               echo "---------------- Add dependencies ----------------"
               def dependencies = env.DEPENDENCIES_FOR_BASE.split(',')
+              /*
               def dependenciesBlock = dependencies.collect {
                   "moduleDeps(\"com.etendoerp:$it:latest.release@zip\") {transitive=true}"
               }.join('\n')
+              */
+              def dependenciesBlock = "" // TODO remove when branch is merged
 
               def buildGradleContent = """
               dependencies {

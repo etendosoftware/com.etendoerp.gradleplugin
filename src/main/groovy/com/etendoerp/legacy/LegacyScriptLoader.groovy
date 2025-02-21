@@ -83,7 +83,7 @@ class LegacyScriptLoader {
         project.sourceSets{
             main {
                 java {
-                    outputDir = project.file("${project.buildDir}/classes/")
+                    classesDirectory.set(project.file("${project.buildDir}/classes/"))
                     srcDirs = ['build/javasqlc/src'] //clean the default sources directories.
                     srcDirs 'build/javasqlc/srcAD'
                     srcDirs 'src'
@@ -264,6 +264,7 @@ class LegacyScriptLoader {
 
         /** Copy backup.properties template */
         project.task("createBackupProperties", type: Copy) {
+            dependsOn "createOBProperties"
             outputs.upToDateWhen { return false }
             from project.file("config/backup.properties.template")
             into project.file("config")
@@ -281,6 +282,7 @@ class LegacyScriptLoader {
 
         /** Copy Openbravo.properties template */
         project.task("createOBProperties", type: Copy) {
+            dependsOn "createQuartzProperties"
             outputs.upToDateWhen { return false }
             from project.file("config/Openbravo.properties.template")
             into project.file("config")
