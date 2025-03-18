@@ -6,7 +6,6 @@ import com.etendoerp.dbdeps.DepsLoader
 import com.etendoerp.dependencies.DependenciesLoader
 import com.etendoerp.dependencymanager.DependencyManagerLoader
 import com.etendoerp.externaltasks.ExternalTasksLoader
-import com.etendoerp.jandex.JandexConfigLoader
 import com.etendoerp.jars.JarLoader
 import com.etendoerp.legacy.EtendoLegacy
 import com.etendoerp.legacy.ant.AntLoader
@@ -50,7 +49,6 @@ class EtendoPlugin implements Plugin<Project> {
         ModulesConfigurationLoader.load(project)
         DependenciesLoader.load(project)
         CloneDependencies.load(project)
-        JandexConfigLoader.load(project)
         CssCompileLoader.load(project)
         UninstallModuleLoader.load(project)
         ExternalTasksLoader.load(project)
