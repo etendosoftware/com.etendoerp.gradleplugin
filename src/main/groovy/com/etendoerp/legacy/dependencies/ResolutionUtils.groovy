@@ -91,6 +91,7 @@ class ResolutionUtils {
                 && (modulesToReport.isEmpty() || moduleIdentifier in modulesToReport*.toLowerCase()))
 
         String taskReportName = RESOLUTION_REPORT_TASK + UUID.randomUUID().toString().replace("-","")
+        shouldReport = false
         if (shouldReport) {
             project.logger.info("")
             project.logger.info("********************************************")
