@@ -25,14 +25,36 @@ class EtendoCoreDependencies {
         }
 
         // Listing only resolved artifacts.
-        // Load from $projectDir/artifacts.list.COMPILATION.gradle
-
-
+        def dependenciesList = loadDependenciesFromFile(project)
         project.dependencies {
-            ext.dependenciesListCOMPILATION.each { dependency ->
-                implementation dependency
+            dependenciesList.each { dependency ->
+                implementation (dependency) { transitive = false }
             }
         }
+    }
+
+    static List<String> loadDependenciesFromFile(Project project) {
+        File depsFile = project.file('artifacts.list.COMPILATION.gradle')
+        if (!depsFile.exists()) {
+            project.logger.error("El archivo ${depsFile.path} no se encuentra.")
+            return []
+        }
+
+        Binding binding = new Binding()
+        binding.setVariable('ext', [:])
+
+        GroovyShell shell = new GroovyShell(binding)
+
+        shell.evaluate(depsFile)
+
+        def ext = binding.getVariable('ext')
+        def dependenciesList = ext.dependenciesListCOMPILATION ?: []
+
+        if (!dependenciesList) {
+            project.logger.error("Artifacts list is empty.")
+        }
+
+        return dependenciesList
     }
 
     static void loadCoreTestDependencies(Project project) {
