@@ -19,6 +19,7 @@ import org.gradle.api.logging.LogLevel
 import org.gradle.api.tasks.diagnostics.DependencyInsightReportTask
 import org.gradle.internal.component.external.model.DefaultModuleComponentSelector
 import org.gradle.internal.component.local.model.DefaultProjectComponentSelector
+import com.etendoerp.connections.DatabaseConnection
 
 /**
  * Class containing helper methods to perform resolution version conflicts.
@@ -111,11 +112,14 @@ class ResolutionUtils {
         }
 
         // Throw on core conflict, unless Dependency Manager module is installed
-        if (isCoreDependency && !(force || depManagerModuleInstalled(project))) {
-            def errorMessage = "${CORE_CONFLICTS_ERROR_MESSAGE} - ${module} \n"
-            errorMessage += EtendoPluginExtension.forceResolutionMessage()
-            throw new IllegalArgumentException(errorMessage)
+        if (!depManagerModuleInstalled(project)) {
+            if (isCoreDependency && !force) {
+                def errorMessage = "${CORE_CONFLICTS_ERROR_MESSAGE} - ${module} \n"
+                errorMessage += EtendoPluginExtension.forceResolutionMessage()
+                throw new IllegalArgumentException(errorMessage)
+            }
         }
+
     }
 
     /**
@@ -136,7 +140,36 @@ class ResolutionUtils {
         if (moduleProject != null) {
             depManagerProject = moduleProject.findProject(DEPENDENCY_MANAGER_PKG)
         }
-        return depManagerProject != null || depManagerJarModule.exists()
+        boolean isDepManagerModulePresent = checkDepManagerModuleInDB(project)
+        return depManagerProject != null || depManagerJarModule.exists() || isDepManagerModulePresent
+    }
+
+    /**
+     * Checks if the Dependency Manager module is registered in the database.
+     * This method verifies the presence of the module by querying the `etdep_dependency` table
+     * for an entry where the `artifact` field matches 'dependencymanager'.
+     *
+     * @param project The project in which to check for the module registration.
+     * @return {@code true} if the module exists in the database; {@code false} otherwise.
+     */
+    private static boolean checkDepManagerModuleInDB(Project project) {
+        def databaseConnection = new DatabaseConnection(project)
+        def validConnection = databaseConnection.loadDatabaseConnection()
+
+        if (!validConnection) {
+            project.logger.info("* The connection with the database could not be established. Skipping version consistency verification.")
+            return false
+        }
+        try {
+            def result = databaseConnection.executeSelectQuery("SELECT COUNT(*) AS count FROM etdep_dependency WHERE artifact = 'dependencymanager'")
+            if (result && result[0]?.count > 0) {
+                return true
+            }
+        } catch (Exception e) {
+            project.logger.error("* Error executing database query: ${e.message}")
+        }
+
+        return false
     }
 
     /**
