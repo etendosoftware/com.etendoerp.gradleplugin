@@ -36,19 +36,23 @@ class EtendoCoreDependencies {
     static List<String> loadDependenciesFromFile(Project project) {
         File depsFile = project.file('artifacts.list.COMPILATION.gradle')
         if (!depsFile.exists()) {
-            project.logger.error("El archivo ${depsFile.path} no se encuentra.")
+            project.logger.error("The file ${depsFile.path} does not exist.")
             return []
         }
 
         Binding binding = new Binding()
-        binding.setVariable('ext', [:])
+        def extMap = [:]
+        binding.setVariable('ext', { Closure closure ->
+            closure.delegate = extMap
+            closure.resolveStrategy = Closure.DELEGATE_FIRST
+            closure()
+        })
 
         GroovyShell shell = new GroovyShell(binding)
 
         shell.evaluate(depsFile)
 
-        def ext = binding.getVariable('ext')
-        def dependenciesList = ext.dependenciesListCOMPILATION ?: []
+        def dependenciesList = extMap.dependenciesListCOMPILATION ?: []
 
         if (!dependenciesList) {
             project.logger.error("Artifacts list is empty.")

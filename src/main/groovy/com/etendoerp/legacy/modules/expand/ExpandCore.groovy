@@ -41,7 +41,8 @@ class ExpandCore {
                         "$project.projectDir/web",
                         "$project.projectDir/WebContent",
                         "$project.projectDir/etendo.artifact.properties",
-                        "$project.projectDir/gradle.properties.template"
+                        "$project.projectDir/gradle.properties.template",
+                        "$project.projectDir/artifacts.list.COMPILATION.gradle"
                 ]
                 directoriesToDelete.each { dir ->
                     def directory = new File(dir)
