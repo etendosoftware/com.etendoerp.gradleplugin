@@ -7,6 +7,7 @@ import com.etendoerp.dependencies.DependenciesLoader
 import com.etendoerp.dependencymanager.DependencyManagerLoader
 import com.etendoerp.externaltasks.ExternalTasksLoader
 import com.etendoerp.jars.JarLoader
+import com.etendoerp.java.JavaCheckLoader
 import com.etendoerp.legacy.EtendoLegacy
 import com.etendoerp.legacy.ant.AntLoader
 import com.etendoerp.modules.ModulesConfigurationLoader
@@ -41,6 +42,7 @@ class EtendoPlugin implements Plugin<Project> {
             withSourcesJar()
         }
 
+        JavaCheckLoader.load(project)
         AntLoader.load(project)
         EtendoLegacy.load(project)
         DepsLoader.load(project)

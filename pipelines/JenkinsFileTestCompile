@@ -41,6 +41,9 @@ pipeline {
     COMMIT_FAILED_STATUS     = "failure"
 
     CONTEXT_BUILD = "Testing Compilation in JAR and Source Format"
+
+    JAVA_HOME           = "/usr/lib/jvm/jdk-17.0.13"
+
   }
 
   agent {
@@ -67,7 +70,7 @@ spec:
         type: ''
   containers:
     - name: compiler
-      image: etendo/compiler_jenkins:1.0.6
+      image: etendo/compiler_jenkins:1.0.7-jdk.17.0.13
       ports:
         - name: ssh
           containerPort: 22

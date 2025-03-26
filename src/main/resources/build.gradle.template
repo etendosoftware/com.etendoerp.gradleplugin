@@ -27,7 +27,7 @@ publishing {
     }
     repositories {
         maven {
-            url "${repository}"
+            url = "${repository}"
         }
     }
 }
@@ -35,16 +35,16 @@ publishing {
 repositories {
     mavenCentral()
     maven {
-        url "${repository}"
+        url = "${repository}"
     }
     maven {
-        url "https://repo.futit.cloud/repository/maven-releases"
+        url = "https://repo.futit.cloud/repository/maven-releases"
     }
     maven {
-        url "https://repo.futit.cloud/repository/maven-public-releases"
+        url = "https://repo.futit.cloud/repository/maven-public-releases"
     }
     maven {
-        url "https://repo.futit.cloud/repository/maven-public-jars"
+        url = "https://repo.futit.cloud/repository/maven-public-jars"
     }
 }
 

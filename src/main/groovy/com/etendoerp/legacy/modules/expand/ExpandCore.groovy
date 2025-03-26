@@ -18,6 +18,43 @@ class ExpandCore {
 
     static void load(Project project) {
 
+        project.tasks.register("cleanExpandCore") {
+            doLast {
+                def directoriesToDelete = [
+                        "$project.buildDir/classes",
+                        "$project.projectDir/config",
+                        "$project.projectDir/legal",
+                        "$project.projectDir/lib",
+                        "$project.projectDir/modules_core",
+                        "$project.projectDir/referencedata",
+                        "$project.projectDir/src",
+                        "$project.projectDir/srcAD",
+                        "$project.projectDir/src-core",
+                        "$project.projectDir/src-db",
+                        "$project.projectDir/src-core",
+                        "$project.projectDir/src-gen",
+                        "$project.projectDir/src-test",
+                        "$project.projectDir/src-trl",
+                        "$project.projectDir/src-util",
+                        "$project.projectDir/src-wad",
+                        "$project.projectDir/web",
+                        "$project.projectDir/WebContent",
+                        "$project.projectDir/etendo.artifact.properties",
+                        "$project.projectDir/gradle.properties.template",
+                        "$project.projectDir/artifacts.list.COMPILATION.gradle",
+                ]
+                directoriesToDelete.each { dir ->
+                    def directory = new File(dir)
+                    if (directory.exists()) {
+                        directory.deleteDir()
+                        project.logger.info( "Deleted directory: ${dir}")
+                    } else {
+                        project.logger.info("Directory not found, skipping: ${dir}")
+                    }
+                }
+            }
+        }
+
         project.tasks.register("cleanTempCoreDir", Delete) {
             delete({
                 project.tasks.findByName("expandCoreConfig").getTemporaryDir()

@@ -36,7 +36,7 @@ if (mode == DEV) {
 
 def urlToPublish = (mode == PROD) ? URL_PROD : URL_DEV
 
-group 'com.etendoerp'
+group = 'com.etendoerp'
 version(pluginVersion)
 
 repositories {
@@ -48,11 +48,11 @@ publishing {
         maven {
             credentials {
                 if (mode == PROD) {
-                    username "$githubUser"
-                    password "$githubToken"
+                    username = "$githubUser"
+                    password = "$githubToken"
                 } else {
-                    username "$nexusUser"
-                    password "$nexusPassword"
+                    username = "$nexusUser"
+                    password = "$nexusPassword"
                 }
             }
             url(urlToPublish)

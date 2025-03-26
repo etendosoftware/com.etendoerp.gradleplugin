@@ -86,6 +86,9 @@ class DependencyProcessor {
                 loadDependenciesFiles(false, false, true)
             }
             mavenDependenciesFiles.addAll(collectDependenciesFiles(this.dependencyContainer.mavenDependenciesFiles, applyDependenciesToMainProject))
+            mavenDependenciesFiles.addAll(
+                project.configurations.runtimeClasspath.collect { File f -> f }
+            )
         } else if (coreMetadata.coreType == CoreType.JAR) {
             // When the core is in JAR the Etendo core dependency will be already applied
             loadDependenciesFiles(false, performResolutionConflicts, false)
