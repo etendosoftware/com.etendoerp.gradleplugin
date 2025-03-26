@@ -12,6 +12,8 @@ def PROD   = "prod"
 final String URL_PROD = "https://maven.pkg.github.com/etendosoftware/com.etendoerp.gradleplugin"
 final String URL_DEV = "https://repo.futit.cloud/repository/maven-public-snapshots"
 final String PLUGIN_VERSION = "1.5.3"
+final String PUBLICATION_TYPE = "-rc"
+
 // Default mode
 def mode = DEV
 
@@ -44,6 +46,13 @@ repositories {
 }
 
 publishing {
+    publications {
+        pluginMaven(MavenPublication) {
+            groupId = group
+            version = pluginVersion
+            artifactId = 'gradleplugin' + PUBLICATION_TYPE
+        }
+    }
     repositories {
         maven {
             credentials {
@@ -164,7 +173,7 @@ task upgradePluginVersion() {
 gradlePlugin {
     plugins {
         etendoPlugin {
-            id = "com.etendoerp.gradleplugin"
+            id = "com.etendoerp.gradleplugin" + PUBLICATION_TYPE
             implementationClass = "com.etendoerp.EtendoPlugin"
         }
     }
