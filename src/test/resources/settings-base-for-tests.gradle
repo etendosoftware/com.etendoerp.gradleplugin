@@ -2,21 +2,21 @@ pluginManagement {
     repositories {
         gradlePluginPortal()
         maven {
-            url "https://repo.futit.cloud/repository/maven-public-snapshots"
+            url = "https://repo.futit.cloud/repository/maven-public-snapshots"
             credentials {
                 username = System.getProperty("nexusUser")
                 password = System.getProperty("nexusPassword")
             }
         }
         maven {
-            url 'https://repo.futit.cloud/repository/maven-releases'
+            url = 'https://repo.futit.cloud/repository/maven-releases'
             credentials {
                 username = System.getProperty("nexusUser")
                 password = System.getProperty("nexusPassword")
             }
         }
         maven {
-            url 'https://repo.futit.cloud/repository/maven-snapshots'
+            url = 'https://repo.futit.cloud/repository/maven-snapshots'
             credentials {
                 username = System.getProperty("nexusUser")
                 password = System.getProperty("nexusPassword")

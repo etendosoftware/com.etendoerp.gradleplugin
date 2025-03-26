@@ -61,13 +61,15 @@ class ModulesConfigurationUtils {
      * @param subprojectSubstitutions Map of the Source subproject used to substitute a Dependency. The key has to be in the 'group:artifact' notation.
      * @param becauseReason
      */
-    static void configureSubstitutions(Project mainProject, List<Configuration> configurations, Map<String, Project> subprojectSubstitutions, String becauseReason="") {
-        configurations.each {
-            it.resolutionStrategy.dependencySubstitution({dep ->
-                subprojectSubstitutions.each {
-                    dep.substitute(dep.module(it.key)).because(becauseReason).with(dep.project(it.value.path))
+    static void configureSubstitutions(Project mainProject, List<Configuration> configurations, Map<String, Project> subprojectSubstitutions, String becauseReason = "") {
+        configurations.each { configuration ->
+            configuration.resolutionStrategy.dependencySubstitution { dep ->
+                subprojectSubstitutions.each { key, project ->
+                    dep.substitute(dep.module(key))
+                            .because(becauseReason)
+                            .using(dep.project(project.path))
                 }
-            })
+            }
         }
     }
 

@@ -6,8 +6,8 @@ import com.etendoerp.dbdeps.DepsLoader
 import com.etendoerp.dependencies.DependenciesLoader
 import com.etendoerp.dependencymanager.DependencyManagerLoader
 import com.etendoerp.externaltasks.ExternalTasksLoader
-import com.etendoerp.jandex.JandexConfigLoader
 import com.etendoerp.jars.JarLoader
+import com.etendoerp.java.JavaCheckLoader
 import com.etendoerp.legacy.EtendoLegacy
 import com.etendoerp.legacy.ant.AntLoader
 import com.etendoerp.modules.ModulesConfigurationLoader
@@ -23,7 +23,7 @@ import com.etendoerp.publication.git.CloneDependencies
 
 class EtendoPlugin implements Plugin<Project> {
 
-    final static String PLUGIN_VERSION = "1.5.3"
+    final static String PLUGIN_VERSION = "2.0.0"
 
     @Override
     void apply(Project project) {
@@ -42,6 +42,7 @@ class EtendoPlugin implements Plugin<Project> {
             withSourcesJar()
         }
 
+        JavaCheckLoader.load(project)
         AntLoader.load(project)
         EtendoLegacy.load(project)
         DepsLoader.load(project)
@@ -50,7 +51,6 @@ class EtendoPlugin implements Plugin<Project> {
         ModulesConfigurationLoader.load(project)
         DependenciesLoader.load(project)
         CloneDependencies.load(project)
-        JandexConfigLoader.load(project)
         CssCompileLoader.load(project)
         UninstallModuleLoader.load(project)
         ExternalTasksLoader.load(project)

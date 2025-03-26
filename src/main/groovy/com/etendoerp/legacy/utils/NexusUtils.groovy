@@ -91,14 +91,14 @@ class NexusUtils {
 
         project.repositories {
             maven {
-                url "https://repo.futit.cloud/repository/maven-releases"
+                url = "https://repo.futit.cloud/repository/maven-releases"
                 credentials {
-                    username nexusUser
-                    password nexusPassword
+                    username = nexusUser
+                    password = nexusPassword
                 }
             }
             maven {
-                url "https://repo.futit.cloud/repository/maven-public-releases"
+                url = "https://repo.futit.cloud/repository/maven-public-releases"
             }
         }
     }
@@ -143,7 +143,7 @@ class NexusUtils {
             def repoCredentials = repository["credentials"] as PasswordCredentials
             project.repositories {
                 maven {
-                    url "${repoUrl}"
+                    url = "${repoUrl}"
                     if (repoCredentials.username && repoCredentials.password) {
                         credentials {
                             username = repoCredentials.username

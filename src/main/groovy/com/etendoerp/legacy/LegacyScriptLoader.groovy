@@ -83,7 +83,7 @@ class LegacyScriptLoader {
         project.sourceSets{
             main {
                 java {
-                    outputDir = project.file("${project.buildDir}/classes/")
+                    output.classesDirs = project.files("${project.buildDir}/classes")
                     srcDirs = ['build/javasqlc/src'] //clean the default sources directories.
                     srcDirs 'build/javasqlc/srcAD'
                     srcDirs 'src'
@@ -117,6 +117,10 @@ class LegacyScriptLoader {
             }
         }
 
+        project.tasks.named('compileJava') {
+            destinationDir = project.file("${project.buildDir}/classes")
+        }
+
         project.configurations {
             coreDep
             moduleDeps
@@ -143,20 +147,20 @@ class LegacyScriptLoader {
                 }
             }
             maven {
-                url 'https://repo.futit.cloud/repository/maven-public-releases'
+                url = 'https://repo.futit.cloud/repository/maven-public-releases'
             }
             maven {
-                url 'https://repo.futit.cloud/repository/maven-releases'
+                url = 'https://repo.futit.cloud/repository/maven-releases'
                 credentials {
                     username = project.ext.get("nexusUser")
                     password = project.ext.get("nexusPassword")
                 }
             }
             maven {
-                url 'https://repo.futit.cloud/repository/maven-public-jars'
+                url = 'https://repo.futit.cloud/repository/maven-public-jars'
             }
             maven {
-                url 'https://repo.futit.cloud/repository/etendo-public-jars'
+                url = 'https://repo.futit.cloud/repository/etendo-public-jars'
             }
         }
 
@@ -264,6 +268,7 @@ class LegacyScriptLoader {
 
         /** Copy backup.properties template */
         project.task("createBackupProperties", type: Copy) {
+            dependsOn "createOBProperties"
             outputs.upToDateWhen { return false }
             from project.file("config/backup.properties.template")
             into project.file("config")
@@ -281,6 +286,7 @@ class LegacyScriptLoader {
 
         /** Copy Openbravo.properties template */
         project.task("createOBProperties", type: Copy) {
+            dependsOn "createQuartzProperties"
             outputs.upToDateWhen { return false }
             from project.file("config/Openbravo.properties.template")
             into project.file("config")
@@ -418,12 +424,12 @@ class LegacyScriptLoader {
         project.publishing {
             publications {
                 mavenModule(MavenPublication) {
-                    version "0.1"
+                    version = "0.1"
                 }
             }
             repositories {
                 maven {
-                    url ""
+                    url = ""
                 }
             }
         }

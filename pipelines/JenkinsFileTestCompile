@@ -41,6 +41,9 @@ pipeline {
     COMMIT_FAILED_STATUS     = "failure"
 
     CONTEXT_BUILD = "Testing Compilation in JAR and Source Format"
+
+    JAVA_HOME           = "/usr/lib/jvm/jdk-17.0.13"
+
   }
 
   agent {
@@ -67,7 +70,7 @@ spec:
         type: ''
   containers:
     - name: compiler
-      image: etendo/compiler_jenkins:1.0.6
+      image: etendo/compiler_jenkins:1.0.7-jdk.17.0.13
       ports:
         - name: ssh
           containerPort: 22
@@ -141,7 +144,7 @@ spec:
 
               echo "--------------- Building Etendo JAR Environment ----------------"
               sh """
-              git clone ${ETENDO_BASE_URL}
+              git clone ${ETENDO_BASE_URL} --branch epic/ETP-1004 # TODO remove branch setting when the branch is merged
               cd ${ETENDO_DIR}
 
               echo "\n
@@ -181,9 +184,12 @@ spec:
 
               echo "---------------- Add dependencies ----------------"
               def dependencies = env.DEPENDENCIES_FOR_BASE.split(',')
+              /*
               def dependenciesBlock = dependencies.collect {
                   "moduleDeps(\"com.etendoerp:$it:latest.release@zip\") {transitive=true}"
               }.join('\n')
+              */
+              def dependenciesBlock = "" // TODO remove when branch is merged
 
               dependenciesBlock += "\nimplementation(\"com.etendoerp.platform:etendo-core:latest.release\")"
 
@@ -241,7 +247,7 @@ spec:
 
               echo "--------------- Building Etendo Source Environment ----------------"
               sh """
-              git clone ${ETENDO_BASE_URL}
+              git clone ${ETENDO_BASE_URL} --branch epic/ETP-1004 # TODO remove branch setting when the branch is merged 
               cd ${ETENDO_DIR}
 
               echo "\n
@@ -275,9 +281,12 @@ spec:
 
               echo "---------------- Add dependencies ----------------"
               def dependencies = env.DEPENDENCIES_FOR_BASE.split(',')
+              /*
               def dependenciesBlock = dependencies.collect {
                   "moduleDeps(\"com.etendoerp:$it:latest.release@zip\") {transitive=true}"
               }.join('\n')
+              */
+              def dependenciesBlock = "" // TODO remove when branch is merged
 
               def buildGradleContent = """
               dependencies {

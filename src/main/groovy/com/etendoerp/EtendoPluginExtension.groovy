@@ -8,7 +8,7 @@ class EtendoPluginExtension {
     String coreGroup = CoreMetadata.DEFAULT_ETENDO_CORE_GROUP
     String coreName = CoreMetadata.DEFAULT_ETENDO_CORE_NAME
 
-    boolean loadCompilationDependencies = false
+    boolean loadCompilationDependencies = true
     boolean loadTestDependencies = false
 
     /**

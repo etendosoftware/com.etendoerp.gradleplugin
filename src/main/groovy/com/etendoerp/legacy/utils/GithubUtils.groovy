@@ -2,10 +2,10 @@ package com.etendoerp.legacy.utils
 
 import org.gradle.api.Project
 import org.gradle.api.artifacts.repositories.PasswordCredentials
-import org.gradle.api.component.Artifact
 import org.gradle.api.internal.tasks.userinput.NonInteractiveUserInputHandler
 import org.gradle.api.internal.tasks.userinput.UserInputHandler
 import org.gradle.api.artifacts.repositories.ArtifactRepository
+import org.gradle.api.internal.tasks.userinput.UserQuestions
 
 class GithubUtils {
 
@@ -26,19 +26,21 @@ class GithubUtils {
      */
 
     static String FUTIT_REPO_HOST = "repo.futit.cloud"
+    static String PROVIDER = "GitHub"
 
     static askCredentials(Project project) {
 
         def (githubUser, githubToken) = getCredentials(project)
 
         if (!githubUser || !githubToken) {
-            def input = project.getServices().get(UserInputHandler.class)
-            githubUser = project.getServices().get(UserInputHandler.class).askQuestion("GitHub user", "")
-            githubToken = project.getServices().get(UserInputHandler.class).askQuestion("GitHub Token", "")
+            UserInputHandler input = project.getServices().get UserInputHandler
             if (!(input instanceof NonInteractiveUserInputHandler)) {
-                // Do not send prompt when using an non interactive console.
-                // Avoids a failure when refreshing gradle projects that use this function, in IntelliJ or other IDEs
-                input.sendPrompt("\033[F\r" + "GitHub Token (default: ): **************************************** \n")
+                githubUser = input.askUser { UserQuestions userQuestion ->
+                    return userQuestion.askQuestion(PROVIDER + " User", "")
+                }.get()
+                githubToken = input.askUser { UserQuestions userQuestion ->
+                    return userQuestion.askQuestion(PROVIDER + " Token", "")
+                }.get()
             }
         }
 
@@ -51,11 +53,11 @@ class GithubUtils {
 
         project.repositories {
             maven {
-                url "https://repo.futit.cloud/repository/maven-releases"
+                url = "https://repo.futit.cloud/repository/maven-releases"
 
             }
             maven {
-                url "https://repo.futit.cloud/repository/maven-public-releases"
+                url = "https://repo.futit.cloud/repository/maven-public-releases"
             }
         }
     }
@@ -100,7 +102,7 @@ class GithubUtils {
             def repoCredentials = repository["credentials"] as PasswordCredentials
             project.repositories {
                 maven {
-                    url "${repoUrl}"
+                    url = "${repoUrl}"
                     if (repoCredentials.username && repoCredentials.password) {
                         credentials {
                             username = repoCredentials.username
