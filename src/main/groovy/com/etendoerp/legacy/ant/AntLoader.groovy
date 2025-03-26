@@ -1,10 +1,10 @@
 package com.etendoerp.legacy.ant
 
 import com.etendoerp.core.CoreMetadata
-import com.etendoerp.core.CoreStatus
 import com.etendoerp.core.CoreType
 import com.etendoerp.jars.JarCoreGenerator
 import com.etendoerp.jars.modules.metadata.DependencyUtils
+import com.etendoerp.java.JavaCheckLoader
 import com.etendoerp.legacy.ant.compilejava.CompileJavaLoader
 import org.gradle.api.GradleException
 import org.gradle.api.Project
@@ -180,7 +180,10 @@ class AntLoader {
         if (antInitTask != null && compileJavaDummy != null) {
             antInitTask.dependsOn(compileJavaDummy)
         }
-
+        def javaCheckTask = project.tasks.findByName(JavaCheckLoader.TASK_NAME)
+        if (antInitTask != null && javaCheckTask != null) {
+            antInitTask.dependsOn(javaCheckTask)
+        }
         /** Call ant setup to prepare environment */
         project.task("setup") {
             ant.properties['nonInteractive'] = true
