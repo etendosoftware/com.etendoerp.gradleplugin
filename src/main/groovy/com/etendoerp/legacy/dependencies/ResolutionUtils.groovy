@@ -40,6 +40,7 @@ class ResolutionUtils {
     ]
     public static final String MODULES_PROJECT = "modules"
     public static final String DEPENDENCY_MANAGER_PKG = "com.etendoerp.dependencymanager"
+    public static final String DEPENDENCY_MANAGER_ID = "'2EC4FFAFFE984592BA9859A8C9E25BF0'"
 
     /**
      * Obtains the incoming dependencies and performs the resolution versions conflicts.
@@ -161,7 +162,8 @@ class ResolutionUtils {
             return false
         }
         try {
-            def result = databaseConnection.executeSelectQuery("SELECT COUNT(*) AS count FROM etdep_dependency WHERE artifact = 'dependencymanager'")
+            def result = databaseConnection.executeSelectQuery(
+                    "SELECT COUNT(*) AS count FROM ad_module where ad_module_id = ?", [DEPENDENCY_MANAGER_ID])
             if (result && result[0]?.count > 0) {
                 return true
             }
