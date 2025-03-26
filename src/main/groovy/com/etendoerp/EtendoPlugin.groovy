@@ -23,7 +23,7 @@ import com.etendoerp.publication.git.CloneDependencies
 
 class EtendoPlugin implements Plugin<Project> {
 
-    final static String PLUGIN_VERSION = "1.5.3"
+    final static String PLUGIN_VERSION = "2.0.0"
 
     @Override
     void apply(Project project) {
