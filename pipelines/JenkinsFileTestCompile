@@ -144,7 +144,8 @@ spec:
               git clone ${ETENDO_BASE_URL} --branch epic/ETP-1004 # TODO remove branch setting when the branch is merged
               cd ${ETENDO_DIR}
 
-              echo -e "context.name=${CONTEXT_NAME}
+              echo "\n
+              context.name=${CONTEXT_NAME}
               bbdd.sid=${BBDD_SID}
               bbdd.port=${BBDD_PORT}
               bbdd.systemUser=${BBDD_SYSTEMUSER}
@@ -246,7 +247,8 @@ spec:
               git clone ${ETENDO_BASE_URL} --branch epic/ETP-1004 # TODO remove branch setting when the branch is merged 
               cd ${ETENDO_DIR}
 
-              echo -e "context.name=${CONTEXT_NAME}
+              echo "\n
+              context.name=${CONTEXT_NAME}
               bbdd.sid=${BBDD_SID2}
               bbdd.port=${BBDD_PORT}
               bbdd.systemUser=${BBDD_SYSTEMUSER}
