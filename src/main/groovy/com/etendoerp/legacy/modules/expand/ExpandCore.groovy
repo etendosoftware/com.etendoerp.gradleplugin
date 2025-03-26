@@ -19,7 +19,6 @@ class ExpandCore {
     static void load(Project project) {
 
         project.tasks.register("cleanExpandCore") {
-
             doLast {
                 def directoriesToDelete = [
                         "$project.buildDir/classes",
@@ -41,15 +40,16 @@ class ExpandCore {
                         "$project.projectDir/web",
                         "$project.projectDir/WebContent",
                         "$project.projectDir/etendo.artifact.properties",
-                        "$project.projectDir/gradle.properties.template"
+                        "$project.projectDir/gradle.properties.template",
+                        "$project.projectDir/artifacts.list.COMPILATION.gradle",
                 ]
                 directoriesToDelete.each { dir ->
                     def directory = new File(dir)
                     if (directory.exists()) {
                         directory.deleteDir()
-                        println "Deleted directory: $dir"
+                        project.logger.info( "Deleted directory: ${dir}")
                     } else {
-                        println "Directory not found, skipping: $dir"
+                        project.logger.info("Directory not found, skipping: ${dir}")
                     }
                 }
             }

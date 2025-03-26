@@ -16,23 +16,49 @@ class EtendoCoreDependencies {
         project.repositories {
             mavenCentral()
             maven {
-                url 'https://repo.futit.cloud/repository/etendo-public-jars'
+                url = 'https://repo.futit.cloud/repository/etendo-public-jars'
                 credentials {
-                    username "${nexusUser}"
-                    password "${nexusPassword}"
+                    username = "${nexusUser}"
+                    password = "${nexusPassword}"
                 }
             }
         }
 
         // Listing only resolved artifacts.
-        // Load from $projectDir/artifacts.list.COMPILATION.gradle
-
-
+        def dependenciesList = loadDependenciesFromFile(project)
         project.dependencies {
-            ext.dependenciesListCOMPILATION.each { dependency ->
-                implementation dependency
+            dependenciesList.each { dependency ->
+                implementation (dependency) { transitive = false }
             }
         }
+    }
+
+    static List<String> loadDependenciesFromFile(Project project) {
+        File depsFile = project.file('artifacts.list.COMPILATION.gradle')
+        if (!depsFile.exists()) {
+            project.logger.error("The file ${depsFile.path} does not exist.")
+            return []
+        }
+
+        Binding binding = new Binding()
+        def extMap = [:]
+        binding.setVariable'ext', { Closure closure ->
+            closure.delegate = extMap
+            closure.resolveStrategy = Closure.DELEGATE_FIRST
+            closure()
+        }
+
+        GroovyShell shell = new GroovyShell(binding)
+
+        shell.evaluate(depsFile)
+
+        def dependenciesList = extMap.dependenciesListCOMPILATION ?: []
+
+        if (!dependenciesList) {
+            project.logger.error("Artifacts list is empty.")
+        }
+
+        return dependenciesList
     }
 
     static void loadCoreTestDependencies(Project project) {
@@ -46,10 +72,10 @@ class EtendoCoreDependencies {
         project.repositories {
             mavenCentral()
             maven {
-                url 'https://repo.futit.cloud/repository/etendo-public-jars'
+                url = 'https://repo.futit.cloud/repository/etendo-public-jars'
                 credentials {
-                    username "${nexusUser}"
-                    password "${nexusPassword}"
+                    username = "${nexusUser}"
+                    password = "${nexusPassword}"
                 }
             }
         }

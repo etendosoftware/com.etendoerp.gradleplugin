@@ -53,11 +53,11 @@ class GithubUtils {
 
         project.repositories {
             maven {
-                url "https://repo.futit.cloud/repository/maven-releases"
+                url = "https://repo.futit.cloud/repository/maven-releases"
 
             }
             maven {
-                url "https://repo.futit.cloud/repository/maven-public-releases"
+                url = "https://repo.futit.cloud/repository/maven-public-releases"
             }
         }
     }
@@ -102,7 +102,7 @@ class GithubUtils {
             def repoCredentials = repository["credentials"] as PasswordCredentials
             project.repositories {
                 maven {
-                    url "${repoUrl}"
+                    url = "${repoUrl}"
                     if (repoCredentials.username && repoCredentials.password) {
                         credentials {
                             username = repoCredentials.username
