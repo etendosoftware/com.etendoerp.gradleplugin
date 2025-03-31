@@ -112,7 +112,6 @@ class SyncDepsLoader {
                 try {
                     // Start a transaction
                     connection.setAutoCommit(false)
-                    connection.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED)
                     // For each dependency in the file, check it against the database and update the database if necessary
                     for (Dep dep : depsInFile) {
                         def result = databaseConnection.executeSelectQuery(connection, "select * from etdep_dependency where depgroup = ? and artifact = ?", [dep.group, dep.artifact])

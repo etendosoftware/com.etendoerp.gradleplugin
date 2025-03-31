@@ -49,10 +49,10 @@ class DatabaseConnection {
 
     static String getValidationQuery(DatabaseProperties databaseProperties) {
         // Default POSTGRE query
-        String query = "select 1;"
+        String query = "select 1"
 
         if (databaseProperties.databaseType == DatabaseType.ORACLE) {
-            query = "select 1 from dual;"
+            query = "select 1 from dual"
         }
         return query
     }
