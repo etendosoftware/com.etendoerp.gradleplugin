@@ -27,7 +27,7 @@ static def gitBranch() {
     branch
 }
 
-if (MAIN == gitBranch()) {
+if (MAIN == gitBranch() || gitBranch().startsWith("release/") ) {
     mode = PROD
 }
 if (mode == DEV) {
