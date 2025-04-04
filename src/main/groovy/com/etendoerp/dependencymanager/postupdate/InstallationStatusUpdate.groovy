@@ -113,7 +113,7 @@ class InstallationStatusUpdate {
         List<String> dependencyList = new ArrayList<>()
         String sqlQuery = """
             SELECT DEP.ETDEP_DEPENDENCY_ID FROM ETDEP_DEPENDENCY DEP
-            JOIN AD_MODULE MOD ON (MOD.JAVAPACKAGE = CONCAT(DEP.DEPGROUP, '.', DEP.ARTIFACT)
+            JOIN AD_MODULE MOD ON (MOD.JAVAPACKAGE = DEP.DEPGROUP || '.' || DEP.ARTIFACT
                 AND MOD.VERSION = DEP.VERSION)
             WHERE DEP.INSTALLATION_STATUS = 'PENDING'
             UNION
