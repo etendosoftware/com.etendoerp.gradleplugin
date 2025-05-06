@@ -1,74 +1,181 @@
+def updateCommitStatus(repositoryName, status, description, accessToken, gitCommit, buildUrl, contextBuild) {
+  sh "./pipelines/utils/build-update.sh ${repositoryName} ${status} \"${description}\" ${accessToken} ${gitCommit} ${buildUrl} \"${contextBuild}\""
+}
+
 pipeline {
-
-    agent {
-        label 'etendo_core' //The id of the slave/agent where the build should be executed, if it doesn't matter use "agent any" instead.
-    }
-
     environment {
         CONTEXT_NAME    = 'etendo'
         BBDD_SID        = 'etendo'
-        BBDD_PORT       = '5432'
+        BBDD_PORT       = '5433'
         BBDD_SYSTEMUSER = 'postgres'
         BBDD_SYSTEMPASS = 'syspass'
         BBDD_USER       = 'tad'
-        BBDD_PASSWORD    = 'tad'
+        BBDD_PASSWORD   = 'tad'
         NEXUS_USER      =  credentials('nexus-admin-user')
         NEXUS_PASSWORD  =  credentials('nexus-admin-passwd')
-        JAVA_HOME       = '/usr/lib/jvm/java-11-openjdk-amd64'
+        GITHUB_USER     = "etendobot"
+        GITHUB_TOKEN    = credentials('github-read-package-token')
+
+        REPOSITORY_NAME = 'com.etendoerp.gradleplugin'
+        ACCESS_TOKEN = credentials('access_token_github')
+        PLUGIN_URL      = " https://github.com/etendosoftware/com.etendoerp.gradleplugin.git"
+
+        JAVA_HOME        = '/usr/lib/jvm/java-11-openjdk-amd64'
+        POSTGRES_VERSION = '14'
+
+        SUCCESS = 'SUCCESS'
+        FAILED = 'FAILED'
+        UNSTABLE = 'UNSTABLE'
+
+        COMMIT_INPROGRESS_STATUS = 'pending'
+        COMMIT_SUCCESS_STATUS    = 'success'
+        COMMIT_FAILED_STATUS     = 'failure'
+
+        CONTEXT_BUILD = "Plugin Tests"
+
+    }
+
+    agent {
+        kubernetes {
+            inheritFrom 'jenkins-node-tests'
+            defaultContainer 'jnlp'
+            yaml """
+apiVersion: v1
+kind: Pod
+metadata:
+  name: jenkins-node-tests-0
+  namespace: jenkins2025
+  labels:
+    app.kubernetes.io/name: jenkins-node-tests
+spec:
+  volumes:
+    - name: rsa-keys
+      configMap:
+        name: rsa-keys
+        defaultMode: 384
+    - name: docker-sock
+      hostPath:
+        path: /var/run/docker.sock
+        type: ''
+  containers:
+    - name: compiler
+      image: etendo/compiler_jenkins:1.0.7
+      ports:
+        - name: ssh
+          containerPort: 22
+          protocol: TCP
+        - name: visualvm
+          containerPort: 8000
+          protocol: TCP
+      resources:
+        requests:
+          cpu: 1072m
+          memory: 4000Mi
+        limits:
+          cpu: 2072m
+          memory: 6500Mi
+      volumeMounts:
+        - name: rsa-keys
+          mountPath: /root/.ssh/
+        - name: docker-sock
+          mountPath: /var/run/docker.sock
+      lifecycle:
+        postStart:
+          exec:
+            command:
+              - bash
+              - '-c'
+              - >-
+                chmod a+x /var/run/docker.sock && rm
+                /etc/apt/sources.list.d/pgdg.list || echo 0 && apt update && apt
+                install -y curl
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      imagePullPolicy: IfNotPresent
+    - name: postgres
+      image: postgres:14
+      workingDir: /home/jenkins
+      env:
+        - name: POSTGRES_PASSWORD
+          value: syspass
+      resources:
+        requests:
+          cpu: 1000m
+          memory: 1000Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      imagePullPolicy: IfNotPresent
+  restartPolicy: Always
+  terminationGracePeriodSeconds: 30
+  dnsPolicy: ClusterFirst
+  serviceAccountName: default
+  serviceAccount: default
+  securityContext: {}
+  """
+        }
     }
 
     stages {
         stage('Run Tests') {
-            steps { //Checking out the repo
-                script {
-                    withCredentials([usernamePassword(credentialsId: "koodu_credentials", passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
-                        try{
-                            sh "printenv"
-                            sh "chmod a+x ./pipelines/build-update.sh"
-                            sh "./pipelines/build-update.sh etendo_gradle_plugin INPROGRESS 'Starting build'"
-                            sh "./gradlew --version --info" //run a gradle task
-                            sh """
-                            echo -e "
-                            nexusUser=${NEXUS_USER}\n
-                            nexusPassword=${NEXUS_PASSWORD}\n
-                            test.bbdd.url=jdbc:postgresql://localhost:5432\n
-                            test.bbdd.sid=${BBDD_SID}\n
-                            test.bbdd.systemUser=${BBDD_SYSTEMUSER}\n
-                            test.bbdd.systemPassword=${BBDD_SYSTEMPASS}\n
-                            test.bbdd.user=${BBDD_USER}\n
-                            test.bbdd.password=${BBDD_PASSWORD}\n
-                            org.gradle.daemon=false\n
-                            org.gradle.jvmargs=-Xmx2g -XX:MaxPermSize=1024m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8" > ./gradle.properties
-                            """
-                            sh "./gradlew test --info" //run a gradle task
-                            currentBuild.result = 'SUCCESS'
-                            sh "./pipelines/build-update.sh etendo_gradle_plugin SUCCESSFUL 'Build successful' $GIT_USERNAME $GIT_PASSWORD"
+            steps {
+                container('compiler') {
+                    script {
+                        withCredentials([sshUserPrivateKey(credentialsId: 'my-credentials', keyFileVariable: 'keyfile')]) {
+                            try {
+                                echo "--------------- Printenv ---------------"
+                                sh 'printenv'
 
-                            publishHTML([
-                                allowMissing: true,
-                                alwaysLinkToLastBuild: false,
-                                keepAll: true,
-                                reportDir: 'build/spock-reports/',
-                                reportFiles: '*.html',
-                                reportName: 'TESTS REPORT',
-                                reportTitles: ''
-                            ])
+                                def rootDir = pwd()
+                                def infoCommit = load "${rootDir}/pipelines/utils/infoCommits.groovy"
 
-                        } catch (Exception e) {
-                           echo 'Exception occurred: ' + e.toString()
-                           sh "./pipelines/build-update.sh etendo_gradle_plugin FAILED 'Build failed'"
-                           echo '....FAILED TESTS....'
-                           currentBuild.result = 'UNSTABLE'
-                           unstable('Failed Plugin Tests')
-                           publishHTML([
-                               allowMissing: false,
-                               alwaysLinkToLastBuild: false,
-                               keepAll: true,
-                               reportDir: 'build/spock-reports/',
-                               reportFiles: '*.html',
-                               reportName: 'TESTS REPORT',
-                               reportTitles: ''
-                           ])
+                                sh "GIT_SSH_COMMAND=\"ssh -i ${keyfile} -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\"\" git clone ${GIT_URL} ${REPOSITORY_NAME}"
+                                dir(REPOSITORY_NAME) {
+                                    sh "git checkout ${GIT_COMMIT}"
+                                    def description = "--------------- Build Environment ---------------"
+                                    echo "--------------- ${description} ---------------"
+                                    updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, description, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+                                    sh """
+                                    echo -e "
+                                    nexusUser=${NEXUS_USER}
+                                    nexusPassword=${NEXUS_PASSWORD}
+                                    githubUser=${GITHUB_USER}
+                                    githubToken=${GITHUB_TOKEN}
+                                    test.bbdd.driver=org.postgresql.Driver
+                                    test.bbdd.url=jdbc:postgresql://localhost:${BBDD_PORT}
+                                    test.bbdd.sid=${BBDD_SID}
+                                    test.bbdd.systemUser=${BBDD_SYSTEMUSER}
+                                    test.bbdd.systemPassword=${BBDD_SYSTEMPASS}
+                                    test.bbdd.user=${BBDD_USER}
+                                    test.bbdd.password=${BBDD_PASSWORD}
+                                    org.gradle.daemon=false
+                                    org.gradle.jvmargs=-Dfile.encoding=UTF-8
+                                    etendoCoreRepo=https://repo.futit.cloud/repository/etendo-resolution-test/
+                                    etendoCoreName=etendo-core
+                                    etendoCoreVersion=24.4.9.1743105411" > ./gradle.properties
+                                    """
+                                    description = "Running Tests"
+                                    echo "--------------- ${description} ---------------"
+                                    updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, description, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+                                    sh "./gradlew test --info"
+                                }
+                                currentBuild.result = SUCCESS
+                            } catch (Exception e) {
+                                echo 'Exception occurred: ' + e.toString()
+                                description = "Failed Tests"
+                                echo "--------------- ${description} ---------------"
+                                currentBuild.result = UNSTABLE
+                                unstable(description)
+                            } finally {
+                                publishHTML([
+                                    allowMissing: false,
+                                    alwaysLinkToLastBuild: false,
+                                    keepAll: true,
+                                    reportDir: 'build/spock-reports/',
+                                    reportFiles: '*.html',
+                                    reportName: 'PLUGIN TESTS REPORT',
+                                    reportTitles: ''
+                                ])
+                            }
                         }
                     }
                 }
@@ -78,20 +185,38 @@ pipeline {
             when {
                 branch 'develop'
                 expression {
-                    currentBuild.result == 'SUCCESS'
+                    currentBuild.result == SUCCESS
                 }
             }
             steps {
-                withCredentials([sshUserPrivateKey(credentialsId: 'my-credentials', keyFileVariable: 'keyfile')]) {
-                    withCredentials([usernamePassword(credentialsId: "koodu_credentials", passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
-                        sh """
-                        git config user.name "$GIT_USERNAME"
-                        git config user.email "$GIT_USERNAME"
-                        """
-                        sh "echo version.ts=\$(date +\"%s\") > version.properties"
-                        sh "./gradlew publish --info"
-                        sh "git tag \"v\$(grep version.ts version.properties|cut -c 11-)\" -m \"Release SNAPSHOT \$(grep version.tag version.properties|cut -c 13-)\""
-                        sh "GIT_SSH_COMMAND=\"ssh -i ${keyfile}\" git push $GIT_URL \"v\$(grep version.ts version.properties|cut -c 11-)\""
+                container('compiler') {
+                    script {
+                        try {
+                            withCredentials([sshUserPrivateKey(credentialsId: 'my-credentials', keyFileVariable: 'keyfile')]) {
+                                withCredentials([usernamePassword(credentialsId: "etendo_bot_credentials", passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
+                                    description = "Running Deploy Snapshot"
+                                    updateCommitStatus(REPOSITORY_NAME, COMMIT_FAILED_STATUS, description, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+                                    dir(REPOSITORY_NAME) {
+                                        echo "--------------- ${description} ---------------"
+                                        sh """
+                                        git config user.name "${GIT_USERNAME}"
+                                        git config user.email "${GIT_USERNAME}"
+                                        """
+                                        sh "echo version.ts=\$(TZ=America/Argentina/Buenos_Aires date +\"%Y%m%d-%H%M%S\") > version.properties"
+                                        sh "./gradlew publish --info"
+                                        sh "git tag \"v\$(grep version.ts version.properties | cut -d= -f2)\" -m \"Release SNAPSHOT \$(grep version.tag version.properties | cut -d= -f2)\""
+                                        sh "GIT_SSH_COMMAND=\"ssh -i ${keyfile}\" git push ${GIT_URL} \"v\$(grep version.ts version.properties | cut -d= -f2)\""
+                                    }
+                                }
+                            }
+                        } catch (Exception e) {
+                            echo 'Exception occurred: ' + e.toString()
+                            echo '....FAILED DEPLOY SNAPSHOT....'
+                            currentBuild.result = FAILED
+                            description = "Failed Deploy Snapshot"
+                            echo "--------------- ${description} ---------------"
+                            unstable('Failed Deploy Snapshot')
+                        }
                     }
                 }
             }
@@ -99,8 +224,72 @@ pipeline {
     }
 
     post {
-        always {
-            cleanWs deleteDirs: true
+        success {
+            script {
+                echo "---------------- DONE ----------------"
+                description = "Plugin Tests Successful"
+                updateCommitStatus(REPOSITORY_NAME, COMMIT_SUCCESS_STATUS, description, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+            }
+        }
+        unstable {
+            script {
+                updateCommitStatus(REPOSITORY_NAME, COMMIT_FAILED_STATUS, description, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+            }
+            mail to: EMAIL_ADDRESS,
+                subject: "⚠️ ${description} - ${currentBuild.fullDisplayName}",
+                mimeType: "text/html",
+                body:  """
+                    <html>
+                    <head>
+                        <style>
+                            body { font-family: 'Arial', sans-serif; }
+                            .header { font-size: 16px; font-weight: bold; color: #333; }
+                        </style>
+                    </head>
+                    <body>
+                        <p>__________________________________________________________</p>
+
+                        <h2 class="header">⚠️ ${description} ⚠️</h2>
+
+                        ${env.COMMIT_INFO_TEMPLATE}
+
+                        <p>To more information on the failing run visit: ${env.BUILD_URL}</p>
+
+                        <p class="footer"><em>Best regards,<br>#EtendoBot 🤖</em></p>
+                        <p>__________________________________________________________</p>
+                    </body>
+                    </html>
+                """
+        }
+        failure {
+            script {
+                updateCommitStatus(REPOSITORY_NAME, COMMIT_FAILED_STATUS, description, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+            }
+            mail to: EMAIL_ADDRESS,
+                subject: "🚫 ${description} - ${currentBuild.fullDisplayName}",
+                mimeType: "text/html",
+                body:  """
+                    <html>
+                    <head>
+                        <style>
+                            body { font-family: 'Arial', sans-serif; }
+                            .header { font-size: 16px; font-weight: bold; color: #333; }
+                        </style>
+                    </head>
+                    <body>
+                        <p>__________________________________________________________</p>
+
+                        <h2 class="header">🚫 ${description} 🚫</h2>
+
+                        ${env.COMMIT_INFO_TEMPLATE}
+
+                        <p>To more information on the failing run visit: ${env.BUILD_URL}</p>
+
+                        <p class="footer"><em>Best regards,<br>#EtendoBot 🤖</em></p>
+                        <p>__________________________________________________________</p>
+                    </body>
+                    </html>
+                """
         }
     }
 }

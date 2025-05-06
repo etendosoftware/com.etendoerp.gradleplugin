@@ -41,6 +41,16 @@ version(pluginVersion)
 
 repositories {
     mavenCentral()
+    repositories {
+        mavenCentral()
+        maven {
+            url = 'https://maven.pkg.github.com/etendosoftware/com.etendoerp.public.jars'
+            credentials {
+                username = "${githubUser}"
+                password = "${githubToken}"
+            }
+        }
+    }
 }
 
 publishing {
@@ -87,7 +97,10 @@ dependencies {
     testImplementation platform("org.spockframework:spock-bom:2.0-M4-groovy-3.0")
     testImplementation 'org.spockframework:spock-core'
     testImplementation 'org.spockframework:spock-junit4'
-    testImplementation 'junit:junit:4.13.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.9.2'
+    testImplementation 'org.junit.platform:junit-platform-suite-api:1.9.2'
+    testImplementation 'org.junit.platform:junit-platform-suite-engine:1.9.2'
     testImplementation( "com.athaydes:spock-reports:2.0-groovy-3.0" ) {
         transitive = false // this avoids affecting your version of Groovy/Spock
     }
@@ -110,7 +123,10 @@ test {
     systemProperty 'test.bbdd.user', project['test.bbdd.systemUser']
     systemProperty 'test.bbdd.password', project['test.bbdd.systemPassword']
     systemProperty 'test.bbdd.url', project['test.bbdd.url']
-    systemProperty 'org.gradle.jvmargs', '-Xmx2g -XX:MaxPermSize=512m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8'
+    systemProperty 'org.gradle.jvmargs', '-Dfile.encoding=UTF-8'
+    systemProperty 'etendoCoreRepo', project.property('etendoCoreRepo')
+    systemProperty 'etendoCoreName', project.property('etendoCoreName')
+    systemProperty 'etendoCoreVersion', project.property('etendoCoreVersion')
     environment 'JAVA_HOME', System.getenv('JAVA_HOME')
 
     maxHeapSize = "2048m"
@@ -170,5 +186,5 @@ gradlePlugin {
     }
 }
 
-test.onlyIf { false }
+test.onlyIf { true }
 

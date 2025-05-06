@@ -5,17 +5,17 @@ import org.gradle.testkit.runner.TaskOutcome
 import org.gradle.testkit.runner.UnexpectedBuildFailure
 
 
-abstract class EtendoCoreResolutionSpecificationTest extends EtendoSpecification{
+abstract class EtendoCoreResolutionSpecificationTest extends EtendoSpecification {
 
     public final static String ETENDO_CORE_GROUP   = "com.etendoerp.platform"
-    public final static String ETENDO_CORE_NAME    = "etendo-core"
+    public final static String ETENDO_CORE_NAME    = System.getProperty("etendoCoreName")
     public final static String ETENDO_CORE_VERSION = "[1.0.0,)"
-    public final static String ETENDO_CORE_REPO    = "https://repo.futit.cloud/repository/etendo-resolution-test/"
+    public final static String ETENDO_CORE_REPO    = System.getProperty("etendoCoreRepo")
 
     public final static String CORE = "${ETENDO_CORE_GROUP}:${ETENDO_CORE_NAME}:${ETENDO_CORE_VERSION}"
 
-    public final static String ETENDO_22q1_VERSION = "[22.1.+, 22.2.0)"
-    public final static String ETENDO_LATEST_SNAPSHOT = "22.2.0-SNAPSHOT"
+    public final static String ETENDO_LATEST_SNAPSHOT = System.getProperty("etendoCoreVersion") + "-SNAPSHOT"
+
 
 
     String getCore() {

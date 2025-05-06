@@ -79,6 +79,10 @@ abstract class EtendoSpecification extends Specification implements EtendoSpecif
         bbdd.systemPassword=${System.getProperty('test.bbdd.systemPassword')}
         bbdd.user=${System.getProperty('test.bbdd.user')}
         bbdd.password=${System.getProperty('test.bbdd.password')}
+        githubUser=${System.getenv('GITHUB_USER') ?: System.getProperty('githubUser')}
+        githubToken=${System.getenv('GITHUB_TOKEN') ?: System.getProperty('githubToken')}
+        nexusUser=${System.getProperty('nexusUser')}
+        nexusPassword=${System.getProperty('nexusPassword')}
         """
 
         def pluginPath = "com.etendoerp.gradleplugin"
@@ -86,6 +90,8 @@ abstract class EtendoSpecification extends Specification implements EtendoSpecif
         args.put("pluginPath", pluginPath)
         args.put("nexusUser", System.getProperty("nexusUser"))
         args.put("nexusPassword", System.getProperty("nexusPassword"))
+        args.put("githubUser", System.getenv("GITHUB_USER") ?: System.getProperty("githubUser"))
+        args.put("githubToken", System.getenv("GITHUB_TOKEN") ?: System.getProperty("githubToken"))
     }
 
     /**
@@ -198,8 +204,9 @@ abstract class EtendoSpecification extends Specification implements EtendoSpecif
 
         return GradleRunner
                 .create()
+                .withDebug(true)
                 .forwardOutput()
-                .withProjectDir(getProjectDir())
+                .withProjectDir(this.getProjectDir())
                 .withArguments(allArgs)
                 .withPluginClasspath()
                 .build()

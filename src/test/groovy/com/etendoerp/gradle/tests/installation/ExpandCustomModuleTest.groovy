@@ -33,7 +33,7 @@ class ExpandCustomModuleTest extends EtendoSpecification {
         }
         """
         when: "The users runs the expandCustomModule task passing by command line the module to expand"
-        def expandCustomModuleTaskResult = runTask(":expandCustomModule","-Ppkg=${moduleSourceGroup}.${moduleSourceName}","-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
+        def expandCustomModuleTaskResult = runTask(":expandCustomModule","-Ppkg=${moduleSourceGroup}.${moduleSourceName}","-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}", "-DgithubUser=${args.get("githubUser")}", "-DgithubToken=${args.get("githubToken")}")
 
         then: "The task will finish successfully"
         expandCustomModuleTaskResult.task(":expandCustomModule").outcome == TaskOutcome.SUCCESS

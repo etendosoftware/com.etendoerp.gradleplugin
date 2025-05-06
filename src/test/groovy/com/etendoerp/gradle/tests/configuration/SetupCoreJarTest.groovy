@@ -59,7 +59,7 @@ class SetupCoreJarTest extends EtendoCoreResolutionSpecificationTest {
 
         assert openbravoProps.text.contains("bbdd.rdbms=POSTGRE")
         assert openbravoProps.text.contains("bbdd.driver=org.postgresql.Driver")
-        assert openbravoProps.text.contains("bbdd.url=jdbc:postgresql://localhost\\:5432")
+        assert openbravoProps.text.contains("bbdd.url=jdbc:postgresql://localhost\\:5433")
     }
 
 }
