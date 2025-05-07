@@ -6,7 +6,7 @@ pipeline {
     environment {
         CONTEXT_NAME    = 'etendo'
         BBDD_SID        = 'etendo'
-        BBDD_PORT       = '5433'
+        BBDD_PORT       = '5432'
         BBDD_SYSTEMUSER = 'postgres'
         BBDD_SYSTEMPASS = 'syspass'
         BBDD_USER       = 'tad'
@@ -170,7 +170,7 @@ spec:
                                     allowMissing: false,
                                     alwaysLinkToLastBuild: false,
                                     keepAll: true,
-                                    reportDir: 'build/spock-reports/',
+                                    reportDir: "${REPOSITORY_NAME}/build/spock-reports/",
                                     reportFiles: '*.html',
                                     reportName: 'PLUGIN TESTS REPORT',
                                     reportTitles: ''

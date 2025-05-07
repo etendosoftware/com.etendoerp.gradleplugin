@@ -58,7 +58,7 @@ class PrepareConfigJarTest extends EtendoCoreResolutionSpecificationTest {
             props.getProperty("bbdd.password") == "tad"
             props.getProperty("source.path") == testProjectDir.absolutePath
             props.getProperty("attach.path") == "${testProjectDir.absolutePath}/attachments"
-            props.getProperty("bbdd.url") == "jdbc:postgresql://localhost:5433"
+            props.getProperty("bbdd.url") == "jdbc:postgresql://localhost:5432"
             props.getProperty("allow.root") == "false"
         }
     }

@@ -345,7 +345,7 @@ class LegacyScriptLoader {
 
                     if (!props.getProperty("bbdd.url")) {
                         def host = props.getProperty("bbdd.host", "localhost")
-                        def port = props.getProperty("bbdd.port", "5433")
+                        def port = props.getProperty("bbdd.port", "5432")
 
                         def database = props.getProperty("bbdd.rdbms")
                         def urlValue
