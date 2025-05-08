@@ -117,6 +117,8 @@ test {
     systemProperty 'com.athaydes.spockframework.report.showCodeBlocks', true
     systemProperty 'nexusUser', project.hasProperty('nexusUser') ? project.nexusUser : System.getenv("NEXUS_USR")
     systemProperty 'nexusPassword', project.hasProperty('nexusPassword') ? project.nexusPassword : System.getenv("NEXUS_PSW")
+    systemProperty 'githubUser', project.hasProperty('githubUser') ? project.githubUser : System.getenv("GITHUB_USER")
+    systemProperty 'githubToken', project.hasProperty('githubToken') ? project.githubToken : System.getenv("GITHUB_TOKEN")
     systemProperty 'test.bbdd.sid', project['test.bbdd.sid']
     systemProperty 'test.bbdd.systemUser', project['test.bbdd.systemUser']
     systemProperty 'test.bbdd.systemPassword', project['test.bbdd.systemPassword']
@@ -127,7 +129,7 @@ test {
     systemProperty 'etendoCoreRepo', project.property('etendoCoreRepo')
     systemProperty 'etendoCoreName', project.property('etendoCoreName')
     systemProperty 'etendoCoreVersion', project.property('etendoCoreVersion')
-    environment 'JAVA_HOME', System.getenv('JAVA_HOME')
+    environment 'JAVA_HOME', System.getProperties().get("java.home")
 
     maxHeapSize = "2048m"
 }

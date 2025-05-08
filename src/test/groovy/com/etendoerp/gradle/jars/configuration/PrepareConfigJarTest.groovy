@@ -36,7 +36,22 @@ class PrepareConfigJarTest extends EtendoCoreResolutionSpecificationTest {
         and: "The gradle.properties file is empty"
         def gradleProperties = new File("${getProjectDir().absolutePath}/gradle.properties")
         if (gradleProperties.exists()) {
-            gradleProperties.text = ""
+            def props = new Properties()
+            props.load(gradleProperties.newReader())
+
+            def githubUser = props.getProperty('githubUser')
+            def githubToken = props.getProperty('githubToken')
+            def nexusUser = props.getProperty('nexusUser')
+            def nexusPassword = props.getProperty('nexusPassword')
+
+
+            StringBuilder newContent = new StringBuilder()
+            if (githubUser) newContent.append("githubUser=").append(githubUser).append("\n")
+            if (githubToken) newContent.append("githubToken=").append(githubToken).append("\n")
+            if (nexusUser) newContent.append("nexusUser=").append(nexusUser).append("\n")
+            if (nexusPassword) newContent.append("nexusPassword=").append(nexusPassword).append("\n")
+
+            gradleProperties.text = newContent.toString()
         }
 
         when: "The 'prepareConfig' task is ran"
@@ -76,6 +91,10 @@ class PrepareConfigJarTest extends EtendoCoreResolutionSpecificationTest {
         and: "A configured gradle.properties"
         def gradleProperties = new File(testProjectDir, "gradle.properties")
         gradleProperties.text = """
+        githubUser=
+        githubToken=
+        nexusUser=
+        nexusPassword=
         source.path=${sourcepath}
         context.name=${contextname}
         bbdd.host=${host}
@@ -131,6 +150,10 @@ class PrepareConfigJarTest extends EtendoCoreResolutionSpecificationTest {
         and: "a configured gradle.properties"
         def gradleProperties = new File(testProjectDir, "gradle.properties")
         gradleProperties.text = """
+        githubUser=
+        githubToken=
+        nexusUser=
+        nexusPassword=
         source.path=/test/source/path/
         context.name=test_etendo
         bbdd.port=5439

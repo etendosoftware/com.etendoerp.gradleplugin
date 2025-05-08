@@ -17,6 +17,15 @@ etendo {
     ignoreDisplayMenu = true
 }
 
+repositories {
+    maven {
+        url "https://repo.futit.cloud/repository/maven-snapshots"
+        credentials {
+            username = System.getProperty("nexusUser")
+            password = System.getProperty("nexusPassword")
+        }
+    }
+}
 dependencies {
     // Add your dependencies here
 
