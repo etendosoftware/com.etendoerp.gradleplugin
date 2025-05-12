@@ -71,6 +71,9 @@ class PublishAllTest extends EtendoSpecification {
         then: "The task will finish successfully"
         assert resultCreateModuleBuild.task(":createModuleBuild").outcome == TaskOutcome.SUCCESS
 
+        //reemplazar en los 3 build.gradle de modulos "x.y.z)" por "versionCore del gradle.properties"+]
+
+
         and: "The build.gradle files will be created"
         File moduleALocationAfterCreation = new File(testProjectDir, "modules/${moduleA}")
         File buildFileAfterCreationModuleA = new File(moduleALocationAfterCreation, "build.gradle")

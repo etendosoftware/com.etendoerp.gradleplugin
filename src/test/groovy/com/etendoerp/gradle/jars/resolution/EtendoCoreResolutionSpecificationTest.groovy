@@ -14,6 +14,7 @@ abstract class EtendoCoreResolutionSpecificationTest extends EtendoSpecification
 
     public final static String CORE = "${ETENDO_CORE_GROUP}:${ETENDO_CORE_NAME}:${ETENDO_CORE_VERSION}"
 
+    public final static String ETENDO_22q1_VERSION = "[23.2.+, 24.4.9)"
     public final static String ETENDO_LATEST_SNAPSHOT = System.getProperty("etendoCoreVersion") + "-SNAPSHOT"
 
 
@@ -101,6 +102,34 @@ abstract class EtendoCoreResolutionSpecificationTest extends EtendoSpecification
             assert exception
             assert exception.message.contains(exceptionMessage)
         }
+    }
+
+/**
+ * Replaces the literal version 'x.y.z' with the actual version of the core in a build.gradle file
+ * @param file file The build.gradle file to be modified
+ * @param replacement The actual version of the core to replace 'x.y.z'
+ */
+    void fixCoreVersion(File file, String replacement) {
+        if (!file || !file.exists()) {
+            return
+        }
+
+        String originalContent = file.text
+
+        String updatedContent = originalContent.replaceAll(/\s*x\.y\.z\s*\)/,
+                "${replacement}]")
+
+        if (updatedContent != originalContent) {
+            file.text = updatedContent
+        }
+    }
+
+/**
+ * Replaces the literal version 'x.y.z' with the current version of the core in a build.gradle file
+ * @param file The build.gradle file to be modified
+ */
+    void fixCoreVersion(File file) {
+        fixCoreVersion(file, getCoreVersion())
     }
 
 }

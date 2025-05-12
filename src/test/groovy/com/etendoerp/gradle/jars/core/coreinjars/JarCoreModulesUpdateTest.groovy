@@ -26,7 +26,7 @@ class JarCoreModulesUpdateTest extends EtendoCoreResolutionSpecificationTest {
 
     @Override
     String getCoreVersion() {
-        return ETENDO_22q1_VERSION
+        return ETENDO_LATEST_SNAPSHOT
     }
 
     @Override

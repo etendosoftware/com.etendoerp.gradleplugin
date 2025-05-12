@@ -2,6 +2,7 @@ package com.etendoerp.gradle.tests.distribution
 
 import com.etendoerp.gradle.jars.modules.ModuleToJarSpecificationTest
 import com.etendoerp.gradle.jars.modules.ModuleToJarUtils
+import com.etendoerp.gradle.jars.resolution.EtendoCoreResolutionSpecificationTest
 import com.etendoerp.gradle.tests.EtendoSpecification
 import com.etendoerp.legacy.utils.ModulesUtils
 import com.etendoerp.publication.PublicationUtils
@@ -14,7 +15,7 @@ import spock.lang.Title
 @Title("Test to verify the correct creation of the 'build.gradle' file.")
 @Narrative("""The test creates the build.gradle file and verifies 
 that the module is considered a gradle subproject and contains all the publication tasks""")
-class CreateModuleBuildTest extends EtendoSpecification {
+class CreateModuleBuildTest extends EtendoCoreResolutionSpecificationTest {
     static String BASE_MODULE = PublicationUtils.BASE_MODULE_DIR
     static String REPO = PublicationUtils.REPOSITORY_NAME_PROP
     static String PKG  = PublicationUtils.MODULE_NAME_PROP
@@ -43,6 +44,9 @@ class CreateModuleBuildTest extends EtendoSpecification {
         and: "The 'build.gradle' file will be created in the module location"
         def buildFile = new File("${testProjectDir.absolutePath}/modules/${module}/build.gradle")
         assert buildFile.exists()
+
+        and: "Fix the core version in the build.gradle file"
+        fixCoreVersion(buildFile)
 
         and: "The module will be considerate a gradle subproject"
         def propertiesTaskResult = runTask(":${BASE_MODULE}:${module}:properties")

@@ -30,7 +30,7 @@ class CoreUpdateOldVersionTest extends EtendoCoreResolutionSpecificationTest {
         testProjectDir
     }
 
-    def coreVersionToInstall = "23.4.0"
+    def coreVersionToInstall = "23.2.0"
 
     @Override
     String getCoreVersion() {
@@ -47,10 +47,12 @@ class CoreUpdateOldVersionTest extends EtendoCoreResolutionSpecificationTest {
         def currentCoreVersion = ETENDO_LATEST_SNAPSHOT
         def currentCoreVersionXML = ETENDO_LATEST_SNAPSHOT
 
-        def newCoreVersion = "23.4.0"
-        def newCoreVersionXML = "23.4.0"
+        def newCoreVersion = "23.2.0"
+        def newCoreVersionXML = "23.2.0"
 
         coreVersionToInstall = currentCoreVersion
+
+        addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
 
         Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'"]
         loadCore([coreType : "jar", pluginVariables: pluginVariables])

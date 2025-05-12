@@ -13,19 +13,10 @@ plugins {
 System.setProperty("user.dir", projectDir.absolutePath)
 
 etendo {
-    coreVersion = "[20.2.1,22.2.0)"
+    coreVersion = "[20.2.1,25.1.0)"
     ignoreDisplayMenu = true
 }
 
-repositories {
-    maven {
-        url "https://repo.futit.cloud/repository/maven-snapshots"
-        credentials {
-            username = System.getProperty("nexusUser")
-            password = System.getProperty("nexusPassword")
-        }
-    }
-}
 dependencies {
     // Add your dependencies here
 

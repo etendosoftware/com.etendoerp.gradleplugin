@@ -73,6 +73,8 @@ abstract class EtendoSpecification extends Specification implements EtendoSpecif
 
         def gradleProperties = new File(projectDir, "gradle.properties")
         gradleProperties << """
+        allow.root=true
+        org.gradle.daemon=false
         bbdd.url=${System.getProperty('test.bbdd.url')}
         bbdd.sid=${getDB()}
         bbdd.systemUser=${System.getProperty('test.bbdd.systemUser')}

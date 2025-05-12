@@ -136,6 +136,7 @@ spec:
                                     updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, description, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
                                     sh """
                                     echo -e "
+                                    allow.root=true
                                     nexusUser=${NEXUS_USER}
                                     nexusPassword=${NEXUS_PASSWORD}
                                     githubUser=${GITHUB_USER}
@@ -149,14 +150,17 @@ spec:
                                     test.bbdd.password=${BBDD_PASSWORD}
                                     org.gradle.daemon=false
                                     org.gradle.jvmargs=-Dfile.encoding=UTF-8
-                                    etendoCoreRepo=https://repo.futit.cloud/repository/etendo-resolution-test/
                                     etendoCoreName=etendo-core
                                     etendoCoreVersion=24.4.9.1743105411" > ./gradle.properties
                                     """
                                     description = "Running Tests"
                                     echo "--------------- ${description} ---------------"
                                     updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, description, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
-                                    sh "./gradlew test --info"
+                                    sh """
+                                    su etendo
+                                    ./gradlew setup
+                                    ./gradlew test --info
+                                    """
                                 }
                                 currentBuild.result = SUCCESS
                             } catch (Exception e) {
