@@ -54,3 +54,5 @@ Thumbs.db
 
 gradle.properties
 bin/*
+
+version.properties

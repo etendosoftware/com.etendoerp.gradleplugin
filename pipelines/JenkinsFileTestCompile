@@ -44,6 +44,9 @@ pipeline {
 
     JAVA_HOME           = "/usr/lib/jvm/jdk-17.0.13"
 
+    BASE_BRANCH_BACKPORT = "release/24.4"
+    MAIN_BRANCH          = "main"
+    DEVELOP_BRANCH       = "develop"
   }
 
   agent {
@@ -55,7 +58,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: jenkins-node-pg-0
-  namespace: jenkins
+  namespace: jenkins2025
   labels:
     app.kubernetes.io/name: jenkins-node-pg
 spec:
@@ -139,13 +142,19 @@ spec:
               def rootDir = pwd()
               def infoCommit = load "${rootDir}/pipelines/utils/infoCommits.groovy"
 
+              env.BASE_BRANCH = env.MAIN_BRANCH
+              if (env.COMMIT_BRANCH.contains("-Y") || env.COMMIT_BRANCH.startsWith("release")) {
+                  env.BASE_BRANCH = env.BASE_BRANCH_BACKPORT
+              }
+
               def description = "Compiling Environment in JAR"
               updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, description, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
 
               echo "--------------- Building Etendo JAR Environment ----------------"
               sh """
-              git clone ${ETENDO_BASE_URL} --branch epic/ETP-1004 # TODO remove branch setting when the branch is merged
+              git clone ${ETENDO_BASE_URL}
               cd ${ETENDO_DIR}
+              git checkout ${env.BASE_BRANCH}
 
               echo "\n
               context.name=${CONTEXT_NAME}
@@ -179,7 +188,7 @@ spec:
               echo "${env.COMMIT_INFO_TEMPLATE}"
 
               sh """
-              sed -i "s/id 'com.etendoerp.gradleplugin'/id 'com.etendoerp.gradleplugin' \\/\\//" "${ETENDO_DIR}/build.gradle"
+              sed -i "s/\\(id 'com.etendoerp.gradleplugin[^']*'\\) version '\\([^']*\\)'/\\1 \\/\\/ version '\\2'/" "\${ETENDO_DIR}/build.gradle"
               """
 
               echo "---------------- Add dependencies ----------------"
@@ -274,9 +283,9 @@ spec:
               git checkout ${GIT_COMMIT}
               cp gradle.properties.template gradle.properties
               """
-              
+
               sh """
-              sed -i "s/id 'com.etendoerp.gradleplugin'/id 'com.etendoerp.gradleplugin' \\/\\//" "${ETENDO_DIR}/build.gradle"
+              sed -i "s/\\(id 'com.etendoerp.gradleplugin[^']*'\\) version '\\([^']*\\)'/\\1 \\/\\/ version '\\2'/" "\${ETENDO_DIR}/build.gradle"
               """
 
               echo "---------------- Add dependencies ----------------"
