@@ -82,7 +82,7 @@ class VersionContainer {
         String userVersionType = this.mainProject.findProperty(VERSION_COMMANDLINE_PROPERTY)
 
         if (userVersionType && !VERSION_TYPES.contains(userVersionType)) {
-            throw new IllegalArgumentException("The version type '${userVersionType}' is not valid. Location: ${this.mainProject.projectDir}")
+            throw new IllegalArgumentException("The version type '${userVersionType}' is not valid. Location: ${this.mainProject.projectDir}. Valid types are: ${VERSION_TYPES}.")
         }
         if(userVersionType == null) {
             userVersionType = PATCH_VERSION
@@ -105,7 +105,7 @@ class VersionContainer {
                 this.upgradePatchVersion()
                 break
             default:
-                throw new IllegalArgumentException("The version type '${versionTypeToUpgrade}' is not valid. Location: ${this.mainProject.projectDir}")
+                throw new IllegalArgumentException("The version type '${versionTypeToUpgrade}' is not valid. Location: ${this.mainProject.projectDir}. Valid types are: ${VERSION_TYPES}")
         }
         def updatedVersion = this.getVersion()
 
