@@ -8,18 +8,18 @@ class VersionContainer {
     static final String VERSION_CONTAINER_PROPERTY = "VERSION_CONTAINER_PROPERTY"
     static final String VERSION_COMMANDLINE_PROPERTY = "update"
 
-    static final String MAYOR_VERSION = "mayor"
+    static final String MAJOR_VERSION = "major"
     static final String MINOR_VERSION = "minor"
     static final String PATCH_VERSION = "patch"
 
     static final List<String> VERSION_TYPES = [
-            MAYOR_VERSION,
+            MAJOR_VERSION,
             MINOR_VERSION,
             PATCH_VERSION
     ]
 
-    static int MIN_MAYOR_VERSION = 0
-    static int INC_MAYOR_VERSION = 1
+    static int MIN_MAJOR_VERSION = 0
+    static int INC_MAJOR_VERSION = 1
 
     static int MIN_MINOR_VERSION = 0
     static int INC_MINOR_VERSION = 1
@@ -34,7 +34,7 @@ class VersionContainer {
 
     boolean versionUpdated = false
 
-    int mayor
+    int major
     int minor
     int patch
 
@@ -58,14 +58,14 @@ class VersionContainer {
         def splitVersion = version.split("\\.")
         // TODO: Improvement - Check restrictions on the version
         if (splitVersion.size() >= 3) {
-            this.mayor = validateVersion(splitVersion[0], MAYOR_VERSION)
+            this.major = validateVersion(splitVersion[0], MAJOR_VERSION)
             this.minor = validateVersion(splitVersion[1], MINOR_VERSION)
             this.patch = validateVersion(parsePatchVersion(splitVersion[2]), PATCH_VERSION)
         }
     }
 
     String getVersion() {
-        this.version = "${this.mayor}.${this.minor}.${this.patch}"
+        this.version = "${this.major}.${this.minor}.${this.patch}"
         return this.version
     }
 
@@ -79,14 +79,15 @@ class VersionContainer {
     }
 
     String loadVersionTypeToUpgrade() {
-        String defaultVersionType = PATCH_VERSION
         String userVersionType = this.mainProject.findProperty(VERSION_COMMANDLINE_PROPERTY)
 
-        if (userVersionType && VERSION_TYPES.contains(userVersionType)) {
-            defaultVersionType = userVersionType
+        if (userVersionType && !VERSION_TYPES.contains(userVersionType)) {
+            throw new IllegalArgumentException("The version type '${userVersionType}' is not valid. Location: ${this.mainProject.projectDir}")
         }
-
-        return defaultVersionType
+        if(userVersionType == null) {
+            userVersionType = PATCH_VERSION
+        }
+        return userVersionType
     }
 
     String upgradeVersion() {
@@ -94,8 +95,8 @@ class VersionContainer {
         def versionTypeToUpgrade = this.loadVersionTypeToUpgrade()
 
         switch (versionTypeToUpgrade) {
-            case MAYOR_VERSION:
-                this.upgradeMayorVersion()
+            case MAJOR_VERSION:
+                this.upgradeMajorVersion()
                 break
             case MINOR_VERSION:
                 this.upgradeMinorVersion()
@@ -104,7 +105,7 @@ class VersionContainer {
                 this.upgradePatchVersion()
                 break
             default:
-                mainProject.logger.info("Specified version to upgrade not found.")
+                throw new IllegalArgumentException("The version type '${versionTypeToUpgrade}' is not valid. Location: ${this.mainProject.projectDir}")
         }
         def updatedVersion = this.getVersion()
 
@@ -139,8 +140,8 @@ class VersionContainer {
         }
     }
 
-    void upgradeMayorVersion() {
-        this.mayor = this.mayor + INC_MAYOR_VERSION
+    void upgradeMajorVersion() {
+        this.major = this.major + INC_MAJOR_VERSION
         this.minor = MIN_MINOR_VERSION
         this.patch = MIN_PATCH_VERSION
     }
