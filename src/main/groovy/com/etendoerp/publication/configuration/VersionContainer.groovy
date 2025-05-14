@@ -1,10 +1,8 @@
 package com.etendoerp.publication.configuration
 
 import org.gradle.api.Project
-import org.gradle.api.internal.artifacts.ivyservice.projectmodule.ProjectPublication
-import org.gradle.api.internal.artifacts.ivyservice.projectmodule.ProjectPublicationRegistry
-import org.gradle.api.internal.project.DefaultProject
-import org.gradle.api.publish.maven.internal.publication.DefaultMavenPublication
+import org.gradle.api.publish.PublishingExtension
+import org.gradle.api.publish.maven.MavenPublication
 
 class VersionContainer {
     static final String VERSION_CONTAINER_PROPERTY = "VERSION_CONTAINER_PROPERTY"
@@ -123,22 +121,21 @@ class VersionContainer {
     }
 
     static void updatePublicationVersion(Project mainProject, Project subProject, String version) {
-        if (subProject instanceof DefaultProject) {
-            DefaultProject defaultProject = subProject as DefaultProject
-            def subprojectName = subProject.name
-            ProjectPublicationRegistry registry = defaultProject.services.get(ProjectPublicationRegistry)
-            def publications = registry.getPublications(ProjectPublication, defaultProject.getIdentityPath())
+        if (subProject.version != version) {
+            subProject.version = version
+            mainProject.logger.lifecycle("Project '${subProject.name}' version set to '$version'")
+        }
 
-            publications.stream().filter({
-                it instanceof DefaultMavenPublication
-            }).filter({
-                DefaultMavenPublication mavenPublication = it as DefaultMavenPublication
-                def mavenPublicationName = "${mavenPublication.name}"
-                return mavenPublicationName.equalsIgnoreCase(subprojectName)
-            }).forEach({
-                DefaultMavenPublication mavenPublication = it as DefaultMavenPublication
-                mavenPublication.setVersion(version)
-            })
+        def publishing = subProject.extensions.findByType(PublishingExtension)
+        if (publishing) {
+            publishing.publications.withType(MavenPublication).each { mavenPub ->
+                mavenPub.setVersion(version)
+                if (mavenPub.name.equalsIgnoreCase(subProject.name)) { // Or some other identifying feature
+                    mainProject.logger.info("Checked/ensured publication '${mavenPub.name}' in project '${subProject.name}' reflects version '$version'")
+                }
+            }
+        } else {
+            mainProject.logger.info("No PublishingExtension found for subproject '${subProject.name}' to update publication versions directly.")
         }
     }
 
