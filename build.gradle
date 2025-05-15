@@ -125,12 +125,14 @@ test {
     systemProperty 'test.bbdd.password', project['test.bbdd.systemPassword']
     systemProperty 'test.bbdd.url', project['test.bbdd.url']
     systemProperty 'org.gradle.jvmargs', '-Dfile.encoding=UTF-8'
-    systemProperty 'etendoCoreRepo', project.property('etendoCoreRepo')
     systemProperty 'etendoCoreName', project.property('etendoCoreName')
     systemProperty 'etendoCoreVersion', project.property('etendoCoreVersion')
     environment 'JAVA_HOME', System.getProperties().get("java.home")
 
-    maxHeapSize = "2048m"
+    maxHeapSize = "6144m"
+    minHeapSize = "512m"
+    jvmArgs '-XX:+UseG1GC', '-XX:+HeapDumpOnOutOfMemoryError'
+
 }
 
 task upgradePluginVersion() {

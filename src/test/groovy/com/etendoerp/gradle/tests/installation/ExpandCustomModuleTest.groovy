@@ -21,6 +21,7 @@ class ExpandCustomModuleTest extends EtendoSpecification {
         given : "A custom module to expand"
         def moduleSourceGroup = SOURCE_MODULE_GROUP
         def moduleSourceName = SOURCE_MODULE_NAME
+        def repoEtendoTest = TEST_REPO
         buildFile << """
         dependencies {
           moduleDeps('${moduleSourceGroup}:${moduleSourceName}:[1.0.0,)@zip') { transitive = true }
@@ -28,7 +29,7 @@ class ExpandCustomModuleTest extends EtendoSpecification {
 
         repositories {
           maven {
-            url 'https://repo.futit.cloud/repository/etendo-test'
+            url '${repoEtendoTest}'
           }
         }
         """

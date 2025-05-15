@@ -39,17 +39,11 @@ class PrepareConfigJarTest extends EtendoCoreResolutionSpecificationTest {
             def props = new Properties()
             props.load(gradleProperties.newReader())
 
-            def githubUser = props.getProperty('githubUser')
-            def githubToken = props.getProperty('githubToken')
-            def nexusUser = props.getProperty('nexusUser')
-            def nexusPassword = props.getProperty('nexusPassword')
-
-
             StringBuilder newContent = new StringBuilder()
-            if (githubUser) newContent.append("githubUser=").append(githubUser).append("\n")
-            if (githubToken) newContent.append("githubToken=").append(githubToken).append("\n")
-            if (nexusUser) newContent.append("nexusUser=").append(nexusUser).append("\n")
-            if (nexusPassword) newContent.append("nexusPassword=").append(nexusPassword).append("\n")
+            ['githubUser', 'githubToken', 'nexusUser', 'nexusPassword'].each { key ->
+                def value = props.getProperty(key)
+                if (value) newContent.append("${key}=").append(value).append("\n")
+            }
 
             gradleProperties.text = newContent.toString()
         }

@@ -113,7 +113,7 @@ class SourceCoreJarModuleTest extends EtendoCoreResolutionSpecificationTest {
         assert buildFile.exists()
 
         and: "Fix the core version in the build.gradle file"
-        fixCoreVersion(buildFile)
+        fixCoreVersion(buildFile, getCurrentCoreVersion())
 
     }
 

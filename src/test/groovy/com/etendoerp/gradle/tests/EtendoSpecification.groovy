@@ -21,6 +21,8 @@ abstract class EtendoSpecification extends Specification implements EtendoSpecif
     public static String REPO = PublicationUtils.REPOSITORY_NAME_PROP
     public static String PKG  = PublicationUtils.MODULE_NAME_PROP
 
+    public static String RESOLUTION_TEST_REPO = PublicationUtils.BASE_REPOSITORY_URL + "etendo-resolution-test/"
+    public static String TEST_REPO = PublicationUtils.BASE_REPOSITORY_URL + "etendo-test/"
     public static String SNAPSHOT_REPOSITORY_URL = "https://repo.futit.cloud/repository/maven-snapshots/"
 
     /**

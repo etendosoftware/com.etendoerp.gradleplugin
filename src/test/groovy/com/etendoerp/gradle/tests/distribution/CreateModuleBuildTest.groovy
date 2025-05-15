@@ -1,9 +1,7 @@
 package com.etendoerp.gradle.tests.distribution
 
-import com.etendoerp.gradle.jars.modules.ModuleToJarSpecificationTest
 import com.etendoerp.gradle.jars.modules.ModuleToJarUtils
 import com.etendoerp.gradle.jars.resolution.EtendoCoreResolutionSpecificationTest
-import com.etendoerp.gradle.tests.EtendoSpecification
 import com.etendoerp.legacy.utils.ModulesUtils
 import com.etendoerp.publication.PublicationUtils
 import org.gradle.testkit.runner.BuildResult
@@ -46,7 +44,7 @@ class CreateModuleBuildTest extends EtendoCoreResolutionSpecificationTest {
         assert buildFile.exists()
 
         and: "Fix the core version in the build.gradle file"
-        fixCoreVersion(buildFile)
+        fixCoreVersion(buildFile, getCurrentCoreVersion())
 
         and: "The module will be considerate a gradle subproject"
         def propertiesTaskResult = runTask(":${BASE_MODULE}:${module}:properties")

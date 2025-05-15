@@ -1,7 +1,7 @@
 package com.etendoerp.gradle.jars.publication.publishall
 
 import com.etendoerp.gradle.jars.publication.PublicationUtils
-import com.etendoerp.gradle.tests.EtendoSpecification
+import com.etendoerp.gradle.jars.resolution.EtendoCoreResolutionSpecificationTest
 import com.etendoerp.publication.buildfile.ModuleBuildTemplateLoader
 import org.gradle.internal.impldep.org.apache.commons.io.FileUtils
 import org.gradle.testkit.runner.TaskOutcome
@@ -11,7 +11,7 @@ import spock.lang.Title
 
 @Issue("EM-62")
 @Title("Running the 'publishAll' task publish all the source modules")
-class PublishAllTest extends EtendoSpecification {
+class PublishAllTest extends EtendoCoreResolutionSpecificationTest {
 
     static final String ENVIRONMENTS_LOCATION = "src/test/resources/jars/multiplepublication/updatepublication/modules"
     static final String REPOSITORY = "etendo-multiplepublish-test"
@@ -66,7 +66,9 @@ class PublishAllTest extends EtendoSpecification {
         }
 
         when: "The user runs the 'createModuleBuild' task with the command line parameter '-Ppkg=all'"
-        def resultCreateModuleBuild = runTask(":createModuleBuild","-P${com.etendoerp.publication.PublicationUtils.MODULE_NAME_PROP}=${ModuleBuildTemplateLoader.ALL_COMMAND_PROPERTY}", "-P${com.etendoerp.publication.PublicationUtils.REPOSITORY_NAME_PROP}=${REPOSITORY}")
+        def resultCreateModuleBuild = runTask(":createModuleBuild",
+                "-P${com.etendoerp.publication.PublicationUtils.MODULE_NAME_PROP}=${ModuleBuildTemplateLoader.ALL_COMMAND_PROPERTY}",
+                "-P${com.etendoerp.publication.PublicationUtils.REPOSITORY_NAME_PROP}=${REPOSITORY_URL}${REPOSITORY}")
 
         then: "The task will finish successfully"
         assert resultCreateModuleBuild.task(":createModuleBuild").outcome == TaskOutcome.SUCCESS
@@ -79,13 +81,19 @@ class PublishAllTest extends EtendoSpecification {
         File buildFileAfterCreationModuleA = new File(moduleALocationAfterCreation, "build.gradle")
         assert buildFileAfterCreationModuleA.exists()
 
+        fixCoreVersion(buildFileAfterCreationModuleA, getCurrentCoreVersion())
+
         File moduleBLocationAfterCreation = new File(testProjectDir, "modules/${moduleB}")
         File buildFileAfterCreationModuleB = new File(moduleBLocationAfterCreation, "build.gradle")
         assert buildFileAfterCreationModuleB.exists()
 
+        fixCoreVersion(buildFileAfterCreationModuleB, getCurrentCoreVersion())
+
         File moduleCLocationAfterCreation = new File(testProjectDir, "modules/${moduleC}")
         File buildFileAfterCreationModuleC = new File(moduleCLocationAfterCreation, "build.gradle")
         assert buildFileAfterCreationModuleC.exists()
+
+        fixCoreVersion(buildFileAfterCreationModuleC, getCurrentCoreVersion())
 
         when: "The user runs the 'publishAll' task"
         def runPublishAllResult = runTask(":publishAll")

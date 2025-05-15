@@ -9,12 +9,12 @@ abstract class EtendoCoreResolutionSpecificationTest extends EtendoSpecification
 
     public final static String ETENDO_CORE_GROUP   = "com.etendoerp.platform"
     public final static String ETENDO_CORE_NAME    = System.getProperty("etendoCoreName")
+    public final static String ETENDO_CORE_CURRENT_VERSION    = System.getProperty("etendoCoreVersion")
     public final static String ETENDO_CORE_VERSION = "[1.0.0,)"
-    public final static String ETENDO_CORE_REPO    = System.getProperty("etendoCoreRepo")
+    public final static String ETENDO_CORE_REPO    = "https://repo.futit.cloud/repository/etendo-resolution-test/"
 
     public final static String CORE = "${ETENDO_CORE_GROUP}:${ETENDO_CORE_NAME}:${ETENDO_CORE_VERSION}"
 
-    public final static String ETENDO_22q1_VERSION = "[23.2.+, 24.4.9)"
     public final static String ETENDO_LATEST_SNAPSHOT = System.getProperty("etendoCoreVersion") + "-SNAPSHOT"
 
 
@@ -35,8 +35,12 @@ abstract class EtendoCoreResolutionSpecificationTest extends EtendoSpecification
         return ETENDO_CORE_VERSION
     }
 
+    String getCurrentCoreVersion() {
+        return ETENDO_CORE_CURRENT_VERSION
+    }
+
     String getCoreRepo() {
-        return ETENDO_CORE_REPO
+        return RESOLUTION_TEST_REPO
     }
 
 
@@ -122,14 +126,6 @@ abstract class EtendoCoreResolutionSpecificationTest extends EtendoSpecification
         if (updatedContent != originalContent) {
             file.text = updatedContent
         }
-    }
-
-/**
- * Replaces the literal version 'x.y.z' with the current version of the core in a build.gradle file
- * @param file The build.gradle file to be modified
- */
-    void fixCoreVersion(File file) {
-        fixCoreVersion(file, getCoreVersion())
     }
 
 }
