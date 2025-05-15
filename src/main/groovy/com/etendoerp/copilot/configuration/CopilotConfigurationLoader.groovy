@@ -77,22 +77,22 @@ class CopilotConfigurationLoader {
             Map<String, GroovyRowResult> modulesMap = getMapOfModules(project, databaseConnection)
             boolean copilotExists = false
             boolean doCopilotBuild = false
-            int copilotVersionMayor = 1
+            int copilotVersionMajor = 1
             int copilotVersionMinor = 7
             String version = '0.0.0'
             if (modulesMap.containsKey("com.etendoerp.copilot")) {
                 copilotExists = true
                 version = modulesMap.get("com.etendoerp.copilot").get("version")
-                copilotVersionMayor = version.split("\\.")[0].toInteger()
+                copilotVersionMajor = version.split("\\.")[0].toInteger()
                 copilotVersionMinor = version.split("\\.")[1].toInteger()
-                if (copilotVersionMayor > 1 || (copilotVersionMayor == 1 && copilotVersionMinor >= 7)) {
+                if (copilotVersionMajor > 1 || (copilotVersionMajor == 1 && copilotVersionMinor >= 7)) {
                     doCopilotBuild = true
                 }
             }
             if (!copilotExists || !doCopilotBuild) {
                 return
             }
-            if (copilotVersionMayor == 1 && copilotVersionMinor < 8) {
+            if (copilotVersionMajor == 1 && copilotVersionMinor < 8) {
                 project.logger.error("The version of Copilot is ${version}, please upgrade to 1.8.0 or higher," +
                         " because in that version Copilot is integrated with the Etendo Docker Management" +
                         " and this will be the supported way to run Copilot in next versions.")
