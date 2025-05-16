@@ -47,7 +47,7 @@ class PublicationTaskLoader {
 
         // Verify that the subproject's core dependency top version has been changed from the default
         def regex = ", |,"
-        def coreDependency = containerSet.find { (it.name == "etendo-core") }
+        def coreDependency = containerSet.find { (it.name == System.getProperty("etendoCoreName")) }
         if (coreDependency != null) {
             def coreDependencyVersion = coreDependency.getVersion()
                     .replace("[", "")

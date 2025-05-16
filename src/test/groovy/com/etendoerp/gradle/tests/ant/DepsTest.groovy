@@ -1,16 +1,21 @@
 package com.etendoerp.gradle.tests.ant
 
-import com.etendoerp.gradle.tests.EtendoSpecification
+import com.etendoerp.gradle.jars.resolution.EtendoCoreResolutionSpecificationTest
 import org.gradle.testkit.runner.TaskOutcome
 import spock.lang.TempDir
 import java.nio.file.Files
 
-class DepsTest extends EtendoSpecification {
+class DepsTest extends EtendoCoreResolutionSpecificationTest {
     @TempDir File testProjectDir
 
     @Override
     File getProjectDir() {
         return testProjectDir
+    }
+
+    @Override
+    String getCoreVersion() {
+        return System.getProperty("etendoCoreVersion") + "-SNAPSHOT"
     }
 
     @Override
@@ -20,11 +25,14 @@ class DepsTest extends EtendoSpecification {
 
     def "gradle dependency is added to the ant classpath"() {
         given: "an installed project with an additional dependency"
-        addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
+        addRepositoryToBuildFile(SNAPSHOT_REPOSITORY_URL)
+
+        Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'"]
+        loadCore([coreType : "sources", pluginVariables: pluginVariables])
 
         buildFile << """
         dependencies {
-          compile 'com.google.code.gson:gson:2.8.7'
+            implementation 'com.google.code.gson:gson:2.8.7'
         }
         """
 

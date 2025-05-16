@@ -36,7 +36,16 @@ class PrepareConfigJarTest extends EtendoCoreResolutionSpecificationTest {
         and: "The gradle.properties file is empty"
         def gradleProperties = new File("${getProjectDir().absolutePath}/gradle.properties")
         if (gradleProperties.exists()) {
-            gradleProperties.text = ""
+            def props = new Properties()
+            props.load(gradleProperties.newReader())
+
+            StringBuilder newContent = new StringBuilder()
+            ['githubUser', 'githubToken', 'nexusUser', 'nexusPassword'].each { key ->
+                def value = props.getProperty(key)
+                if (value) newContent.append("${key}=").append(value).append("\n")
+            }
+
+            gradleProperties.text = newContent.toString()
         }
 
         when: "The 'prepareConfig' task is ran"
@@ -76,6 +85,10 @@ class PrepareConfigJarTest extends EtendoCoreResolutionSpecificationTest {
         and: "A configured gradle.properties"
         def gradleProperties = new File(testProjectDir, "gradle.properties")
         gradleProperties.text = """
+        githubUser=
+        githubToken=
+        nexusUser=
+        nexusPassword=
         source.path=${sourcepath}
         context.name=${contextname}
         bbdd.host=${host}
@@ -131,6 +144,10 @@ class PrepareConfigJarTest extends EtendoCoreResolutionSpecificationTest {
         and: "a configured gradle.properties"
         def gradleProperties = new File(testProjectDir, "gradle.properties")
         gradleProperties.text = """
+        githubUser=
+        githubToken=
+        nexusUser=
+        nexusPassword=
         source.path=/test/source/path/
         context.name=test_etendo
         bbdd.port=5439

@@ -52,6 +52,8 @@ class SetupOmitCredentialsTest extends EtendoCoreResolutionSpecificationTest {
         gradlePropertiesFile << """
         nexusUser=${args.get("nexusUser")}}
         nexusPassword=${args.get("nexusPassword")}}
+        githubUser=${args.get("githubUser")}}
+        githubToken=${args.get("githubToken")}}
         """
 
         when: "The users runs the setup task"

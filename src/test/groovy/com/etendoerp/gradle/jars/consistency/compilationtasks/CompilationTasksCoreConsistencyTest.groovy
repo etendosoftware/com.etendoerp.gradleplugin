@@ -29,7 +29,7 @@ class CompilationTasksCoreConsistencyTest extends EtendoCoreResolutionSpecificat
         testProjectDir
     }
 
-    def coreVersionToInstall = "22.1.2"
+    def coreVersionToInstall = "24.4.1"
 
     @Override
     String getCoreVersion() {
@@ -43,11 +43,11 @@ class CompilationTasksCoreConsistencyTest extends EtendoCoreResolutionSpecificat
 
     def "Running compilation tasks when the core in JARs is updated"() {
         given: "The user with an installed version of the CORE in JARs"
-        def currentCoreVersion = "22.1.3"
-        def currentCoreVersionXML = "22.1.3"
+        def currentCoreVersion = "24.4.3"
+        def currentCoreVersionXML = "24.4.3"
 
-        def newCoreVersion = "22.2.0"
-        def newCoreVersionXML = "22.2.0"
+        def newCoreVersion = "24.4.9"
+        def newCoreVersionXML = "24.4.9"
 
         coreVersionToInstall = currentCoreVersion
 

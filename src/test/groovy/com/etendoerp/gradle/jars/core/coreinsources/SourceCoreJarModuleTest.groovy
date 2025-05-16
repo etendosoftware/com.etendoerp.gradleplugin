@@ -80,7 +80,7 @@ class SourceCoreJarModuleTest extends EtendoCoreResolutionSpecificationTest {
         """
 
         and: "The users runs the expandCustomModule task passing by command line the module to expand"
-        def expandCustomModuleTaskResult = runTask(":expandCustomModule","-Ppkg=${moduleGroup}.${moduleName}","-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
+        def expandCustomModuleTaskResult = runTask(":expandCustomModule","-Ppkg=${moduleGroup}.${moduleName}","-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}", "-DgithubUser=${args.get("githubUser")}", "-DgithubToken=${args.get("githubToken")}")
         expandCustomModuleTaskResult.task(":expandCustomModule").outcome == TaskOutcome.SUCCESS
 
         and: "The module is resolved correctly"
@@ -98,13 +98,12 @@ class SourceCoreJarModuleTest extends EtendoCoreResolutionSpecificationTest {
         and: "The environment should contain the source module"
         CoreUtils.containsModule("${moduleGroup}.${moduleName}", getDBConnection())
     }
-
     def "Creating the build gradle file in the source module"() {
         given: "A source module to be convented to a gradle subproject"
         def module = "${SOURCE_MODULE_GROUP}.${SOURCE_MODULE_NAME}"
 
         when: "The users runs the 'createModuleBuild' task"
-        def moduleBuildResult = runTask(":createModuleBuild","-P${PKG}=${module}", "-P${REPO}=etendo-test") as BuildResult
+        def moduleBuildResult = runTask(":createModuleBuild","-P${PKG}=${module}", "-P${REPO}=https://repo.futit.cloud/repository/etendo-test") as BuildResult
 
         then: "The task will finish successfully"
         moduleBuildResult.task(":createModuleBuild").outcome == TaskOutcome.SUCCESS
@@ -112,6 +111,10 @@ class SourceCoreJarModuleTest extends EtendoCoreResolutionSpecificationTest {
         and: "The 'build.gradle' file will be created in the module location"
         def buildFile = new File("${testProjectDir.absolutePath}/modules/${module}/build.gradle")
         assert buildFile.exists()
+
+        and: "Fix the core version in the build.gradle file"
+        fixCoreVersion(buildFile, getCurrentCoreVersion())
+
     }
 
     def "Adding a Etendo jar module dependency to a Source module"() {
@@ -135,7 +138,7 @@ class SourceCoreJarModuleTest extends EtendoCoreResolutionSpecificationTest {
         """
 
         and: "The users runs the 'dependencies' task"
-        def dependenciesResult = runTask("dependencies", "-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
+        def dependenciesResult = runTask("dependencies", "-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}", "-DgithubUser=${args.get("githubUser")}", "-DgithubToken=${args.get("githubToken")}")
         assert dependenciesResult.task(":dependencies").outcome == TaskOutcome.SUCCESS || TaskOutcome.UP_TO_DATE
 
         and: "The users creates a class in the Source module using the Jar module"

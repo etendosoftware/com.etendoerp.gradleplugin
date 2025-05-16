@@ -57,6 +57,7 @@ class SourceCoreJarModuleInstallTest extends EtendoCoreResolutionSpecificationTe
         and: "The users adds a jar module dependency"
         def moduleGroup = JAR_MODULE_GROUP
         def moduleName = JAR_MODULE_NAME
+        def repoEtendoTest = TEST_REPO
         buildFile << """
         dependencies {
           implementation('${moduleGroup}:${moduleName}:[1.0.0,)') { transitive = true }
@@ -64,7 +65,7 @@ class SourceCoreJarModuleInstallTest extends EtendoCoreResolutionSpecificationTe
         
         repositories {
           maven {
-            url 'https://repo.futit.cloud/repository/etendo-test'
+            url '${repoEtendoTest}'
           }
         }
         
