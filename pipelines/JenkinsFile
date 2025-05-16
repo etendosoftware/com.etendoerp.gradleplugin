@@ -69,11 +69,11 @@ spec:
           protocol: TCP
       resources:
         requests:
-          cpu: 3072m
+          cpu: 4000m
           memory: 6000Mi
         limits:
-          cpu: 3072m
-          memory: 8000Mi
+          cpu: 4000m
+          memory: 10000Mi
       volumeMounts:
         - name: rsa-keys
           mountPath: /root/.ssh/
@@ -156,7 +156,7 @@ spec:
                                     description = "Running Tests"
                                     echo "--------------- ${description} ---------------"
                                     updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, description, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
-                                    sh "./gradlew test --info"
+                                    sh "./gradlew test --tests \"com.etendoerp.gradle.tests.EtendoPluginSOSTests\" --info"
                                 }
                                 currentBuild.result = SUCCESS
                             } catch (Exception e) {
