@@ -2,6 +2,32 @@ def updateCommitStatus(repositoryName, status, description, accessToken, gitComm
   sh "./pipelines/utils/build-update.sh ${repositoryName} ${status} \"${description}\" ${accessToken} ${gitCommit} ${buildUrl} \"${contextBuild}\""
 }
 
+def getLatestReleaseWithPrefix(String repo, String token, String prefix) {
+    return sh(
+        script: """
+        set -e
+        RESPONSE=\$(curl -s -w "%{http_code}" -H "Authorization: token ${token}" \\
+            "https://api.github.com/repos/${repo}/releases?per_page=6")
+        BODY=\$(echo "\$RESPONSE" | head -c -3)
+        STATUS_CODE=\$(echo "\$RESPONSE" | tail -c 3)
+
+        if [ "\$STATUS_CODE" -eq "401" ]; then
+          echo "ERROR: Unauthorized. Please check your GitHub token permissions." >&2
+          exit 1
+        fi
+
+        MATCH=\$(echo "\$BODY" | grep -o '"tag_name": *"${prefix}[^"]*"' | head -n 1 | sed -E 's/.*"([^"]+)"/\\1/')
+        if [ -z "\$MATCH" ]; then
+          echo "ERROR: No release found with prefix '${prefix}'." >&2
+          exit 1
+        fi
+
+        echo "\$MATCH"
+        """,
+        returnStdout: true
+    ).trim()
+}
+
 pipeline {
     environment {
         CONTEXT_NAME    = 'etendo'
@@ -16,8 +42,12 @@ pipeline {
         GITHUB_USER     = "etendobot"
         GITHUB_TOKEN    = credentials('github-read-package-token')
 
+        EMAIL_ADDRESS   = credentials('email_builds')
+
+        GITHUB_ORG      = 'etendosoftware'
         REPOSITORY_NAME = 'com.etendoerp.gradleplugin'
-        ACCESS_TOKEN = credentials('access_token_github')
+        GITHUB_URL      = 'https://github.com'
+        ACCESS_TOKEN    = credentials('access_token_github')
         PLUGIN_URL      = " https://github.com/etendosoftware/com.etendoerp.gradleplugin.git"
 
         JAVA_HOME        = '/usr/lib/jvm/java-11-openjdk-amd64'
@@ -33,6 +63,11 @@ pipeline {
 
         CONTEXT_BUILD = "Plugin Tests"
 
+        SONAR_VERSION   = "5.0.1.3006"
+        SONARQUBE_URL   = credentials('sonarqube-url')
+        SONARQUBE_TOKEN = credentials('sonar-token-access')
+        
+        RELEASE_PREFIX = '24.4'
     }
 
     agent {
@@ -116,7 +151,7 @@ spec:
     }
 
     stages {
-        stage('Run Tests') {
+        stage('Build Environment') { // MARK: Build Environment
             steps {
                 container('compiler') {
                     script {
@@ -129,13 +164,25 @@ spec:
                                 def infoCommit = load "${rootDir}/pipelines/utils/infoCommits.groovy"
 
                                 sh "GIT_SSH_COMMAND=\"ssh -i ${keyfile} -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\"\" git clone ${GIT_URL} ${REPOSITORY_NAME}"
+
+                                def commitInfoTemplate = infoCommit.generateCommitInfo("${env.GITHUB_URL}/${env.GITHUB_ORG}", null, REPOSITORY_NAME, true, env.REPOSITORY_NAME)
+                                env.COMMIT_INFO_TEMPLATE = "${commitInfoTemplate}"
+                                echo "${env.COMMIT_INFO_TEMPLATE}"
+
+                                description = "Build Environment"
+                                echo "--------------- ${description} ---------------"
+                                updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, description, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
                                 dir(REPOSITORY_NAME) {
                                     sh "git checkout ${GIT_COMMIT}"
-                                    def description = "--------------- Build Environment ---------------"
+                                    def description = "Build Environment"
                                     echo "--------------- ${description} ---------------"
                                     updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, description, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+
+                                    def lastRelease = getLatestReleaseWithPrefix("${GITHUB_ORG}/etendo_core", env.GITHUB_TOKEN, env.RELEASE_PREFIX)
+                                    echo "Latest release with prefix '${env.RELEASE_PREFIX}': ${lastRelease}"
+
                                     sh """
-                                    echo -e "
+                                    echo "\n
                                     allow.root=true
                                     nexusUser=${NEXUS_USER}
                                     nexusPassword=${NEXUS_PASSWORD}
@@ -150,13 +197,46 @@ spec:
                                     test.bbdd.password=${BBDD_PASSWORD}
                                     org.gradle.daemon=false
                                     org.gradle.jvmargs=-Dfile.encoding=UTF-8
-                                    etendoCoreName=etendo-core
-                                    etendoCoreVersion=24.4.9.1743105411" > ./gradle.properties
+                                    etendoCoreVersion=${lastRelease}" > ./gradle.properties
                                     """
+                                }
+                                currentBuild.result = SUCCESS
+                            } catch (Exception e) {
+                                echo 'Exception occurred: ' + e.toString()
+                                description = "Build Environment Failed"
+                                echo "--------------- ${description} ---------------"
+                                currentBuild.result = FAILED
+                                unstable(description)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        stage('Run EtendoPluginSOSTests Test Suite') { // MARK: Run EtendoPluginSOSTests Test Suite
+            when {
+                expression {
+                    currentBuild.result == SUCCESS
+                }
+            }
+            steps {
+                container('compiler') {
+                    script {
+                        withCredentials([sshUserPrivateKey(credentialsId: 'my-credentials', keyFileVariable: 'keyfile')]) {
+                            try {
+                                echo "--------------- Printenv ---------------"
+                                dir(REPOSITORY_NAME) {
                                     description = "Running Tests"
                                     echo "--------------- ${description} ---------------"
                                     updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, description, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
                                     sh "./gradlew test --tests \"com.etendoerp.gradle.tests.EtendoPluginSOSTests\" --info"
+
+                                    env.JACOCO_REPORT = "build/reports/jacoco/test/jacocoTestReport.xml"
+
+                                    if (fileExists("${JACOCO_REPORT}")) {
+                                        echo "---------------------- Jacoco Report Found ----------------------"
+                                        env.EXIST_JACOCO_REPORT = true
+                                    }
                                 }
                                 currentBuild.result = SUCCESS
                             } catch (Exception e) {
@@ -167,7 +247,7 @@ spec:
                                 unstable(description)
                             } finally {
                                 publishHTML([
-                                    allowMissing: false,
+                                    allowMissing: true,
                                     alwaysLinkToLastBuild: false,
                                     keepAll: true,
                                     reportDir: "${REPOSITORY_NAME}/build/spock-reports/",
@@ -181,11 +261,59 @@ spec:
                 }
             }
         }
-        stage('Run Deploy Snapshot') {
+        stage('Run SonarQube Analysis') { // MARK: Run SonarQube Analysis
+            when {
+                expression {
+                    currentBuild.result == SUCCESS && EXIST_JACOCO_REPORT
+                }
+            }
+            steps {
+                container("compiler") {
+                    script {
+                        echo "---------------------- Installing SonarQube Scanner ----------------------"
+                        sh """
+                        apt-get update && apt-get install -y wget unzip
+                        wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_VERSION}-linux.zip
+                        unzip sonar-scanner-cli-${SONAR_VERSION}-linux.zip
+                        """
+                        env.PATH = "${env.PATH}:${WORKSPACE}/sonar-scanner-${SONAR_VERSION}-linux/bin"
+                        dir(REPOSITORY_NAME) {
+                            def sonarSources = "./src/main/groovy" 
+                            def sonarProjectKey = sh(script: "grep 'sonar.projectKey' sonar-project.properties | cut -d '=' -f2", returnStdout: true).trim()
+                            echo "SonarQube Project Key: ${sonarProjectKey}"
+
+                            echo "---------------------- Running SonarQube ----------------------"
+                            sh """
+                            ${WORKSPACE}/sonar-scanner-${SONAR_VERSION}-linux/bin/sonar-scanner -X \
+                                -Dsonar.projectKey=${sonarProjectKey} \
+                                -Dsonar.sources=${sonarSources} \
+                                -Dsonar.host.url=${SONARQUBE_URL} \
+                                -Dsonar.login=${SONARQUBE_TOKEN} \
+                                -Dsonar.branch.name=${GIT_BRANCH} \
+                                -Dsonar.projectVersion=${GIT_COMMIT} \
+                                -Dsonar.java.coveragePlugin=jacoco \
+                                -Dsonar.coverage.jacoco.xmlReportPaths=${JACOCO_REPORT}
+                            """
+                            
+                            echo "---------------------- Getting SonarQube Report URL ----------------------"
+                            def branchName = URLEncoder.encode(GIT_BRANCH, 'UTF-8')
+                            sh "echo \"${SONARQUBE_URL}\" > url_sonar.txt"
+                            def sonarUrl = readFile('url_sonar.txt').trim()
+                            def projectUrl = "${sonarUrl}dashboard?id=${sonarProjectKey}&branch=${branchName}"
+                            env.PROJECT_URL = "${projectUrl}"
+                            echo "Sonar Project URL: ${PROJECT_URL}"
+
+                            echo "---------------------- SonarQube Analysis Successful ----------------------"
+                        }
+                    }
+                }
+            }
+        }
+        stage('Run Deploy Snapshot') { // MARK: Run Deploy Snapshot
             when {
                 branch 'develop'
                 expression {
-                    currentBuild.result == SUCCESS
+                    currentBuild.result == SUCCESS && EXIST_JACOCO_REPORT
                 }
             }
             steps {
@@ -223,7 +351,7 @@ spec:
         }
     }
 
-    post {
+    post { // MARK: Post Actions
         success {
             script {
                 echo "---------------- DONE ----------------"

@@ -15,7 +15,7 @@ class DepsTest extends EtendoCoreResolutionSpecificationTest {
 
     @Override
     String getCoreVersion() {
-        return System.getProperty("etendoCoreVersion") + "-SNAPSHOT"
+        return System.getProperty("etendoCoreVersion")
     }
 
     @Override

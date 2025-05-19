@@ -3,6 +3,7 @@ plugins {
     id 'groovy'
     id 'java-gradle-plugin'
     id 'maven-publish'
+    id 'jacoco'
 }
 
 def MAIN = "main"
@@ -125,7 +126,7 @@ test {
     systemProperty 'test.bbdd.password', project['test.bbdd.systemPassword']
     systemProperty 'test.bbdd.url', project['test.bbdd.url']
     systemProperty 'org.gradle.jvmargs', '-Dfile.encoding=UTF-8'
-    systemProperty 'etendoCoreName', project.property('etendoCoreName')
+    systemProperty 'etendoCoreName', project.hasProperty('etendoCoreName') ? project.etendoCoreName : "etendo-core"
     systemProperty 'etendoCoreVersion', project.property('etendoCoreVersion')
     environment 'JAVA_HOME', System.getProperties().get("java.home")
 
@@ -186,6 +187,23 @@ gradlePlugin {
             id = "com.etendoerp.gradleplugin"
             implementationClass = "com.etendoerp.EtendoPlugin"
         }
+    }
+}
+
+jacoco {
+    toolVersion = "0.8.11"
+}
+
+test {
+    useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
     }
 }
 
