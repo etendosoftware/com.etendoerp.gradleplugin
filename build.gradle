@@ -141,22 +141,28 @@ task upgradePluginVersion() {
             throw new GradleException("The parameter value '${typeVersion}' is not valid, the options should be 'major', 'minor' or 'patch'")
         }
 
-        def version = PLUGIN_VERSION.trim().split("\\.")
-        if (version.length != 3) {
+        def versionParts = PLUGIN_VERSION.trim().split("\\.")
+        if (versionParts.length != 3) {
             throw new GradleException("The version must be in the format major.minor.patch")
         }
 
+        int major = versionParts[0].toInteger()
+        int minor = versionParts[1].toInteger()
+        int patch = versionParts[2].toInteger()
+
         if (typeVersion == MAJOR) {
-            version[0]++
-            version[1] = 0
-            version[2] = 0
+            major++
+            minor = 0
+            patch = 0
         } else if (typeVersion == MINOR) {
-            version[1]++
-            version[2] = 0
+            minor++
+            patch = 0
         } else if (typeVersion == PATCH) {
-            version[2]++
+            patch++
         }
-        def nextVersion = "${version[0]}.${version[1]}.${version[2]}"
+
+        println "Version: ${major}.${minor}.${patch}"
+        def nextVersion = "${major}.${minor}.${patch}"
 
         //Rewrite build.gradle file with new value
         def buildGradleContent = file('build.gradle').text
@@ -173,7 +179,7 @@ task upgradePluginVersion() {
 gradlePlugin {
     plugins {
         etendoPlugin {
-            id = "com.etendoerp.gradleplugin" + PUBLICATION_TYPE
+            id = "com.etendoerp.gradleplugin"
             implementationClass = "com.etendoerp.EtendoPlugin"
         }
     }
