@@ -12,6 +12,7 @@ class ZipTaskGenerator {
 
     final static String ZIP_CONFIG_TASK = "generateModuleZipConfig"
     final static String ZIP_TASK = "generateModuleZip"
+    final static String PROCESS_RESOURCES = "processResources"
 
     static void load(Project mainProject, Project subProject) {
         if (!subProject.tasks.findByName(ZIP_CONFIG_TASK)) {
@@ -56,7 +57,7 @@ class ZipTaskGenerator {
 
         if (!subProject.tasks.findByName(ZIP_TASK)) {
             subProject.tasks.register(ZIP_TASK, Zip) {
-                dependsOn(ZIP_CONFIG_TASK)
+                dependsOn(ZIP_CONFIG_TASK, PROCESS_RESOURCES)
                 doLast {
                     mainProject.logger.info("The ZIP file '${archiveFileName.get()}' has been created in the '${destinationDirectory.get()}' directory.")
                 }

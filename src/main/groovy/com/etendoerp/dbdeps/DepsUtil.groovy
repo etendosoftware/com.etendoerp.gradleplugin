@@ -26,7 +26,7 @@ class DepsUtil {
                 project.logger.info("* The connection with the database could not be established. Skipping version consistency verification.")
                 return false
             }
-            def exists = databaseConnection.executeSelectQuery("select 1 from information_schema.tables where table_name = 'etdep_dependency'")
+            def exists = databaseConnection.executeSelectQuery("SELECT COUNT(*) AS count FROM user_tables WHERE table_name = 'ETDEP_DEPENDENCY'")
             if(exists == null || exists.size() == 0) {
                 return false
             }
