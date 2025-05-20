@@ -143,7 +143,7 @@ spec:
               def infoCommit = load "${rootDir}/pipelines/utils/infoCommits.groovy"
 
               env.BASE_BRANCH = env.MAIN_BRANCH
-              if (env.COMMIT_BRANCH.contains("-Y") || env.COMMIT_BRANCH.startsWith("release")) {
+              if (env.GIT_BRANCH.contains("-Y") || env.GIT_BRANCH.startsWith("release")) {
                   env.BASE_BRANCH = env.BASE_BRANCH_BACKPORT
               }
 
@@ -193,18 +193,16 @@ spec:
 
               echo "---------------- Add dependencies ----------------"
               def dependencies = env.DEPENDENCIES_FOR_BASE.split(',')
-              /*
+              
               def dependenciesBlock = dependencies.collect {
                   "moduleDeps(\"com.etendoerp:$it:latest.release@zip\") {transitive=true}"
               }.join('\n')
-              */
-              def dependenciesBlock = "" // TODO remove when branch is merged
 
               dependenciesBlock += "\nimplementation(\"com.etendoerp.platform:etendo-core:latest.release\")"
 
               def buildGradleContent = """
               dependencies {
-                  $dependenciesBlock
+                  ${dependenciesBlock}
               }
               """              
 
@@ -232,7 +230,7 @@ spec:
               currentBuild.result = SUCCESS
             } catch (Exception e) {
               echo "---------------- Build JAR Environment Failed ----------------"
-              description = "Compiling Environment in JAR Failed"
+              def description = "Compiling Environment in JAR Failed"
               updateCommitStatus(REPOSITORY_NAME, COMMIT_FAILED_STATUS, description, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
               echo "Exception occurred: " + e.toString()
               currentBuild.result = FAILED
@@ -247,7 +245,7 @@ spec:
         container('compiler') {
           script {
             try {
-              description = "Compiling Environment in Source"
+              def description = "Compiling Environment in Source"
               updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, description, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
               echo "---------------- Build Source Environment ----------------"
 
@@ -256,7 +254,7 @@ spec:
 
               echo "--------------- Building Etendo Source Environment ----------------"
               sh """
-              git clone ${ETENDO_BASE_URL} --branch epic/ETP-1004 # TODO remove branch setting when the branch is merged 
+              git clone ${ETENDO_BASE_URL}
               cd ${ETENDO_DIR}
 
               echo "\n
@@ -290,16 +288,14 @@ spec:
 
               echo "---------------- Add dependencies ----------------"
               def dependencies = env.DEPENDENCIES_FOR_BASE.split(',')
-              /*
+
               def dependenciesBlock = dependencies.collect {
                   "moduleDeps(\"com.etendoerp:$it:latest.release@zip\") {transitive=true}"
               }.join('\n')
-              */
-              def dependenciesBlock = "" // TODO remove when branch is merged
 
               def buildGradleContent = """
               dependencies {
-                  $dependenciesBlock
+                  ${dependenciesBlock}
               }
               """              
 

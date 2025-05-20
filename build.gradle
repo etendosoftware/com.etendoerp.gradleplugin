@@ -6,8 +6,8 @@ plugins {
 }
 
 def MAIN = "main"
-def DEV    = "dev"
-def PROD   = "prod"
+def DEV = "dev"
+def PROD = "prod"
 
 final String URL_PROD = "https://maven.pkg.github.com/etendosoftware/com.etendoerp.gradleplugin"
 final String URL_DEV = "https://repo.futit.cloud/repository/maven-public-snapshots"
@@ -50,7 +50,7 @@ publishing {
         pluginMaven(MavenPublication) {
             groupId = group
             version = pluginVersion
-            artifactId = 'gradleplugin' + PUBLICATION_TYPE
+            artifactId = 'gradleplugin'
         }
     }
     repositories {
