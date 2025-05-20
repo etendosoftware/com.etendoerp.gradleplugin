@@ -29,7 +29,7 @@ class CompilationTasksCoreConsistencyTest extends EtendoCoreResolutionSpecificat
         testProjectDir
     }
 
-    def coreVersionToInstall = "24.4.1"
+    def coreVersionToInstall = "24.4.3"
 
     @Override
     String getCoreVersion() {
@@ -46,8 +46,8 @@ class CompilationTasksCoreConsistencyTest extends EtendoCoreResolutionSpecificat
         def currentCoreVersion = "24.4.3"
         def currentCoreVersionXML = "24.4.3"
 
-        def newCoreVersion = "24.4.9"
-        def newCoreVersionXML = "24.4.9"
+        def newCoreVersion = ETENDO_LATEST_SNAPSHOT
+        def newCoreVersionXML = ETENDO_LATEST_SNAPSHOT
 
         coreVersionToInstall = currentCoreVersion
 

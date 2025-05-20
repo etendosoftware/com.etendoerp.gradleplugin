@@ -74,7 +74,7 @@ class CoreUpdateOldVersionTest extends EtendoCoreResolutionSpecificationTest {
         def installedCore = modulesInstalled.get(coreInstalled)
 
         assert installedCore
-        assert installedCore.get("version") == "24.4.9"
+        assert installedCore.get("version") == currentCoreVersion
 
         when: "The users wants to update the version of the core in JAR"
         coreVersionToInstall = newCoreVersion
