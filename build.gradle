@@ -130,8 +130,8 @@ test {
     systemProperty 'etendoCoreVersion', project.property('etendoCoreVersion')
     environment 'JAVA_HOME', System.getProperties().get("java.home")
 
-    maxHeapSize = "6144m"
-    minHeapSize = "512m"
+    maxHeapSize = "8192m"
+    minHeapSize = "1024m"
     jvmArgs '-XX:+UseG1GC', '-XX:+HeapDumpOnOutOfMemoryError'
 
 }

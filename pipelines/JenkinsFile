@@ -261,6 +261,50 @@ spec:
                 }
             }
         }
+
+        stage('Run EtendoPluginPreReleaseTests Test Suite') {
+                    when {
+                        expression {
+                            currentBuild.result == SUCCESS
+                        }
+                    }
+                    steps {
+                        container('compiler') {
+                            script {
+                                withCredentials([sshUserPrivateKey(credentialsId: 'my-credentials', keyFileVariable: 'keyfile')]) {
+                                    try {
+                                        echo "--------------- Printenv ---------------"
+                                        dir(REPOSITORY_NAME) {
+                                            description = "Running Pre-Release Tests"
+                                            echo "--------------- ${description} ---------------"
+                                            updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, description, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+
+                                            sh "./gradlew test --tests \"com.etendoerp.gradle.tests.EtendoPluginPreReleaseTests\" --info"
+                                        }
+                                        currentBuild.result = SUCCESS
+                                    } catch (Exception e) {
+                                        echo 'Exception occurred: ' + e.toString()
+                                        description = "Pre-Release Tests Failed"
+                                        echo "--------------- ${description} ---------------"
+                                        currentBuild.result = UNSTABLE
+                                        unstable(description)
+                                    } finally {
+                                        publishHTML([
+                                            allowMissing: true,
+                                            alwaysLinkToLastBuild: false,
+                                            keepAll: true,
+                                            reportDir: "${REPOSITORY_NAME}/build/spock-reports/",
+                                            reportFiles: '*.html',
+                                            reportName: 'PLUGIN PRERELEASE TESTS REPORT',
+                                            reportTitles: ''
+                                        ])
+                                    }
+                                }
+                            }
+                        }
+                    }
+        }
+
         stage('Run SonarQube Analysis') { // MARK: Run SonarQube Analysis
             when {
                 expression {
