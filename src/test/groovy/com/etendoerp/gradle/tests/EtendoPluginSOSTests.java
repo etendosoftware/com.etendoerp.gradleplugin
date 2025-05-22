@@ -4,6 +4,7 @@ import com.etendoerp.gradle.jars.configuration.CopyConfigDirFromEtendoCoreJarTes
 import com.etendoerp.gradle.jars.configuration.PrepareConfigJarTest;
 import com.etendoerp.gradle.jars.consistency.CoreUpdateOldVersionTest;
 import com.etendoerp.gradle.jars.consistency.compilationtasks.CompilationTasksConsistencyVerificationTest;
+import com.etendoerp.gradle.jars.consistency.compilationtasks.CompilationTasksIgnoreConsistencyVerificationJarTest;
 import com.etendoerp.gradle.jars.core.coreinjars.JarCoreCompilationTasksTest;
 import com.etendoerp.gradle.jars.core.coreinjars.JarCoreModulesInstallTest;
 import com.etendoerp.gradle.jars.core.coreinjars.JarCoreModulesUpdateTest;
@@ -51,6 +52,7 @@ import org.junit.platform.suite.api.Suite;
         CopyConfigDirFromEtendoCoreJarTest.class,
         ProjectWithEtendoCoreDependency.class,
         ExpandModulesPkgNotFoundTest.class,
+        CompilationTasksIgnoreConsistencyVerificationJarTest.class,
         ExpandModulesWithoutOverwriteTransitivesTest.class,
         ExtractResourcesOfCoreJarTest.class,
         ExtractResourcesOfModuleJarTest.class,

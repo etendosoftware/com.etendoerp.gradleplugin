@@ -96,12 +96,12 @@ dependencies {
 
     implementation ('org.codehaus.groovy:groovy-all:3.0.9')
     testImplementation platform("org.spockframework:spock-bom:2.0-M4-groovy-3.0")
-    testImplementation ('org.spockframework:spock-core')
-    testImplementation ('org.spockframework:spock-junit4')
-    testImplementation ('org.junit.jupiter:junit-jupiter-api:5.9.2')
-    testImplementation ('org.junit.jupiter:junit-jupiter-engine:5.9.2')
-    testImplementation ('org.junit.platform:junit-platform-suite-api:1.9.2')
-    testImplementation ('org.junit.platform:junit-platform-suite-engine:1.9.2')
+    testImplementation('org.spockframework:spock-core')
+    testImplementation('org.spockframework:spock-junit4')
+    testImplementation('org.junit.jupiter:junit-jupiter-api:5.9.2')
+    testImplementation('org.junit.jupiter:junit-jupiter-engine:5.9.2')
+    testImplementation('org.junit.platform:junit-platform-suite-api:1.9.2')
+    testImplementation('org.junit.platform:junit-platform-suite-engine:1.9.2')
     testImplementation('com.athaydes:spock-reports:2.0-groovy-3.0') {
         transitive = false // this avoids affecting your version of Groovy/Spock
     }

@@ -43,7 +43,7 @@ class AntJarTasksTest extends EtendoCoreResolutionSpecificationTest {
     }
 
     String getCoreVersion() {
-        return ETENDO_LATEST_SNAPSHOT
+        return ETENDO_LATEST
     }
 
     String getCoreRepo() {

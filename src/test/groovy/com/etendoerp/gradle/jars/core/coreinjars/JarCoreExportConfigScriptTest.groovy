@@ -25,7 +25,7 @@ class JarCoreExportConfigScriptTest extends EtendoCoreResolutionSpecificationTes
 
     @Override
     String getCoreVersion() {
-        return ETENDO_LATEST_SNAPSHOT
+        return ETENDO_LATEST
     }
 
     @Override

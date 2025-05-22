@@ -31,32 +31,32 @@ import org.junit.platform.suite.api.Suite;
 
 @Suite
 @SelectClasses({
-        AntJarTasksTest.class, // 8min
-        AntWarTaskTest.class, //pass
-        CompilationTasksCoreConsistencyTest.class, //6min
-        CompilationTasksIgnoreConsistencyVerificationTest.class,//falla un test
-        CoreUpdateOldVersionTest.class,//5 min
-        ModuleExtractionVerificationTest.class,//10min
-        ModuleUpdateOldVersionTest.class,//13 min
-        JarCoreExportConfigScriptTest.class,//8 min
-        JarCoreExportDatabaseTest.class,//12min
-        JarCoreExportSampleDataTest.class,//7 min
-        SourceCoreJarModuleDeployTest.class,//4 min
-        SourceCoreJarModuleInstallTest.class,//7min
-        SourceCoreJarModuleTest.class,//4 min
-        ModuleValidationsTest.class,//12 min
-        ExpandModulesNoOverwriteTest.class,//2min
-        ExpandModulesPkgFlagTest.class,//2min
-        ExpandTest.class,//33 sec
-        ExpandCoreUpdateVersion.class,//5 min
-        CoreExpandDeleteJarModuleTest.class,//4min
-        CoreRemoveOldVersionInsideWebContentTest.class,//6min
-        ModuleRemoveOldVersionInsideWebContentTest.class,//10 min
-        AntTasksTest.class,//3min
-        DepsTest.class,//13min
-        CompileFilesCheckTest.class,//6min
-        CreateOBPropertiesTest.class,//25 sec
-        CreateModuleBuildTest.class//18 sec
+        CreateModuleBuildTest.class,
+        AntJarTasksTest.class,
+        AntWarTaskTest.class,
+        CompilationTasksCoreConsistencyTest.class,
+        CompilationTasksIgnoreConsistencyVerificationTest.class,
+        CoreUpdateOldVersionTest.class,
+        ModuleExtractionVerificationTest.class,
+        ModuleUpdateOldVersionTest.class,
+        JarCoreExportConfigScriptTest.class,
+        JarCoreExportDatabaseTest.class,
+        JarCoreExportSampleDataTest.class,
+        SourceCoreJarModuleDeployTest.class,
+        SourceCoreJarModuleInstallTest.class,
+        SourceCoreJarModuleTest.class,
+        ModuleValidationsTest.class,
+        ExpandModulesNoOverwriteTest.class,
+        ExpandModulesPkgFlagTest.class,
+        ExpandTest.class,
+        ExpandCoreUpdateVersion.class,
+        CoreExpandDeleteJarModuleTest.class,
+        CoreRemoveOldVersionInsideWebContentTest.class,
+        ModuleRemoveOldVersionInsideWebContentTest.class,
+        AntTasksTest.class,
+        DepsTest.class,
+        CompileFilesCheckTest.class,
+        CreateOBPropertiesTest.class,
 
 })
 

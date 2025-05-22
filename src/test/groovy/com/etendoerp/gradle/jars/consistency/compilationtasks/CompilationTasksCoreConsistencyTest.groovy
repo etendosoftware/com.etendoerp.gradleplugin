@@ -46,8 +46,8 @@ class CompilationTasksCoreConsistencyTest extends EtendoCoreResolutionSpecificat
         def currentCoreVersion = "24.4.3"
         def currentCoreVersionXML = "24.4.3"
 
-        def newCoreVersion = ETENDO_LATEST_SNAPSHOT
-        def newCoreVersionXML = ETENDO_LATEST_SNAPSHOT
+        def newCoreVersion = ETENDO_LATEST
+        def newCoreVersionXML = ETENDO_LATEST
 
         coreVersionToInstall = currentCoreVersion
 

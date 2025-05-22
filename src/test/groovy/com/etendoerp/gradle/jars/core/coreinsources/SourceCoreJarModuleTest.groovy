@@ -41,7 +41,7 @@ class SourceCoreJarModuleTest extends EtendoCoreResolutionSpecificationTest {
 
     @Override
     String getCoreVersion() {
-        return ETENDO_LATEST_SNAPSHOT
+        return ETENDO_LATEST
     }
 
     public final static String SOURCE_MODULE_GROUP = "com.openbravo"

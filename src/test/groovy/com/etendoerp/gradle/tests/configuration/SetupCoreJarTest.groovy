@@ -25,7 +25,7 @@ class SetupCoreJarTest extends EtendoCoreResolutionSpecificationTest {
 
     @Override
     String getCoreVersion() {
-        return ETENDO_LATEST_SNAPSHOT
+        return ETENDO_LATEST
     }
 
     def "Running the setup task when the core is in JAR"() {

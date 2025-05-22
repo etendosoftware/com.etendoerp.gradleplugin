@@ -12,18 +12,18 @@ import spock.lang.TempDir
 import spock.lang.Title
 
 /**
- * This test should use the latest CORE snapshot - SOURCES version
+ * This test should use the latest CORE - JAR version
  */
 
 @Issue("EPL-123")
-@Title("Ignoring the consistency verification - Sources Core")
+@Title("Ignoring the consistency verification - JAR Core")
 @Narrative("""
-The user can ignore the consistency verification using 
+The user can ignore the consistency verification using
 the 'ignoreConsistencyVerification' plugin extension variable,
 the '--PignoreConsistency' and the '-Dlocal=no' flags.
-Testing with SOURCES core type.
+Testing with JAR core type.
 """)
-class CompilationTasksIgnoreConsistencyVerificationTest extends EtendoCoreResolutionSpecificationTest {
+class CompilationTasksIgnoreConsistencyVerificationJarTest extends EtendoCoreResolutionSpecificationTest {
     @TempDir File testProjectDir
 
     @Override
@@ -38,18 +38,18 @@ class CompilationTasksIgnoreConsistencyVerificationTest extends EtendoCoreResolu
 
     @Override
     String getDB() {
-        return "sources_consistency_test"
+        return "jar_consistency_test"
     }
 
-    def "The user ignores the consistency verification with sources core"() {
+    def "The user ignores the consistency verification with jar core"() {
         given: "A user wanting to install a JAR module dependency"
         addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
 
         Map<Object, Object> pluginVariables = ["coreVersion": "'${getCoreVersion()}'"]
-        loadCore([coreType: "sources", pluginVariables: pluginVariables])
+        loadCore([coreType: "jar", pluginVariables: pluginVariables])
 
         and: "The user resolves the core"
-        resolveCore([coreType: "sources", testProjectDir: testProjectDir])
+        resolveCore([coreType: "jar", testProjectDir: testProjectDir])
 
         and: "The user install the Etendo core environment."
         def setupResult = runTask("setup")

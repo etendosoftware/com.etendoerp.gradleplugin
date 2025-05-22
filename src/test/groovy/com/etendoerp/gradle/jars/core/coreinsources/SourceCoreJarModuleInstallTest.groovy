@@ -38,7 +38,7 @@ class SourceCoreJarModuleInstallTest extends EtendoCoreResolutionSpecificationTe
 
     @Override
     String getCoreVersion() {
-        return ETENDO_LATEST_SNAPSHOT
+        return ETENDO_LATEST
     }
 
     public final static String JAR_MODULE_GROUP = "com.test"

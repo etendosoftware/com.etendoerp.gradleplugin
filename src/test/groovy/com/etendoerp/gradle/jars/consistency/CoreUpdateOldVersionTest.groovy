@@ -44,8 +44,8 @@ class CoreUpdateOldVersionTest extends EtendoCoreResolutionSpecificationTest {
 
     def "Update the core JAR to an old version"() {
         given: "The user with an installed version of the CORE in JARs"
-        def currentCoreVersion = ETENDO_LATEST_SNAPSHOT
-        def currentCoreVersionXML = ETENDO_LATEST_SNAPSHOT
+        def currentCoreVersion = ETENDO_LATEST
+        def currentCoreVersionXML = ETENDO_LATEST
 
         def newCoreVersion = "23.2.0"
         def newCoreVersionXML = "23.2.0"

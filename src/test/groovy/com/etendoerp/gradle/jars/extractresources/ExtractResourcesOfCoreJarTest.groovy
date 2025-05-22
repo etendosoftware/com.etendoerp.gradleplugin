@@ -30,7 +30,7 @@ class ExtractResourcesOfCoreJarTest extends EtendoCoreResolutionSpecificationTes
 
     @Override
     String getCoreVersion() {
-        return ETENDO_LATEST_SNAPSHOT
+        return ETENDO_LATEST
     }
 
     def "The resources of the core jar are extracted correctly"() {

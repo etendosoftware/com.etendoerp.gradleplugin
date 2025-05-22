@@ -20,7 +20,7 @@ class PrepareConfigJarTest extends EtendoCoreResolutionSpecificationTest {
 
     @Override
     String getCoreVersion() {
-        return ETENDO_LATEST_SNAPSHOT
+        return ETENDO_LATEST
     }
 
     def "Default values when 'gradle properties' is empty or does not exists"() {
