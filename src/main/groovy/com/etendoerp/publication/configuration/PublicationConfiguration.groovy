@@ -209,8 +209,13 @@ class PublicationConfiguration {
 
         // Add each task to the main project local publication
         def mainPublicationTask = project.tasks.findByName(mainProjectPublicationTaskName)
-        for (def subprojectTask : subprojectPublicationTasks) {
-            mainPublicationTask.dependsOn(subprojectTask)
+        for (int i = 0; i < subprojectPublicationTasks.size(); i++) {
+            def subprojectTask = subprojectPublicationTasks.get(i)
+            if (i == 0) {
+                mainPublicationTask.dependsOn(subprojectTask)
+            } else {
+                mainPublicationTask.mustRunAfter(subprojectTask)
+            }
         }
     }
 
