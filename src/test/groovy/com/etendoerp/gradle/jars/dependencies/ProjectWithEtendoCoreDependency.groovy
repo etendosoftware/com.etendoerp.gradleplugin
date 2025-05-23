@@ -20,7 +20,7 @@ class ProjectWithEtendoCoreDependency extends EtendoCoreResolutionSpecificationT
 
     @Override
     String getCoreVersion() {
-        return ETENDO_LATEST_SNAPSHOT
+        return ETENDO_LATEST
     }
 
     def "Adding the Etendo core dependency to a project"() {

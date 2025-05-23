@@ -28,7 +28,7 @@ class ExpandModulesWithoutOverwriteTransitivesTest extends EtendoCoreResolutionS
 
     @Override
     String getCoreVersion() {
-        return ETENDO_LATEST_SNAPSHOT
+        return ETENDO_LATEST
     }
 
     def "Expanding a module with transitive dependencies already in sources"() {

@@ -18,7 +18,7 @@ class ModuleValidationsTest extends EtendoCoreResolutionSpecificationTest {
 
     @Override
     String getCoreVersion() {
-        return ETENDO_LATEST_SNAPSHOT
+        return ETENDO_LATEST
     }
 
     @Override

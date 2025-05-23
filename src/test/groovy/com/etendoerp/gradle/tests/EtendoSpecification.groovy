@@ -21,6 +21,8 @@ abstract class EtendoSpecification extends Specification implements EtendoSpecif
     public static String REPO = PublicationUtils.REPOSITORY_NAME_PROP
     public static String PKG  = PublicationUtils.MODULE_NAME_PROP
 
+    public static String RESOLUTION_TEST_REPO = PublicationUtils.BASE_REPOSITORY_URL + "etendo-resolution-test/"
+    public static String TEST_REPO = PublicationUtils.BASE_REPOSITORY_URL + "etendo-test/"
     public static String SNAPSHOT_REPOSITORY_URL = "https://repo.futit.cloud/repository/maven-snapshots/"
 
     /**
@@ -73,12 +75,18 @@ abstract class EtendoSpecification extends Specification implements EtendoSpecif
 
         def gradleProperties = new File(projectDir, "gradle.properties")
         gradleProperties << """
+        allow.root=true
+        org.gradle.daemon=false
         bbdd.url=${System.getProperty('test.bbdd.url')}
         bbdd.sid=${getDB()}
         bbdd.systemUser=${System.getProperty('test.bbdd.systemUser')}
         bbdd.systemPassword=${System.getProperty('test.bbdd.systemPassword')}
         bbdd.user=${System.getProperty('test.bbdd.user')}
         bbdd.password=${System.getProperty('test.bbdd.password')}
+        githubUser=${System.getenv('GITHUB_USER') ?: System.getProperty('githubUser')}
+        githubToken=${System.getenv('GITHUB_TOKEN') ?: System.getProperty('githubToken')}
+        nexusUser=${System.getProperty('nexusUser')}
+        nexusPassword=${System.getProperty('nexusPassword')}
         """
 
         def pluginPath = "com.etendoerp.gradleplugin"
@@ -86,6 +94,8 @@ abstract class EtendoSpecification extends Specification implements EtendoSpecif
         args.put("pluginPath", pluginPath)
         args.put("nexusUser", System.getProperty("nexusUser"))
         args.put("nexusPassword", System.getProperty("nexusPassword"))
+        args.put("githubUser", System.getenv("GITHUB_USER") ?: System.getProperty("githubUser"))
+        args.put("githubToken", System.getenv("GITHUB_TOKEN") ?: System.getProperty("githubToken"))
     }
 
     /**
@@ -198,8 +208,9 @@ abstract class EtendoSpecification extends Specification implements EtendoSpecif
 
         return GradleRunner
                 .create()
+                .withDebug(true)
                 .forwardOutput()
-                .withProjectDir(getProjectDir())
+                .withProjectDir(this.getProjectDir())
                 .withArguments(allArgs)
                 .withPluginClasspath()
                 .build()

@@ -19,7 +19,7 @@ class CopyConfigDirFromEtendoCoreJarTest extends EtendoCoreResolutionSpecificati
 
     @Override
     String getCoreVersion() {
-        return ETENDO_LATEST_SNAPSHOT
+        return ETENDO_LATEST
     }
 
     public final static List<String> CONFIG_FILES = [

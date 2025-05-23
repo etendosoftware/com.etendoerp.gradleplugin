@@ -23,7 +23,7 @@ class CoreExpandDeleteJarModuleTest extends EtendoCoreResolutionSpecificationTes
 
     @Override
     String getCoreVersion() {
-        return ETENDO_LATEST_SNAPSHOT
+        return ETENDO_LATEST
     }
 
     def "Deleting the extracted JAR module when working with sources"() {

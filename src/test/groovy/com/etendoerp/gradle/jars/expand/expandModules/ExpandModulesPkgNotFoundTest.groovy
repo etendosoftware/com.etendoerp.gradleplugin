@@ -25,7 +25,7 @@ class ExpandModulesPkgNotFoundTest extends EtendoCoreResolutionSpecificationTest
 
     @Override
     String getCoreVersion() {
-        return ETENDO_LATEST_SNAPSHOT
+        return ETENDO_LATEST
     }
 
     def "Running expandModules task multiple times"() {
