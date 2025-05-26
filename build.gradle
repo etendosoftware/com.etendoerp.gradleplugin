@@ -196,14 +196,22 @@ jacoco {
 
 test {
     useJUnitPlatform()
-    finalizedBy jacocoTestReport
 }
 
-jacocoTestReport {
-    dependsOn test
+task jacocoMerge(type: JacocoMerge) {
+    destinationFile = layout.buildDirectory.file("jacoco/merged.exec").get().asFile
+    executionData fileTree(dir: "$buildDir/jacoco", include: ["test*.exec"])
+}
+
+task jacocoRootReport(type: JacocoReport) {
+    dependsOn jacocoMerge
+    executionData.setFrom(files("${buildDir}/jacoco/merged.exec"))
+    sourceDirectories.setFrom(files("src/main/groovy"))
+    classDirectories.setFrom(fileTree(dir: "$buildDir/classes/groovy/main", include: "**/*.class"))
+
     reports {
-        xml.required.set(true)
-        html.required.set(true)
+        xml.required = true
+        html.required = true
     }
 }
 

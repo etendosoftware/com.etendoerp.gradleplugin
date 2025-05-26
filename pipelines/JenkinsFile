@@ -39,7 +39,7 @@ pipeline {
         BBDD_PASSWORD   = 'tad'
         NEXUS_USER      =  credentials('nexus-admin-user')
         NEXUS_PASSWORD  =  credentials('nexus-admin-passwd')
-        GITHUB_USER     = "etendobot"
+        GITHUB_USER     = 'etendobot'
         GITHUB_TOKEN    = credentials('github-read-package-token')
 
         EMAIL_ADDRESS   = credentials('email_builds')
@@ -61,13 +61,16 @@ pipeline {
         COMMIT_SUCCESS_STATUS    = 'success'
         COMMIT_FAILED_STATUS     = 'failure'
 
-        CONTEXT_BUILD = "Plugin Tests"
+        CONTEXT_BUILD = 'Plugin Tests'
 
-        SONAR_VERSION   = "5.0.1.3006"
+        SONAR_VERSION   = '5.0.1.3006'
         SONARQUBE_URL   = credentials('sonarqube-url')
         SONARQUBE_TOKEN = credentials('sonar-token-access')
         
         RELEASE_PREFIX = '24.4'
+
+        TRUE  = 'true'
+        FALSE = 'false'
     }
 
     agent {
@@ -159,6 +162,8 @@ spec:
                             try {
                                 echo "--------------- Printenv ---------------"
                                 sh 'printenv'
+                                env.STATUS_TEST = SUCCESS
+                                env.EXIST_JACOCO_REPORT = FALSE
 
                                 def rootDir = pwd()
                                 def infoCommit = load "${rootDir}/pipelines/utils/infoCommits.groovy"
@@ -169,14 +174,14 @@ spec:
                                 env.COMMIT_INFO_TEMPLATE = "${commitInfoTemplate}"
                                 echo "${env.COMMIT_INFO_TEMPLATE}"
 
-                                description = "Build Environment"
-                                echo "--------------- ${description} ---------------"
-                                updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, description, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+                                env.DESCRIPTION = "Build Environment"
+                                echo "--------------- ${env.DESCRIPTION} ---------------"
+                                updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
                                 dir(REPOSITORY_NAME) {
                                     sh "git checkout ${GIT_COMMIT}"
-                                    def description = "Build Environment"
-                                    echo "--------------- ${description} ---------------"
-                                    updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, description, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+                                    env.DESCRIPTION = "Build Environment"
+                                    echo "--------------- ${env.DESCRIPTION} ---------------"
+                                    updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
 
                                     def lastRelease = getLatestReleaseWithPrefix("${GITHUB_ORG}/etendo_core", env.GITHUB_TOKEN, env.RELEASE_PREFIX)
                                     echo "Latest release with prefix '${env.RELEASE_PREFIX}': ${lastRelease}"
@@ -203,10 +208,11 @@ spec:
                                 currentBuild.result = SUCCESS
                             } catch (Exception e) {
                                 echo 'Exception occurred: ' + e.toString()
-                                description = "Build Environment Failed"
-                                echo "--------------- ${description} ---------------"
+                                env.DESCRIPTION = "Build Environment Failed"
+                                echo "--------------- ${env.DESCRIPTION} ---------------"
                                 currentBuild.result = FAILED
-                                unstable(description)
+                                env.STATUS_TEST = FAILED
+                                error(env.DESCRIPTION)
                             }
                         }
                     }
@@ -215,9 +221,7 @@ spec:
         }
         stage('Run EtendoPluginSOSTests Test Suite') { // MARK: Run EtendoPluginSOSTests Test Suite
             when {
-                expression {
-                    currentBuild.result == SUCCESS
-                }
+                expression { currentBuild.result == SUCCESS }
             }
             steps {
                 container('compiler') {
@@ -226,25 +230,21 @@ spec:
                             try {
                                 echo "--------------- Printenv ---------------"
                                 dir(REPOSITORY_NAME) {
-                                    description = "Running EtendoPluginSOSTests"
-                                    echo "--------------- ${description} ---------------"
-                                    updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, description, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+                                    env.DESCRIPTION = "Running EtendoPluginSOSTests"
+                                    echo "--------------- ${env.DESCRIPTION} ---------------"
+                                    updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
                                     sh "./gradlew test --tests \"com.etendoerp.gradle.tests.EtendoPluginSOSTests\" --info"
 
-                                    env.JACOCO_REPORT = "build/reports/jacoco/test/jacocoTestReport.xml"
-
-                                    if (fileExists("${JACOCO_REPORT}")) {
-                                        echo "---------------------- Jacoco Report Found ----------------------"
-                                        env.EXIST_JACOCO_REPORT = true
-                                    }
+                                    sh "mv build/jacoco/test.exec build/jacoco/test1.exec"
                                 }
                                 currentBuild.result = SUCCESS
                             } catch (Exception e) {
+                                env.STATUS_TEST = UNSTABLE
                                 echo 'Exception occurred: ' + e.toString()
-                                description = "Failed Tests"
-                                echo "--------------- ${description} ---------------"
+                                env.DESCRIPTION = "Failed Tests"
+                                echo "--------------- ${env.DESCRIPTION} ---------------"
                                 currentBuild.result = UNSTABLE
-                                unstable(description)
+                                unstable(env.DESCRIPTION)
                             } finally {
                                 publishHTML([
                                     allowMissing: true,
@@ -262,10 +262,15 @@ spec:
             }
         }
 
-        stage('Run EtendoPluginPreReleaseTests Test Suite') {
+        stage('Run EtendoPluginPreReleaseTests Test Suite') { // MARK: Run EtendoPluginPreReleaseTests Test Suite
             when {
-                expression {
-                    currentBuild.result == SUCCESS
+                allOf {
+                    expression { currentBuild.result == SUCCESS || currentBuild.result == UNSTABLE }
+                    anyOf {
+                        branch 'main'
+                        branch 'develop'
+                        expression { return env.GIT_BRANCH.startsWith("release/") }
+                    }
                 }
             }
             steps {
@@ -275,19 +280,22 @@ spec:
                             try {
                                 echo "--------------- Printenv ---------------"
                                 dir(REPOSITORY_NAME) {
-                                    description = "Running Pre-Release Tests"
-                                    echo "--------------- ${description} ---------------"
-                                    updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, description, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+                                    env.DESCRIPTION = "Running Pre-Release Tests"
+                                    echo "--------------- ${env.DESCRIPTION} ---------------"
+                                    updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
 
                                     sh "./gradlew test --tests \"com.etendoerp.gradle.tests.EtendoPluginPreReleaseTests\" --info"
+
+                                    sh "mv build/jacoco/test.exec build/jacoco/test2.exec"
                                 }
                                 currentBuild.result = SUCCESS
                             } catch (Exception e) {
+                                env.STATUS_TEST = UNSTABLE
                                 echo 'Exception occurred: ' + e.toString()
-                                description = "Pre-Release Tests Failed"
-                                echo "--------------- ${description} ---------------"
+                                env.DESCRIPTION = "Pre-Release Tests Failed"
+                                echo "--------------- ${env.DESCRIPTION} ---------------"
                                 currentBuild.result = UNSTABLE
-                                unstable(description)
+                                unstable(env.DESCRIPTION)
                             } finally {
                                 publishHTML([
                                     allowMissing: true,
@@ -305,49 +313,97 @@ spec:
             }
         }
 
-        stage('Run SonarQube Analysis') { // MARK: Run SonarQube Analysis
+        stage('Generate Coverage Report') { // MARK: Generate Coverage Report
             when {
-                expression {
-                    currentBuild.result == SUCCESS && EXIST_JACOCO_REPORT
-                }
+                expression { env.STATUS_TEST == SUCCESS }
             }
             steps {
                 container("compiler") {
                     script {
-                        echo "---------------------- Installing SonarQube Scanner ----------------------"
-                        sh """
-                        apt-get update && apt-get install -y wget unzip
-                        wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_VERSION}-linux.zip
-                        unzip sonar-scanner-cli-${SONAR_VERSION}-linux.zip
-                        """
-                        env.PATH = "${env.PATH}:${WORKSPACE}/sonar-scanner-${SONAR_VERSION}-linux/bin"
-                        dir(REPOSITORY_NAME) {
-                            def sonarSources = "./src/main/groovy" 
-                            def sonarProjectKey = sh(script: "grep 'sonar.projectKey' sonar-project.properties | cut -d '=' -f2", returnStdout: true).trim()
-                            echo "SonarQube Project Key: ${sonarProjectKey}"
+                        try {
+                            dir(REPOSITORY_NAME) {
+                                env.DESCRIPTION = "Generating Coverage Report"
+                                echo "--------------- ${env.DESCRIPTION} ---------------"
+                                updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)                    
+                                echo "---------------------- Run jacocoRootReport ----------------------"
+                                env.EXIST_JACOCO_REPORT = FALSE
+                                sh """
+                                ./gradlew jacocoMerge jacocoRootReport --info
+                                """
+                                env.JACOCO_REPORT = "build/reports/jacoco/jacocoRootReport/jacocoRootReport.xml"
 
-                            echo "---------------------- Running SonarQube ----------------------"
+                                if (fileExists("${JACOCO_REPORT}")) {
+                                    echo "---------------------- Jacoco Report Found ----------------------"
+                                    env.EXIST_JACOCO_REPORT = TRUE
+                                }
+                            }
+                        } catch (Exception e) {
+                            echo 'Exception occurred: ' + e.toString()
+                            env.STATUS_TEST = UNSTABLE
+                            env.DESCRIPTION = "Failed to Generate Coverage Report"
+                            echo "--------------- ${env.DESCRIPTION} ---------------"
+                            currentBuild.result = UNSTABLE
+                            error(env.DESCRIPTION)
+                        }
+                        
+                    }
+                }
+            }
+        }
+
+        stage('Run SonarQube Analysis') { // MARK: Run SonarQube Analysis
+            when {
+                expression { currentBuild.result == SUCCESS && EXIST_JACOCO_REPORT == TRUE && STATUS_TEST == SUCCESS }
+            }
+            steps {
+                container("compiler") {
+                    script {
+                        try {
+                            env.DESCRIPTION = "Running SonarQube Analysis"
+                            echo "--------------- ${env.DESCRIPTION} ---------------"
+                            updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+                            echo "---------------------- Installing SonarQube Scanner ----------------------"
                             sh """
-                            ${WORKSPACE}/sonar-scanner-${SONAR_VERSION}-linux/bin/sonar-scanner -X \
-                                -Dsonar.projectKey=${sonarProjectKey} \
-                                -Dsonar.sources=${sonarSources} \
-                                -Dsonar.host.url=${SONARQUBE_URL} \
-                                -Dsonar.login=${SONARQUBE_TOKEN} \
-                                -Dsonar.branch.name=${GIT_BRANCH} \
-                                -Dsonar.projectVersion=${GIT_COMMIT} \
-                                -Dsonar.java.coveragePlugin=jacoco \
-                                -Dsonar.coverage.jacoco.xmlReportPaths=${JACOCO_REPORT}
+                            apt-get update && apt-get install -y wget unzip
+                            wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_VERSION}-linux.zip
+                            unzip sonar-scanner-cli-${SONAR_VERSION}-linux.zip
                             """
-                            
-                            echo "---------------------- Getting SonarQube Report URL ----------------------"
-                            def branchName = URLEncoder.encode(GIT_BRANCH, 'UTF-8')
-                            sh "echo \"${SONARQUBE_URL}\" > url_sonar.txt"
-                            def sonarUrl = readFile('url_sonar.txt').trim()
-                            def projectUrl = "${sonarUrl}dashboard?id=${sonarProjectKey}&branch=${branchName}"
-                            env.PROJECT_URL = "${projectUrl}"
-                            echo "Sonar Project URL: ${PROJECT_URL}"
+                            env.PATH = "${env.PATH}:${WORKSPACE}/sonar-scanner-${SONAR_VERSION}-linux/bin"
+                            dir(REPOSITORY_NAME) {
+                                def sonarSources = "./src/main/groovy" 
+                                def sonarProjectKey = sh(script: "grep 'sonar.projectKey' sonar-project.properties | cut -d '=' -f2", returnStdout: true).trim()
+                                echo "SonarQube Project Key: ${sonarProjectKey}"
 
-                            echo "---------------------- SonarQube Analysis Successful ----------------------"
+                                echo "---------------------- Running SonarQube ----------------------"
+                                sh """
+                                ${WORKSPACE}/sonar-scanner-${SONAR_VERSION}-linux/bin/sonar-scanner -X \
+                                    -Dsonar.projectKey=${sonarProjectKey} \
+                                    -Dsonar.sources=${sonarSources} \
+                                    -Dsonar.host.url=${SONARQUBE_URL} \
+                                    -Dsonar.login=${SONARQUBE_TOKEN} \
+                                    -Dsonar.branch.name=${GIT_BRANCH} \
+                                    -Dsonar.projectVersion=${GIT_COMMIT} \
+                                    -Dsonar.java.coveragePlugin=jacoco \
+                                    -Dsonar.coverage.jacoco.xmlReportPaths=${JACOCO_REPORT}
+                                """
+                                
+                                echo "---------------------- Getting SonarQube Report URL ----------------------"
+                                def branchName = URLEncoder.encode(GIT_BRANCH, 'UTF-8')
+                                sh "echo \"${SONARQUBE_URL}\" > url_sonar.txt"
+                                def sonarUrl = readFile('url_sonar.txt').trim()
+                                def projectUrl = "${sonarUrl}dashboard?id=${sonarProjectKey}&branch=${branchName}"
+                                env.PROJECT_URL = "${projectUrl}"
+                                echo "Sonar Project URL: ${PROJECT_URL}"
+
+                                echo "---------------------- SonarQube Analysis Successful ----------------------"
+                            }
+                        } catch (Exception e) {
+                            echo 'Exception occurred: ' + e.toString()
+                            env.STATUS_TEST = UNSTABLE
+                            env.DESCRIPTION = "SonarQube Analysis Failed"
+                            echo "--------------- ${env.DESCRIPTION} ---------------"
+                            currentBuild.result = FAILED
+                            error(env.DESCRIPTION)
                         }
                     }
                 }
@@ -356,9 +412,7 @@ spec:
         stage('Run Deploy Snapshot') { // MARK: Run Deploy Snapshot
             when {
                 branch 'develop'
-                expression {
-                    currentBuild.result == SUCCESS && EXIST_JACOCO_REPORT
-                }
+                expression { currentBuild.result == SUCCESS && STATUS_TEST == SUCCESS }
             }
             steps {
                 container('compiler') {
@@ -366,18 +420,11 @@ spec:
                         try {
                             withCredentials([sshUserPrivateKey(credentialsId: 'my-credentials', keyFileVariable: 'keyfile')]) {
                                 withCredentials([usernamePassword(credentialsId: "etendo_bot_credentials", passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
-                                    description = "Running Deploy Snapshot"
-                                    updateCommitStatus(REPOSITORY_NAME, COMMIT_FAILED_STATUS, description, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+                                    env.DESCRIPTION = "Running Deploy Snapshot"
+                                    updateCommitStatus(REPOSITORY_NAME, COMMIT_FAILED_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
                                     dir(REPOSITORY_NAME) {
-                                        echo "--------------- ${description} ---------------"
-                                        sh """
-                                        git config user.name "${GIT_USERNAME}"
-                                        git config user.email "${GIT_USERNAME}"
-                                        """
-                                        sh "echo version.ts=\$(TZ=America/Argentina/Buenos_Aires date +\"%Y%m%d-%H%M%S\") > version.properties"
+                                        echo "--------------- ${env.DESCRIPTION} ---------------"
                                         sh "./gradlew publish --info"
-                                        sh "git tag \"v\$(grep version.ts version.properties | cut -d= -f2)\" -m \"Release SNAPSHOT \$(grep version.tag version.properties | cut -d= -f2)\""
-                                        sh "GIT_SSH_COMMAND=\"ssh -i ${keyfile}\" git push ${GIT_URL} \"v\$(grep version.ts version.properties | cut -d= -f2)\""
                                     }
                                 }
                             }
@@ -385,9 +432,9 @@ spec:
                             echo 'Exception occurred: ' + e.toString()
                             echo '....FAILED DEPLOY SNAPSHOT....'
                             currentBuild.result = FAILED
-                            description = "Failed Deploy Snapshot"
-                            echo "--------------- ${description} ---------------"
-                            unstable('Failed Deploy Snapshot')
+                            env.DESCRIPTION = "Failed Deploy Snapshot"
+                            echo "--------------- ${env.DESCRIPTION} ---------------"
+                            error('Failed Deploy Snapshot')
                         }
                     }
                 }
@@ -399,16 +446,16 @@ spec:
         success {
             script {
                 echo "---------------- DONE ----------------"
-                description = "Plugin Tests Successful"
-                updateCommitStatus(REPOSITORY_NAME, COMMIT_SUCCESS_STATUS, description, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+                env.DESCRIPTION = "Plugin Tests Successful"
+                updateCommitStatus(REPOSITORY_NAME, COMMIT_SUCCESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
             }
         }
         unstable {
             script {
-                updateCommitStatus(REPOSITORY_NAME, COMMIT_FAILED_STATUS, description, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+                updateCommitStatus(REPOSITORY_NAME, COMMIT_FAILED_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
             }
             mail to: EMAIL_ADDRESS,
-                subject: "⚠️ ${description} - ${currentBuild.fullDisplayName}",
+                subject: "⚠️ ${env.DESCRIPTION} - ${currentBuild.fullDisplayName}",
                 mimeType: "text/html",
                 body:  """
                     <html>
@@ -421,7 +468,7 @@ spec:
                     <body>
                         <p>__________________________________________________________</p>
 
-                        <h2 class="header">⚠️ ${description} ⚠️</h2>
+                        <h2 class="header">⚠️ ${env.DESCRIPTION} ⚠️</h2>
 
                         ${env.COMMIT_INFO_TEMPLATE}
 
@@ -435,10 +482,10 @@ spec:
         }
         failure {
             script {
-                updateCommitStatus(REPOSITORY_NAME, COMMIT_FAILED_STATUS, description, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+                updateCommitStatus(REPOSITORY_NAME, COMMIT_FAILED_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
             }
             mail to: EMAIL_ADDRESS,
-                subject: "🚫 ${description} - ${currentBuild.fullDisplayName}",
+                subject: "🚫 ${env.DESCRIPTION} - ${currentBuild.fullDisplayName}",
                 mimeType: "text/html",
                 body:  """
                     <html>
@@ -451,7 +498,7 @@ spec:
                     <body>
                         <p>__________________________________________________________</p>
 
-                        <h2 class="header">🚫 ${description} 🚫</h2>
+                        <h2 class="header">🚫 ${env.DESCRIPTION} 🚫</h2>
 
                         ${env.COMMIT_INFO_TEMPLATE}
 
