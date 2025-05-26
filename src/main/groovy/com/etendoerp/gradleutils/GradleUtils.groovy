@@ -12,22 +12,6 @@ class GradleUtils {
         }
     }
 
-    /**
-     * Receives a list of tasks and set the order to be ran.
-     * The task should be ran following the order of the list
-     * [task1, task2, task3]
-     * order: task1 -> task2 -> task3
-     * task3 mustRunAfter -> task2 mustRunAfter -> task1
-     *
-     * @param project
-     * @param tasks
-     */
-    static setTaskOrder(Project project, List<Task> tasks) {
-        for (int i = 0; i < tasks.size() - 1; i++) {
-            tasks.get(i + 1).mustRunAfter(tasks.get(i))
-        }
-    }
-
     static TaskProvider<Task> getTaskByName(Project mainProject, Project subProject, String taskName) {
         TaskProvider<Task> task = null
         try {

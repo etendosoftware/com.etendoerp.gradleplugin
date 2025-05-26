@@ -11,6 +11,7 @@ import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.internal.artifacts.ivyservice.projectmodule.ProjectPublicationRegistry
 import org.gradle.api.internal.project.DefaultProject
+import org.gradle.api.tasks.TaskProvider
 
 class PublicationConfiguration {
 
@@ -194,7 +195,6 @@ class PublicationConfiguration {
     void loadPublicationTasksToMainProject(List<Project> subprojects, String subprojectPublicationTaskName, String mainProjectPublicationTaskName) {
         // Get the local publication tasks
         List<Task> subprojectPublicationTasks = []
-
         for (Project subproject : subprojects) {
             def subprojectTask = subproject.tasks.findByName(subprojectPublicationTaskName)
             if (!subprojectTask) {
@@ -204,8 +204,39 @@ class PublicationConfiguration {
             subprojectPublicationTasks.add(subprojectTask)
         }
 
-        // Set task order
-        GradleUtils.setTaskOrder(project, subprojectPublicationTasks)
+        // Configure the order of the tasks
+        for (int i = 0; i < subprojectPublicationTasks.size() - 1; i++) {
+            def currentTask = subprojectPublicationTasks[i]
+            def nextTask = subprojectPublicationTasks[i + 1]
+            nextTask.mustRunAfter(currentTask)
+        }
+
+        // Previous configuration of the tasks order requires to order the jar and sourcesJar tasks
+        for (int i = 0; i < subprojects.size() - 1; i++) {
+            def jarTask = subprojects.get(i).tasks.findByName("jar")
+            def sourcesJarTask = subprojects.get(i).tasks.findByName("sourcesJar")
+            sourcesJarTask?.mustRunAfter(jarTask)
+
+            for (int j = i + 1; j < subprojects.size() - 1; j++) {
+                def compileJavaTask = subprojects.get(j).tasks.findByName("compileJava")
+                if (jarTask && compileJavaTask) {
+                    def currentSubproject = subprojects.get(i)
+                    def dependentSubproject = subprojects.get(j)
+                    boolean dependencyFound = false
+                    currentSubproject.getConfigurations()
+                                     .getByName("implementation")
+                                     .getDependencies()
+                                     .each { dependency ->
+                                        if (dependency.name == dependentSubproject.name) {
+                                            dependencyFound = true
+                                        }
+                                     }
+                    if (!dependencyFound) {
+                        compileJavaTask.mustRunAfter([jarTask, sourcesJarTask])
+                    }
+                }
+            }
+        }
 
         // Add each task to the main project local publication
         def mainPublicationTask = project.tasks.findByName(mainProjectPublicationTaskName)
