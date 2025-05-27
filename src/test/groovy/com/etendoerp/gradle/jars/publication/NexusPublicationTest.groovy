@@ -5,7 +5,10 @@ import groovy.json.JsonSlurper
 import org.gradle.internal.impldep.org.apache.commons.io.FileUtils
 import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.TaskOutcome
-import spock.lang.*
+import spock.lang.Issue
+import spock.lang.Narrative
+import spock.lang.TempDir
+import spock.lang.Title
 
 
 @Title("Jars publication test")

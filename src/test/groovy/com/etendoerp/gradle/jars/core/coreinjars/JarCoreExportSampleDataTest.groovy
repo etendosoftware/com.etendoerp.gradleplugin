@@ -20,7 +20,7 @@ class JarCoreExportSampleDataTest extends EtendoCoreResolutionSpecificationTest 
 
     @Override
     String getCoreVersion() {
-        return ETENDO_LATEST_SNAPSHOT
+        return ETENDO_LATEST
     }
 
     @Override
@@ -45,6 +45,7 @@ class JarCoreExportSampleDataTest extends EtendoCoreResolutionSpecificationTest 
         and: "The users adds a sources module dependency before running the install"
         def preExpandModGroup = PRE_EXPAND_MODULE_GROUP
         def preExpandModName = PRE_EXPAND_MODULE_NAME
+        def repoEtendoTest = TEST_REPO
         buildFile << """
         dependencies {
           moduleDeps('${preExpandModGroup}:${preExpandModName}:[1.0.0,)@zip') { transitive = true }
@@ -52,7 +53,7 @@ class JarCoreExportSampleDataTest extends EtendoCoreResolutionSpecificationTest 
 
         repositories {
           maven {
-            url 'https://repo.futit.cloud/repository/etendo-test'
+            url '${repoEtendoTest}'
           }
         }
         """

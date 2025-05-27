@@ -25,7 +25,7 @@ class JarCoreExportConfigScriptTest extends EtendoCoreResolutionSpecificationTes
 
     @Override
     String getCoreVersion() {
-        return ETENDO_LATEST_SNAPSHOT
+        return ETENDO_LATEST
     }
 
     @Override
@@ -53,6 +53,7 @@ class JarCoreExportConfigScriptTest extends EtendoCoreResolutionSpecificationTes
         and: "The users adds a sources MODULE dependency before running the install"
         def preExpandModGroup = PRE_EXPAND_MODULE_GROUP
         def preExpandModName = PRE_EXPAND_MODULE_NAME
+        def repoEtendoTest = TEST_REPO
         buildFile << """
         dependencies {
           moduleDeps('${preExpandModGroup}:${preExpandModName}:[1.0.0,)@zip') { transitive = true }
@@ -60,7 +61,7 @@ class JarCoreExportConfigScriptTest extends EtendoCoreResolutionSpecificationTes
 
         repositories {
           maven {
-            url 'https://repo.futit.cloud/repository/etendo-test'
+            url '${repoEtendoTest}'
           }
         }
         """

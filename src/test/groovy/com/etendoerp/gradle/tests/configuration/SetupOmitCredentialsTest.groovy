@@ -28,7 +28,7 @@ class SetupOmitCredentialsTest extends EtendoCoreResolutionSpecificationTest {
 
     @Override
     String getCoreVersion() {
-        return ETENDO_LATEST_SNAPSHOT
+        return ETENDO_LATEST
     }
 
     @Override
@@ -52,6 +52,8 @@ class SetupOmitCredentialsTest extends EtendoCoreResolutionSpecificationTest {
         gradlePropertiesFile << """
         nexusUser=${args.get("nexusUser")}}
         nexusPassword=${args.get("nexusPassword")}}
+        githubUser=${args.get("githubUser")}}
+        githubToken=${args.get("githubToken")}}
         """
 
         when: "The users runs the setup task"

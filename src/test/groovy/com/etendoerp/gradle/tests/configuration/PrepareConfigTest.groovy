@@ -36,6 +36,10 @@ class PrepareConfigTest extends EtendoSpecification {
         bbdd.systemPassword=test_postgres
         bbdd.user=test_tad
         bbdd.password=test_tad
+        nexusUser=
+        nexusPassword=
+        githubUser=
+        githubToken=
         attach.path=/test/source/path/attachments"""
 
         when: "running the setup"
@@ -77,6 +81,10 @@ class PrepareConfigTest extends EtendoSpecification {
         bbdd.systemPassword=test_postgres
         bbdd.user=test_tad
         bbdd.password=test_tad
+        nexusUser=
+        nexusPassword=
+        githubUser=
+        githubToken=
         attach.path=/test/source/path/attachments
         """
 
@@ -117,7 +125,11 @@ class PrepareConfigTest extends EtendoSpecification {
         addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
 
         def gradleProperties = new File(testProjectDir, "gradle.properties")
-        gradleProperties.text = ""
+        gradleProperties.text = """
+        nexusUser=
+        nexusPassword=
+        githubUser=
+        githubToken="""
 
         when: "running the 'prepareConfig' task"
         def expandResult = runTask("expandCore")

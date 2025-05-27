@@ -11,3 +11,5 @@ test.bbdd.user=
 test.bbdd.password=
 org.gradle.daemon=false
 org.gradle.jvmargs=-Dfile.encoding=UTF-8
+
+etendoCoreVersion=

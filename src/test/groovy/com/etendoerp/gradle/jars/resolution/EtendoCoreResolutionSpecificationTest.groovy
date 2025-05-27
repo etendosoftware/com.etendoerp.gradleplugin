@@ -5,17 +5,18 @@ import org.gradle.testkit.runner.TaskOutcome
 import org.gradle.testkit.runner.UnexpectedBuildFailure
 
 
-abstract class EtendoCoreResolutionSpecificationTest extends EtendoSpecification{
+abstract class EtendoCoreResolutionSpecificationTest extends EtendoSpecification {
 
     public final static String ETENDO_CORE_GROUP   = "com.etendoerp.platform"
-    public final static String ETENDO_CORE_NAME    = "etendo-core"
+    public final static String ETENDO_CORE_NAME    = System.getProperty("etendoCoreName")
+    public final static String ETENDO_CORE_CURRENT_VERSION    = System.getProperty("etendoCoreVersion")
     public final static String ETENDO_CORE_VERSION = "[1.0.0,)"
     public final static String ETENDO_CORE_REPO    = "https://repo.futit.cloud/repository/etendo-resolution-test/"
 
     public final static String CORE = "${ETENDO_CORE_GROUP}:${ETENDO_CORE_NAME}:${ETENDO_CORE_VERSION}"
 
-    public final static String ETENDO_22q1_VERSION = "[22.1.+, 22.2.0)"
-    public final static String ETENDO_LATEST_SNAPSHOT = "22.2.0-SNAPSHOT"
+    public final static String ETENDO_LATEST = System.getProperty("etendoCoreVersion")
+
 
 
     String getCore() {
@@ -34,8 +35,12 @@ abstract class EtendoCoreResolutionSpecificationTest extends EtendoSpecification
         return ETENDO_CORE_VERSION
     }
 
+    String getCurrentCoreVersion() {
+        return ETENDO_CORE_CURRENT_VERSION
+    }
+
     String getCoreRepo() {
-        return ETENDO_CORE_REPO
+        return RESOLUTION_TEST_REPO
     }
 
 
@@ -100,6 +105,26 @@ abstract class EtendoCoreResolutionSpecificationTest extends EtendoSpecification
             assert !success
             assert exception
             assert exception.message.contains(exceptionMessage)
+        }
+    }
+
+/**
+ * Replaces the literal version 'x.y.z' with the actual version of the core in a build.gradle file
+ * @param file file The build.gradle file to be modified
+ * @param replacement The actual version of the core to replace 'x.y.z'
+ */
+    void fixCoreVersion(File file, String replacement) {
+        if (!file || !file.exists()) {
+            return
+        }
+
+        String originalContent = file.text
+
+        String updatedContent = originalContent.replaceAll(/\s*x\.y\.z\s*\)/,
+                "${replacement}]")
+
+        if (updatedContent != originalContent) {
+            file.text = updatedContent
         }
     }
 

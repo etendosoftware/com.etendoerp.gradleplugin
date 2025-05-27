@@ -29,7 +29,7 @@ class ModuleRemoveOldVersionInsideWebContentTest extends EtendoCoreResolutionSpe
 
     @Override
     String getCoreVersion() {
-        return ETENDO_LATEST_SNAPSHOT
+        return ETENDO_LATEST
     }
 
     def "Removing old version of a Module when updates version" () {

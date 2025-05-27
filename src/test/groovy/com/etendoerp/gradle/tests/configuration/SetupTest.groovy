@@ -37,6 +37,10 @@ class SetupTest extends EtendoSpecification {
         context.name=test_etendo
         bbdd.port=5439
         bbdd.sid=test_db
+        nexusUser=
+        nexusPassword=
+        githubUser=
+        githubToken=
         bbdd.systemUser=test_postgres
         bbdd.systemPassword=test_postgres
         bbdd.user=test_tad
@@ -77,6 +81,10 @@ class SetupTest extends EtendoSpecification {
         gradleProperties.text = """
         source.path=/test/source/path
         context.name=test_etendo
+        nexusUser=
+        nexusPassword=
+        githubUser=
+        githubToken=
         bbdd.port=5439
         bbdd.sid=test_db
         bbdd.systemUser=test_postgres
@@ -123,7 +131,12 @@ class SetupTest extends EtendoSpecification {
         addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
 
         def gradleProperties = new File(testProjectDir, "gradle.properties")
-        gradleProperties.text = ""
+        gradleProperties.text = """
+        githubToken=
+        githubUser=
+        nexusUser=
+        nexusPassword=
+        """
 
         when: "running the setup"
         def expandResult = runTask("expandCore")
