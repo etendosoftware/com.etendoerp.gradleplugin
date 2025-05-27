@@ -67,6 +67,10 @@ class JarTaskGenerator {
             }
         }
 
+        subProject.java {
+            withSourcesJar()
+        }
+
         // JAR configuration
         def jarModuleTask = GradleUtils.getTaskByName(mainProject, subProject, "jar")
         if (!jarModuleTask) {
