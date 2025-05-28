@@ -2,7 +2,6 @@ package com.etendoerp.gradle.tests.configuration
 
 import com.etendoerp.gradle.tests.EtendoSpecification
 import org.gradle.testkit.runner.TaskOutcome
-import org.junit.Ignore
 import spock.lang.TempDir
 
 class CompileFilesCheckTest extends EtendoSpecification {

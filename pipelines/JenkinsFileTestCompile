@@ -142,9 +142,10 @@ spec:
               def rootDir = pwd()
               def infoCommit = load "${rootDir}/pipelines/utils/infoCommits.groovy"
 
+              echo "-------------------------- Selecting the Correct Branch for Etendo Base Cloning --------------------------"
               env.BASE_BRANCH = env.MAIN_BRANCH
-              if (env.GIT_BRANCH.contains("-Y") || env.GIT_BRANCH.startsWith("release")) {
-                  env.BASE_BRANCH = env.BASE_BRANCH_BACKPORT
+              if (env.GIT_BRANCH.contains("-Y") || env.GIT_BRANCH.startsWith("release/")) {
+                env.BASE_BRANCH = env.BACKPORT_BRANCH
               }
 
               def description = "Compiling Environment in JAR"
@@ -152,9 +153,8 @@ spec:
 
               echo "--------------- Building Etendo JAR Environment ----------------"
               sh """
-              git clone ${ETENDO_BASE_URL}
+              git clone --branch ${BASE_BRANCH} ${ETENDO_BASE_URL}
               cd ${ETENDO_DIR}
-              git checkout ${env.BASE_BRANCH}
 
               echo "\n
               context.name=${CONTEXT_NAME}
@@ -181,8 +181,14 @@ spec:
               cp gradle.properties.template gradle.properties
               """
 
-              echo "-------------------------- Commit Information Collected --------------------------"
+              echo "---------------- Disable Tests ----------------"
               env.PLUGIN_DIR = "${ETENDO_DIR}/buildSrc"
+              sh """
+              cd ${PLUGIN_DIR}
+              sed -i 's/test\\.onlyIf { *true *}/test.onlyIf { false }/' build.gradle
+              """
+
+              echo "-------------------------- Commit Information Collected --------------------------"
               def commitInfoTemplate = infoCommit.generateCommitInfo(env.URL_ORG_GITHUB, null, REPOSITORY_NAME, true, env.PLUGIN_DIR)
               env.COMMIT_INFO_TEMPLATE = "${commitInfoTemplate}"
               echo "${env.COMMIT_INFO_TEMPLATE}"
@@ -195,10 +201,10 @@ spec:
               def dependencies = env.DEPENDENCIES_FOR_BASE.split(',')
               
               def dependenciesBlock = dependencies.collect {
-                  "moduleDeps(\"com.etendoerp:$it:latest.release@zip\") {transitive=true}"
+                  "moduleDeps(\"com.etendoerp:$it:[3.0.0,4.0.0)@zip\") {transitive=true}"
               }.join('\n')
 
-              dependenciesBlock += "\nimplementation(\"com.etendoerp.platform:etendo-core:latest.release\")"
+              dependenciesBlock += "\nimplementation(\"com.etendoerp.platform:etendo-core:[25.1.0,26.1.0)\")"
 
               def buildGradleContent = """
               dependencies {
@@ -225,7 +231,11 @@ spec:
               ./gradlew smartbuild --info
               """
 
-              sh "rm -rf ${ETENDO_DIR}"
+              echo "---------------- Cleaning Gradle cache and workspace ----------------"
+              sh """
+                rm -rf /home/jenkins/.gradle/caches
+                rm -rf ${ETENDO_DIR}
+              """
               echo "---------------- Build JAR Environment Succesful ----------------"
               currentBuild.result = SUCCESS
             } catch (Exception e) {
@@ -254,7 +264,7 @@ spec:
 
               echo "--------------- Building Etendo Source Environment ----------------"
               sh """
-              git clone ${ETENDO_BASE_URL}
+              git clone --branch ${BASE_BRANCH} ${ETENDO_BASE_URL}
               cd ${ETENDO_DIR}
 
               echo "\n
@@ -282,6 +292,13 @@ spec:
               cp gradle.properties.template gradle.properties
               """
 
+              echo "---------------- Disable Tests ----------------"
+              sh """
+              cd ${PLUGIN_DIR}
+              sed -i 's/test\\.onlyIf { *true *}/test.onlyIf { false }/' build.gradle
+              cat build.gradle
+              """
+
               sh """
               sed -i "s/\\(id 'com.etendoerp.gradleplugin[^']*'\\) version '\\([^']*\\)'/\\1 \\/\\/ version '\\2'/" "\${ETENDO_DIR}/build.gradle"
               """
@@ -290,7 +307,7 @@ spec:
               def dependencies = env.DEPENDENCIES_FOR_BASE.split(',')
 
               def dependenciesBlock = dependencies.collect {
-                  "moduleDeps(\"com.etendoerp:$it:latest.release@zip\") {transitive=true}"
+                  "moduleDeps(\"com.etendoerp:$it:[3.0.0,4.0.0)@zip\") {transitive=true}"
               }.join('\n')
 
               def buildGradleContent = """

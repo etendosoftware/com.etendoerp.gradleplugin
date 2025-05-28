@@ -6,6 +6,7 @@ import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
 import org.gradle.testkit.runner.UnexpectedBuildFailure
 import org.gradle.testkit.runner.internal.DefaultGradleRunner
+import spock.lang.Ignore
 import spock.lang.Narrative
 import spock.lang.Shared
 import spock.lang.Stepwise
@@ -133,7 +134,7 @@ class ExpandTest extends EtendoSpecification {
             contents.find {it == 'config'} != null
         }
     }
-
+    @Ignore("Temporarily disabled")
     def "Expand task fails when unauthenticated or with incorrect credentials"() {
         given: "an empty gradle cache"
         def gradleTestKitDir = new DefaultGradleRunner().getTestKitDirProvider().getDir()

@@ -1,9 +1,34 @@
+def updateCommitStatus(repositoryName, status, description, accessToken, gitCommit, buildUrl, contextBuild) {
+  sh "./pipelines/utils/build-update.sh ${repositoryName} ${status} \"${description}\" ${accessToken} ${gitCommit} ${buildUrl} \"${contextBuild}\""
+}
+
+def getLatestReleaseWithPrefix(String repo, String token, String prefix) {
+    return sh(
+        script: """
+        set -e
+        RESPONSE=\$(curl -s -w "%{http_code}" -H "Authorization: token ${token}" \\
+            "https://api.github.com/repos/${repo}/releases?per_page=6")
+        BODY=\$(echo "\$RESPONSE" | head -c -3)
+        STATUS_CODE=\$(echo "\$RESPONSE" | tail -c 3)
+
+        if [ "\$STATUS_CODE" -eq "401" ]; then
+          echo "ERROR: Unauthorized. Please check your GitHub token permissions." >&2
+          exit 1
+        fi
+
+        MATCH=\$(echo "\$BODY" | grep -o '"tag_name": *"${prefix}[^"]*"' | head -n 1 | sed -E 's/.*"([^"]+)"/\\1/')
+        if [ -z "\$MATCH" ]; then
+          echo "ERROR: No release found with prefix '${prefix}'." >&2
+          exit 1
+        fi
+
+        echo "\$MATCH"
+        """,
+        returnStdout: true
+    ).trim()
+}
+
 pipeline {
-
-    agent {
-        label 'etendo_core' //The id of the slave/agent where the build should be executed, if it doesn't matter use "agent any" instead.
-    }
-
     environment {
         CONTEXT_NAME    = 'etendo'
         BBDD_SID        = 'etendo'
@@ -11,96 +36,479 @@ pipeline {
         BBDD_SYSTEMUSER = 'postgres'
         BBDD_SYSTEMPASS = 'syspass'
         BBDD_USER       = 'tad'
-        BBDD_PASSWORD    = 'tad'
+        BBDD_PASSWORD   = 'tad'
         NEXUS_USER      =  credentials('nexus-admin-user')
         NEXUS_PASSWORD  =  credentials('nexus-admin-passwd')
-        JAVA_HOME       = '/usr/lib/jvm/java-11-openjdk-amd64'
+        GITHUB_USER     = 'etendobot'
+        GITHUB_TOKEN    = credentials('github-read-package-token')
+
+        EMAIL_ADDRESS   = credentials('email_builds')
+
+        GITHUB_ORG      = 'etendosoftware'
+        REPOSITORY_NAME = 'com.etendoerp.gradleplugin'
+        GITHUB_URL      = 'https://github.com'
+        ACCESS_TOKEN    = credentials('access_token_github')
+        PLUGIN_URL      = " https://github.com/etendosoftware/com.etendoerp.gradleplugin.git"
+
+        JAVA_HOME        = '/usr/lib/jvm/java-17-openjdk-amd64'
+        POSTGRES_VERSION = '16'
+
+        SUCCESS = 'SUCCESS'
+        FAILED = 'FAILED'
+        UNSTABLE = 'UNSTABLE'
+
+        COMMIT_INPROGRESS_STATUS = 'pending'
+        COMMIT_SUCCESS_STATUS    = 'success'
+        COMMIT_FAILED_STATUS     = 'failure'
+
+        CONTEXT_BUILD = 'Plugin Tests'
+
+        SONAR_VERSION   = '5.0.1.3006'
+        SONARQUBE_URL   = credentials('sonarqube-url')
+        SONARQUBE_TOKEN = credentials('sonar-token-access')
+
+        RELEASE_PREFIX = '25'
+
+        TRUE  = 'true'
+        FALSE = 'false'
+    }
+
+    agent {
+        kubernetes {
+            inheritFrom 'jenkins-node-tests'
+            defaultContainer 'jnlp'
+            yaml """
+apiVersion: v1
+kind: Pod
+metadata:
+  name: jenkins-node-tests-0
+  namespace: jenkins2025
+  labels:
+    app.kubernetes.io/name: jenkins-node-tests
+spec:
+  volumes:
+    - name: rsa-keys
+      configMap:
+        name: rsa-keys
+        defaultMode: 384
+    - name: docker-sock
+      hostPath:
+        path: /var/run/docker.sock
+        type: ''
+  containers:
+    - name: compiler
+      image: etendo/compiler_jenkins:1.0.7
+      ports:
+        - name: ssh
+          containerPort: 22
+          protocol: TCP
+        - name: visualvm
+          containerPort: 8000
+          protocol: TCP
+      resources:
+        requests:
+          cpu: 4000m
+          memory: 6000Mi
+        limits:
+          cpu: 4000m
+          memory: 10000Mi
+      volumeMounts:
+        - name: rsa-keys
+          mountPath: /root/.ssh/
+        - name: docker-sock
+          mountPath: /var/run/docker.sock
+      lifecycle:
+        postStart:
+          exec:
+            command:
+              - bash
+              - '-c'
+              - >-
+                chmod a+x /var/run/docker.sock && rm
+                /etc/apt/sources.list.d/pgdg.list || echo 0 && apt update && apt
+                install -y curl
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      imagePullPolicy: IfNotPresent
+    - name: postgres
+      image: postgres:16
+      workingDir: /home/jenkins
+      env:
+        - name: POSTGRES_PASSWORD
+          value: syspass
+      resources:
+        requests:
+          cpu: 1000m
+          memory: 1000Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      imagePullPolicy: IfNotPresent
+  restartPolicy: Always
+  terminationGracePeriodSeconds: 30
+  dnsPolicy: ClusterFirst
+  serviceAccountName: default
+  serviceAccount: default
+  securityContext: {}
+  """
+        }
     }
 
     stages {
-        stage('Run Tests') {
-            steps { //Checking out the repo
-                script {
-                    withCredentials([usernamePassword(credentialsId: "koodu_credentials", passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
-                        try{
-                            sh "printenv"
-                            sh "chmod a+x ./pipelines/build-update.sh"
-                            sh "./pipelines/build-update.sh etendo_gradle_plugin INPROGRESS 'Starting build'"
-                            sh "./gradlew --version --info" //run a gradle task
-                            sh """
-                            echo -e "
-                            nexusUser=${NEXUS_USER}\n
-                            nexusPassword=${NEXUS_PASSWORD}\n
-                            test.bbdd.url=jdbc:postgresql://localhost:5432\n
-                            test.bbdd.sid=${BBDD_SID}\n
-                            test.bbdd.systemUser=${BBDD_SYSTEMUSER}\n
-                            test.bbdd.systemPassword=${BBDD_SYSTEMPASS}\n
-                            test.bbdd.user=${BBDD_USER}\n
-                            test.bbdd.password=${BBDD_PASSWORD}\n
-                            org.gradle.daemon=false\n
-                            org.gradle.jvmargs=-Xmx2g -XX:MaxPermSize=1024m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8" > ./gradle.properties
-                            """
-                            sh "./gradlew test --info" //run a gradle task
-                            currentBuild.result = 'SUCCESS'
-                            sh "./pipelines/build-update.sh etendo_gradle_plugin SUCCESSFUL 'Build successful' $GIT_USERNAME $GIT_PASSWORD"
+        stage('Build Environment') { // MARK: Build Environment
+            steps {
+                container('compiler') {
+                    script {
+                        withCredentials([sshUserPrivateKey(credentialsId: 'my-credentials', keyFileVariable: 'keyfile')]) {
+                            try {
+                                echo "--------------- Printenv ---------------"
+                                sh 'printenv'
+                                env.STATUS_TEST = SUCCESS
+                                env.EXIST_JACOCO_REPORT = FALSE
 
-                            publishHTML([
-                                allowMissing: true,
-                                alwaysLinkToLastBuild: false,
-                                keepAll: true,
-                                reportDir: 'build/spock-reports/',
-                                reportFiles: '*.html',
-                                reportName: 'TESTS REPORT',
-                                reportTitles: ''
-                            ])
+                                def rootDir = pwd()
+                                def infoCommit = load "${rootDir}/pipelines/utils/infoCommits.groovy"
 
-                        } catch (Exception e) {
-                           echo 'Exception occurred: ' + e.toString()
-                           sh "./pipelines/build-update.sh etendo_gradle_plugin FAILED 'Build failed'"
-                           echo '....FAILED TESTS....'
-                           currentBuild.result = 'UNSTABLE'
-                           unstable('Failed Plugin Tests')
-                           publishHTML([
-                               allowMissing: false,
-                               alwaysLinkToLastBuild: false,
-                               keepAll: true,
-                               reportDir: 'build/spock-reports/',
-                               reportFiles: '*.html',
-                               reportName: 'TESTS REPORT',
-                               reportTitles: ''
-                           ])
+                                sh "GIT_SSH_COMMAND=\"ssh -i ${keyfile} -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\"\" git clone ${GIT_URL} ${REPOSITORY_NAME}"
+
+                                def commitInfoTemplate = infoCommit.generateCommitInfo("${env.GITHUB_URL}/${env.GITHUB_ORG}", null, REPOSITORY_NAME, true, env.REPOSITORY_NAME)
+                                env.COMMIT_INFO_TEMPLATE = "${commitInfoTemplate}"
+                                echo "${env.COMMIT_INFO_TEMPLATE}"
+
+                                env.DESCRIPTION = "Build Environment"
+                                echo "--------------- ${env.DESCRIPTION} ---------------"
+                                updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+                                dir(REPOSITORY_NAME) {
+                                    sh "git checkout ${GIT_COMMIT}"
+                                    env.DESCRIPTION = "Build Environment"
+                                    echo "--------------- ${env.DESCRIPTION} ---------------"
+                                    updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+
+                                    def lastRelease = getLatestReleaseWithPrefix("${GITHUB_ORG}/etendo_core", env.GITHUB_TOKEN, env.RELEASE_PREFIX)
+                                    echo "Latest release with prefix '${env.RELEASE_PREFIX}': ${lastRelease}"
+
+                                    sh """
+                                    echo "\n
+                                    allow.root=true
+                                    nexusUser=${NEXUS_USER}
+                                    nexusPassword=${NEXUS_PASSWORD}
+                                    githubUser=${GITHUB_USER}
+                                    githubToken=${GITHUB_TOKEN}
+                                    test.bbdd.driver=org.postgresql.Driver
+                                    test.bbdd.url=jdbc:postgresql://localhost:${BBDD_PORT}
+                                    test.bbdd.sid=${BBDD_SID}
+                                    test.bbdd.systemUser=${BBDD_SYSTEMUSER}
+                                    test.bbdd.systemPassword=${BBDD_SYSTEMPASS}
+                                    test.bbdd.user=${BBDD_USER}
+                                    test.bbdd.password=${BBDD_PASSWORD}
+                                    org.gradle.daemon=false
+                                    org.gradle.jvmargs=-Dfile.encoding=UTF-8
+                                    etendoCoreVersion=${lastRelease}" > ./gradle.properties
+                                    """
+                                }
+                                currentBuild.result = SUCCESS
+                            } catch (Exception e) {
+                                echo 'Exception occurred: ' + e.toString()
+                                env.DESCRIPTION = "Build Environment Failed"
+                                echo "--------------- ${env.DESCRIPTION} ---------------"
+                                currentBuild.result = FAILED
+                                env.STATUS_TEST = FAILED
+                                error(env.DESCRIPTION)
+                            }
                         }
                     }
                 }
             }
         }
-        stage('Run Deploy Snapshot') {
+        stage('Run EtendoPluginSOSTests Test Suite') { // MARK: Run EtendoPluginSOSTests Test Suite
             when {
-                branch 'develop'
-                expression {
-                    currentBuild.result == 'SUCCESS'
+                expression { currentBuild.result == SUCCESS }
+            }
+            steps {
+                container('compiler') {
+                    script {
+                        withCredentials([sshUserPrivateKey(credentialsId: 'my-credentials', keyFileVariable: 'keyfile')]) {
+                            try {
+                                echo "--------------- Printenv ---------------"
+                                dir(REPOSITORY_NAME) {
+                                    env.DESCRIPTION = "Running EtendoPluginSOSTests"
+                                    echo "--------------- ${env.DESCRIPTION} ---------------"
+                                    updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+                                    sh "./gradlew test --tests \"com.etendoerp.gradle.tests.EtendoPluginSOSTests\" --info"
+
+                                    sh "mv build/jacoco/test.exec build/jacoco/test1.exec"
+                                }
+                                currentBuild.result = SUCCESS
+                            } catch (Exception e) {
+                                env.STATUS_TEST = UNSTABLE
+                                echo 'Exception occurred: ' + e.toString()
+                                env.DESCRIPTION = "Failed Tests"
+                                echo "--------------- ${env.DESCRIPTION} ---------------"
+                                currentBuild.result = UNSTABLE
+                                unstable(env.DESCRIPTION)
+                            } finally {
+                                publishHTML([
+                                    allowMissing: true,
+                                    alwaysLinkToLastBuild: false,
+                                    keepAll: true,
+                                    reportDir: "${REPOSITORY_NAME}/build/spock-reports/",
+                                    reportFiles: '*.html',
+                                    reportName: 'PLUGIN SOS TESTS REPORT',
+                                    reportTitles: ''
+                                ])
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Run EtendoPluginPreReleaseTests Test Suite') { // MARK: Run EtendoPluginPreReleaseTests Test Suite
+            when {
+                allOf {
+                    expression { currentBuild.result == SUCCESS || currentBuild.result == UNSTABLE }
+                    /* anyOf {
+                        branch 'main'
+                        branch 'develop'
+                        expression { return env.GIT_BRANCH.startsWith("release/") }
+                    } */
                 }
             }
             steps {
-                withCredentials([sshUserPrivateKey(credentialsId: 'my-credentials', keyFileVariable: 'keyfile')]) {
-                    withCredentials([usernamePassword(credentialsId: "koodu_credentials", passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
-                        sh """
-                        git config user.name "$GIT_USERNAME"
-                        git config user.email "$GIT_USERNAME"
-                        """
-                        sh "echo version.ts=\$(date +\"%s\") > version.properties"
-                        sh "./gradlew publish --info"
-                        sh "git tag \"v\$(grep version.ts version.properties|cut -c 11-)\" -m \"Release SNAPSHOT \$(grep version.tag version.properties|cut -c 13-)\""
-                        sh "GIT_SSH_COMMAND=\"ssh -i ${keyfile}\" git push $GIT_URL \"v\$(grep version.ts version.properties|cut -c 11-)\""
+                container('compiler') {
+                    script {
+                        withCredentials([sshUserPrivateKey(credentialsId: 'my-credentials', keyFileVariable: 'keyfile')]) {
+                            try {
+                                echo "--------------- Printenv ---------------"
+                                dir(REPOSITORY_NAME) {
+                                    env.DESCRIPTION = "Running Pre-Release Tests"
+                                    echo "--------------- ${env.DESCRIPTION} ---------------"
+                                    updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+
+                                    sh "./gradlew test --tests \"com.etendoerp.gradle.tests.EtendoPluginPreReleaseTests\" --info"
+
+                                    sh "mv build/jacoco/test.exec build/jacoco/test2.exec"
+                                }
+                                currentBuild.result = SUCCESS
+                            } catch (Exception e) {
+                                env.STATUS_TEST = UNSTABLE
+                                echo 'Exception occurred: ' + e.toString()
+                                env.DESCRIPTION = "Pre-Release Tests Failed"
+                                echo "--------------- ${env.DESCRIPTION} ---------------"
+                                currentBuild.result = UNSTABLE
+                                unstable(env.DESCRIPTION)
+                            } finally {
+                                publishHTML([
+                                    allowMissing: true,
+                                    alwaysLinkToLastBuild: false,
+                                    keepAll: true,
+                                    reportDir: "${REPOSITORY_NAME}/build/spock-reports/",
+                                    reportFiles: '*.html',
+                                    reportName: 'PLUGIN PRERELEASE TESTS REPORT',
+                                    reportTitles: ''
+                                ])
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Generate Coverage Report') { // MARK: Generate Coverage Report
+            when {
+                expression { env.STATUS_TEST == SUCCESS }
+            }
+            steps {
+                container("compiler") {
+                    script {
+                        try {
+                            dir(REPOSITORY_NAME) {
+                                env.DESCRIPTION = "Generating Coverage Report"
+                                echo "--------------- ${env.DESCRIPTION} ---------------"
+                                updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+                                echo "---------------------- Run jacocoRootReport ----------------------"
+                                env.EXIST_JACOCO_REPORT = FALSE
+                                sh """
+                                ./gradlew jacocoRootReport --info
+                                """
+                                env.JACOCO_REPORT = "build/reports/jacoco/jacocoRootReport/jacocoRootReport.xml"
+
+                                if (fileExists("${JACOCO_REPORT}")) {
+                                    echo "---------------------- Jacoco Report Found ----------------------"
+                                    env.EXIST_JACOCO_REPORT = TRUE
+                                }
+                            }
+                        } catch (Exception e) {
+                            echo 'Exception occurred: ' + e.toString()
+                            env.STATUS_TEST = UNSTABLE
+                            env.DESCRIPTION = "Failed to Generate Coverage Report"
+                            echo "--------------- ${env.DESCRIPTION} ---------------"
+                            currentBuild.result = UNSTABLE
+                            error(env.DESCRIPTION)
+                        }
+
+                    }
+                }
+            }
+        }
+
+        stage('Run SonarQube Analysis') { // MARK: Run SonarQube Analysis
+            when {
+                expression { currentBuild.result == SUCCESS && EXIST_JACOCO_REPORT == TRUE && STATUS_TEST == SUCCESS }
+            }
+            steps {
+                container("compiler") {
+                    script {
+                        try {
+                            env.DESCRIPTION = "Running SonarQube Analysis"
+                            echo "--------------- ${env.DESCRIPTION} ---------------"
+                            updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+                            echo "---------------------- Installing SonarQube Scanner ----------------------"
+                            sh """
+                            apt-get update && apt-get install -y wget unzip
+                            wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_VERSION}-linux.zip
+                            unzip sonar-scanner-cli-${SONAR_VERSION}-linux.zip
+                            """
+                            env.PATH = "${env.PATH}:${WORKSPACE}/sonar-scanner-${SONAR_VERSION}-linux/bin"
+                            dir(REPOSITORY_NAME) {
+                                def sonarSources = "./src/main/groovy"
+                                def sonarProjectKey = sh(script: "grep 'sonar.projectKey' sonar-project.properties | cut -d '=' -f2", returnStdout: true).trim()
+                                echo "SonarQube Project Key: ${sonarProjectKey}"
+
+                                echo "---------------------- Running SonarQube ----------------------"
+                                sh """
+                                ${WORKSPACE}/sonar-scanner-${SONAR_VERSION}-linux/bin/sonar-scanner -X \
+                                    -Dsonar.projectKey=${sonarProjectKey} \
+                                    -Dsonar.sources=${sonarSources} \
+                                    -Dsonar.host.url=${SONARQUBE_URL} \
+                                    -Dsonar.login=${SONARQUBE_TOKEN} \
+                                    -Dsonar.branch.name=${GIT_BRANCH} \
+                                    -Dsonar.projectVersion=${GIT_COMMIT} \
+                                    -Dsonar.java.coveragePlugin=jacoco \
+                                    -Dsonar.coverage.jacoco.xmlReportPaths=${JACOCO_REPORT}
+                                """
+
+                                echo "---------------------- Getting SonarQube Report URL ----------------------"
+                                def branchName = URLEncoder.encode(GIT_BRANCH, 'UTF-8')
+                                sh "echo \"${SONARQUBE_URL}\" > url_sonar.txt"
+                                def sonarUrl = readFile('url_sonar.txt').trim()
+                                def projectUrl = "${sonarUrl}dashboard?id=${sonarProjectKey}&branch=${branchName}"
+                                env.PROJECT_URL = "${projectUrl}"
+                                echo "Sonar Project URL: ${PROJECT_URL}"
+
+                                echo "---------------------- SonarQube Analysis Successful ----------------------"
+                            }
+                        } catch (Exception e) {
+                            echo 'Exception occurred: ' + e.toString()
+                            env.STATUS_TEST = UNSTABLE
+                            env.DESCRIPTION = "SonarQube Analysis Failed"
+                            echo "--------------- ${env.DESCRIPTION} ---------------"
+                            currentBuild.result = FAILED
+                            error(env.DESCRIPTION)
+                        }
+                    }
+                }
+            }
+        }
+        stage('Run Deploy Snapshot') { // MARK: Run Deploy Snapshot
+            when {
+                branch 'develop'
+                expression { currentBuild.result == SUCCESS && STATUS_TEST == SUCCESS }
+            }
+            steps {
+                container('compiler') {
+                    script {
+                        try {
+                            withCredentials([sshUserPrivateKey(credentialsId: 'my-credentials', keyFileVariable: 'keyfile')]) {
+                                withCredentials([usernamePassword(credentialsId: "etendo_bot_credentials", passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
+                                    env.DESCRIPTION = "Running Deploy Snapshot"
+                                    updateCommitStatus(REPOSITORY_NAME, COMMIT_FAILED_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+                                    dir(REPOSITORY_NAME) {
+                                        echo "--------------- ${env.DESCRIPTION} ---------------"
+                                        sh "./gradlew publish --info"
+                                    }
+                                }
+                            }
+                        } catch (Exception e) {
+                            echo 'Exception occurred: ' + e.toString()
+                            echo '....FAILED DEPLOY SNAPSHOT....'
+                            currentBuild.result = FAILED
+                            env.DESCRIPTION = "Failed Deploy Snapshot"
+                            echo "--------------- ${env.DESCRIPTION} ---------------"
+                            error('Failed Deploy Snapshot')
+                        }
                     }
                 }
             }
         }
     }
 
-    post {
-        always {
-            cleanWs deleteDirs: true
+    post { // MARK: Post Actions
+        success {
+            script {
+                echo "---------------- DONE ----------------"
+                env.DESCRIPTION = "Plugin Tests Successful"
+                updateCommitStatus(REPOSITORY_NAME, COMMIT_SUCCESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+            }
+        }
+        unstable {
+            script {
+                updateCommitStatus(REPOSITORY_NAME, COMMIT_FAILED_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+            }
+            mail to: EMAIL_ADDRESS,
+                subject: "⚠️ ${env.DESCRIPTION} - ${currentBuild.fullDisplayName}",
+                mimeType: "text/html",
+                body:  """
+                    <html>
+                    <head>
+                        <style>
+                            body { font-family: 'Arial', sans-serif; }
+                            .header { font-size: 16px; font-weight: bold; color: #333; }
+                        </style>
+                    </head>
+                    <body>
+                        <p>__________________________________________________________</p>
+
+                        <h2 class="header">⚠️ ${env.DESCRIPTION} ⚠️</h2>
+
+                        ${env.COMMIT_INFO_TEMPLATE}
+
+                        <p>To more information on the failing run visit: ${env.BUILD_URL}</p>
+
+                        <p class="footer"><em>Best regards,<br>#EtendoBot 🤖</em></p>
+                        <p>__________________________________________________________</p>
+                    </body>
+                    </html>
+                """
+        }
+        failure {
+            script {
+                updateCommitStatus(REPOSITORY_NAME, COMMIT_FAILED_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+            }
+            mail to: EMAIL_ADDRESS,
+                subject: "🚫 ${env.DESCRIPTION} - ${currentBuild.fullDisplayName}",
+                mimeType: "text/html",
+                body:  """
+                    <html>
+                    <head>
+                        <style>
+                            body { font-family: 'Arial', sans-serif; }
+                            .header { font-size: 16px; font-weight: bold; color: #333; }
+                        </style>
+                    </head>
+                    <body>
+                        <p>__________________________________________________________</p>
+
+                        <h2 class="header">🚫 ${env.DESCRIPTION} 🚫</h2>
+
+                        ${env.COMMIT_INFO_TEMPLATE}
+
+                        <p>To more information on the failing run visit: ${env.BUILD_URL}</p>
+
+                        <p class="footer"><em>Best regards,<br>#EtendoBot 🤖</em></p>
+                        <p>__________________________________________________________</p>
+                    </body>
+                    </html>
+                """
         }
     }
 }
