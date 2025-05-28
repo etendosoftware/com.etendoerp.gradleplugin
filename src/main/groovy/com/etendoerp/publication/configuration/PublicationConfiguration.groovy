@@ -1,5 +1,6 @@
 package com.etendoerp.publication.configuration
 
+import com.etendoerp.gradleutils.GradleUtils
 import com.etendoerp.publication.PublicationLoader
 import com.etendoerp.publication.PublicationUtils
 import com.etendoerp.publication.configuration.pom.PomConfigurationContainer
