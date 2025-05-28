@@ -114,6 +114,7 @@ dependencies {
     testImplementation( "com.athaydes:spock-reports:2.0-groovy-3.0" ) {
         transitive = false // this avoids affecting your version of Groovy/Spock
     }
+    testImplementation 'org.postgresql:postgresql:42.5.4'
 
 }
 
@@ -121,7 +122,6 @@ tasks.withType(Test).configureEach {
     // Using JUnitPlatform for running tests
     useJUnitPlatform()
 }
-
 
 test {
     maxHeapSize = "4g"
