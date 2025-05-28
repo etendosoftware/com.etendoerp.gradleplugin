@@ -192,79 +192,85 @@ class PublicationConfiguration {
     }
 
     void loadPublicationTasksToMainProject(String subprojectPublicationTaskName, String mainProjectPublicationTaskName) {
-      //
+      List<String> deps = []
       String bundle = project.findProperty("pkg") as String
-      if (!bundle) {
-          throw new IllegalArgumentException("* The 'pkg' property is not set. Please provide a valid bundle name to publish.")
-      } else {
-          def buildGradleFile = project.file("modules/${bundle}/extension-modules.gradle")
-          List<String> deps = []
-          if (buildGradleFile.exists()) {
-              def buildGradleContent = buildGradleFile.text
-              def pattern = /git@[\w.-]+:([\w.-]+\/)?([\w.-]+)\.git/
-              def matcher = buildGradleContent =~ pattern
-              matcher.each { List<String> match -> // Each match is a list of strings: [fullMatch, optionalGroup/, projectName]
-                  String depIdentifier = null
-                  if (match.size() == 3) { // [fullMatch, groupPath, projectName]
-                      depIdentifier = match[2] // The project name part
-                  } else if (match.size() == 2) { // [fullMatch, projectName] (if groupPath was empty)
-                       depIdentifier = match[1] // This case might need refinement based on actual git URLs
+        if (!bundle) {
+            throw new IllegalArgumentException("* The 'pkg' property is not set. Please provide a valid bundle name to publish.")
+        } else {
+            if(project.gradle.taskGraph.hasTask("publishAll")) {
+              def buildGradleFile = project.file("modules/${bundle}/extension-modules.gradle")
+              if (buildGradleFile.exists()) {
+                  def buildGradleContent = buildGradleFile.text
+                  def pattern = /git@[\w.-]+:([\w.-]+\/)?([\w.-]+)\.git/
+                  def matcher = buildGradleContent =~ pattern
+                  matcher.each { List<String> match -> // Each match is a list of strings: [fullMatch, optionalGroup/, projectName]
+                      String depIdentifier = null
+                      if (match.size() == 3) { // [fullMatch, groupPath, projectName]
+                          depIdentifier = match[2] // The project name part
+                      } else if (match.size() == 2) {
+                          // [fullMatch, projectName] (if groupPath was empty)
+                          depIdentifier = match[1]
+                          // This case might need refinement based on actual git URLs
+                      }
+                      if (depIdentifier) {
+                          deps.add(depIdentifier.toString()) // Ensure it's a String
+                          project.logger.lifecycle("[PublicationConfiguration] Found dependency: '${depIdentifier}' in bundle '${bundle}'")
+                      } else {
+                          project.logger.warn("[PublicationConfiguration] Skipping invalid dependency format in bundle '${bundle}': ${match[0]}")
+                      }
                   }
-                  if (depIdentifier) {
-                      deps.add(depIdentifier.toString()) // Ensure it's a String
-                      project.logger.lifecycle("[PublicationConfiguration] Found dependency: '${depIdentifier}' in bundle '${bundle}'")
-                  } else {
-                      project.logger.warn("[PublicationConfiguration] Skipping invalid dependency format in bundle '${bundle}': ${match[0]}")
-                  }
-              }
-              deps.add(bundle) // Also add the main bundle itself to the list
-          } else {
-              throw new IllegalArgumentException("* The bundle '${bundle}' file 'modules/${bundle}/extension-modules.gradle' does not exist.")
-          }
-          List<Task> subprojectPublicationTasks = []
-          List<String> foundSubprojects = []
-          deps.each { String subprojectName ->
-              def subproject = project.findProject(":modules:${subprojectName}")
-              if (!subproject) {
-                  project.logger.warn("* The subproject '${subprojectName}' does not exist in the project. Skipping it.")
+                  deps.add(bundle) // Also add the main bundle itself to the list
               } else {
-                  if (!subproject.tasks.findByName(subprojectPublicationTaskName)) {
-                      throw new IllegalArgumentException("* The subproject '${subprojectName}' is missing the publication task '${subprojectPublicationTaskName}'.")
-                  }
-                  project.logger.info("* Adding the task '${subprojectPublicationTaskName}' from the '${subprojectName}' to be runned.")
-                  subprojectPublicationTasks.add(subproject.tasks.getByName(subprojectPublicationTaskName))
-                  foundSubprojects.add(subprojectName)
+                  throw new IllegalArgumentException("* The bundle '${bundle}' file 'modules/${bundle}/extension-modules.gradle' does not exist.")
               }
-          }
-          for (int i = 0; i < subprojectPublicationTasks.size() - 1; i++) {
-              def currentTask = subprojectPublicationTasks[i]
-              def nextTask = subprojectPublicationTasks[i + 1]
-              nextTask.mustRunAfter(currentTask)
-          }
-          for (int i = 0; i < deps.size() - 1; i++) {
-              String subprojectName = deps.get(i)
-              def subproject = project.findProject(":modules:${subprojectName}")
-              def jarTask = subproject.tasks.findByName("jar")
-              def sourcesJarTask = subproject.tasks.findByName("sourcesJar")
-              if(!jarTask || !sourcesJarTask) {
-                  throw new IllegalArgumentException("* The subproject '${subprojectName}' does not contain the 'jar' or 'sourcesJar' task. Please ensure it is a valid Java project.")
-              }
-              sourcesJarTask?.mustRunAfter(jarTask)
-              for (int j = i + 1; j < deps.size() - 1; j++) {
-                  def dependentSubprojectName = deps.get(j)
-                  def dependentSubproject = project.findProject(":modules:${dependentSubprojectName}")
-                  def compileJavaTask = dependentSubproject.tasks.findByName("compileJava")
-                  if (jarTask && sourcesJarTask && compileJavaTask) {
-                      compileJavaTask.mustRunAfter([jarTask, sourcesJarTask])
-                  }
-              }
-          }
+            } else {
+                deps.add(bundle)
+            }
+      }
 
-          // Add each task to the main project local publication
-          def mainPublicationTask = project.tasks.findByName(mainProjectPublicationTaskName)
-          for (def subprojectTask : subprojectPublicationTasks) {
-              mainPublicationTask.dependsOn(subprojectTask)
+      List<Task> subprojectPublicationTasks = []
+      List<String> foundSubprojects = []
+      deps.each { String subprojectName ->
+          def subproject = project.findProject(":modules:${subprojectName}")
+          if (!subproject) {
+              project.logger.warn("* The subproject '${subprojectName}' does not exist in the project. Skipping it.")
+          } else {
+              if (!subproject.tasks.findByName(subprojectPublicationTaskName)) {
+                  throw new IllegalArgumentException("* The subproject '${subprojectName}' is missing the publication task '${subprojectPublicationTaskName}'.")
+              }
+              project.logger.info("* Adding the task '${subprojectPublicationTaskName}' from the '${subprojectName}' to be runned.")
+              subprojectPublicationTasks.add(subproject.tasks.getByName(subprojectPublicationTaskName))
+              foundSubprojects.add(subprojectName)
           }
+      }
+      for (int i = 0; i < subprojectPublicationTasks.size() - 1; i++) {
+          def currentTask = subprojectPublicationTasks[i]
+          def nextTask = subprojectPublicationTasks[i + 1]
+          nextTask.mustRunAfter(currentTask)
+      }
+      for (int i = 0; i < deps.size() - 1; i++) {
+          String subprojectName = deps.get(i)
+          def subproject = project.findProject(":modules:${subprojectName}")
+          def jarTask = subproject.tasks.findByName("jar")
+          def sourcesJarTask = subproject.tasks.findByName("sourcesJar")
+          if(!jarTask || !sourcesJarTask) {
+              throw new IllegalArgumentException("* The subproject '${subprojectName}' does not contain the 'jar' or 'sourcesJar' task. Please ensure it is a valid Java project.")
+          }
+          sourcesJarTask?.mustRunAfter(jarTask)
+          for (int j = i + 1; j < deps.size() - 1; j++) {
+              def dependentSubprojectName = deps.get(j)
+              def dependentSubproject = project.findProject(":modules:${dependentSubprojectName}")
+              def compileJavaTask = dependentSubproject.tasks.findByName("compileJava")
+              if (jarTask && sourcesJarTask && compileJavaTask) {
+                  compileJavaTask.mustRunAfter([jarTask, sourcesJarTask])
+              }
+          }
+      }
+
+      // Add each task to the main project local publication
+      def mainPublicationTask = project.tasks.findByName(mainProjectPublicationTaskName)
+      for (def subprojectTask : subprojectPublicationTasks) {
+          mainPublicationTask.dependsOn(subprojectTask)
       }
     }
 }
