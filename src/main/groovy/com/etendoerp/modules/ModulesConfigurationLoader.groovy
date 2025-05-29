@@ -73,21 +73,6 @@ class ModulesConfigurationLoader {
                         }
                     }
 
-                    /**
-                     * Override the default output for the .class files because the
-                     * BuildValidationHandler considers it as a core class. (Search all classes in 'build/classes' for each module).
-                     * The BuildValidationHandler tries to load the classes but
-                     * if a class contains a library not included in the classpath, the 'update.database' task fails.
-                     */
-                    def output = subproject.file("${subproject.buildDir.absolutePath}/etendo-classes")
-                    subproject.sourceSets.main.java.destinationDirectory.set(output)
-
-                    subproject.sourceSets.main.java.srcDirs += JAVA_SOURCES
-                    subproject.sourceSets.main.compileClasspath += project.sourceSets.main.output
-                    subproject.sourceSets.main.runtimeClasspath += project.sourceSets.main.output
-                    subproject.sourceSets.main.compileClasspath += project.sourceSets.main.compileClasspath
-                    subproject.sourceSets.main.runtimeClasspath += project.sourceSets.main.runtimeClasspath
-
                 }
                 // Each subproject should be evaluated before the root project
                 project.evaluationDependsOn(subproject.path)

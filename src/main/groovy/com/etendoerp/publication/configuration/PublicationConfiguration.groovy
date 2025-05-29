@@ -262,7 +262,7 @@ class PublicationConfiguration {
               def dependentSubproject = project.findProject(":modules:${dependentSubprojectName}")
               def compileJavaTask = dependentSubproject.tasks.findByName("compileJava")
               if (jarTask && sourcesJarTask && compileJavaTask) {
-                  compileJavaTask.mustRunAfter([jarTask, sourcesJarTask])
+                  //compileJavaTask.mustRunAfter([jarTask, sourcesJarTask])
               }
           }
       }
