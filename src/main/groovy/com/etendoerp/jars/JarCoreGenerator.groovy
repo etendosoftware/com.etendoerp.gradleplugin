@@ -1,6 +1,7 @@
 package com.etendoerp.jars
 
 import com.etendoerp.dependencies.DependenciesLoader
+import org.gradle.api.JavaVersion
 import org.gradle.api.Project
 import org.gradle.api.file.FileTreeElement
 import org.gradle.api.tasks.Copy
@@ -240,8 +241,11 @@ class JarCoreGenerator {
 
         project.tasks.findByName("jarConfig").dependsOn(project.tasks.findByName("cleanResources"))
         project.jarConfig.dependsOn(resourcesDirs)
-        project.sourcesJar.dependsOn("sourcesJarConfig")
-
+        project.sourcesJar {
+            dependsOn {"sourcesJarConfig"}
+            archiveBaseName = "${ETENDO_CORE}"
+        }
+        project.jar.dependsOn 'sourcesJar'
     }
 }
 
