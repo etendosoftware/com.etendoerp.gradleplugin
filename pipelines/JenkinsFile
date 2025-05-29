@@ -255,6 +255,7 @@ spec:
                                     reportName: 'PLUGIN SOS TESTS REPORT',
                                     reportTitles: ''
                                 ])
+                                sh "rm -rf ${REPOSITORY_NAME}/build/spock-reports/"
                             }
                         }
                     }
