@@ -93,13 +93,14 @@ class ResolutionUtils {
                 && (modulesToReport.isEmpty() || moduleIdentifier in modulesToReport*.toLowerCase()))
 
         String taskReportName = RESOLUTION_REPORT_TASK + UUID.randomUUID().toString().replace("-","")
-        shouldReport = false
         if (shouldReport) {
             project.logger.info("")
             project.logger.info("********************************************")
             project.logger.info("* ${CONFLICT_WARNING_MESSAGE} ${module}")
             project.logger.info("* Description: ${reason.descriptions}")
-
+        }
+        shouldReport = false
+        if (shouldReport) {
             // Create task to report the dependency graph
             def reportTask = project.tasks.register(taskReportName, DependencyInsightReportTask).get()
             reportTask.setConfiguration(configuration)
