@@ -1,0 +1,49 @@
+group          = "com.test"
+version        = "1.0.0"
+description    = "Bundle module that includes modules A, B and C"
+ext.artifact   = "moduleBundle"
+ext.repository = "https://repo.futit.cloud/repository/etendo-multiplepublish-test"
+
+configurations {
+    moduleDependencyContainer
+}
+
+publishing {
+    publications {
+        "com.test.moduleBundle"(MavenPublication) {
+            from components.java
+            groupId    = group
+            artifactId = artifact
+            version    = version
+        }
+    }
+    repositories {
+        maven {
+            url "https://repo.futit.cloud/repository/etendo-multiplepublish-test"
+        }
+    }
+}
+
+dependencies {
+    implementation 'com.test:moduleBpublish:1.0.0'
+    implementation 'com.test:moduleCpublish:1.0.0'
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url "https://repo.futit.cloud/repository/etendo-test"
+    }
+    maven {
+        url "https://repo.futit.cloud/repository/maven-releases"
+    }
+    maven {
+        url "https://repo.futit.cloud/repository/maven-public-jars"
+    }
+    maven {
+        url "https://repo.futit.cloud/repository/etendo-resolution-test"
+    }
+    maven {
+        url "https://repo.futit.cloud/repository/etendo-multiplepublish-test"
+    }
+}

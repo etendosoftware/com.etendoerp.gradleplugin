@@ -128,4 +128,27 @@ abstract class EtendoCoreResolutionSpecificationTest extends EtendoSpecification
         }
     }
 
+
+    /**
+     * Creates the extension-modules.gradle file inside a specific module directory
+     * @param moduleDir The module directory where to create the file
+     * @param modules List of module names in the order they should be published
+     * @param comments Optional map of module -> comment to add descriptive comments
+     */
+    void createExtensionModulesFileInModule(File moduleDir, List<String> modules) {
+        File extensionModulesFile = new File(moduleDir, "extension-modules.gradle")
+
+        StringBuilder content = new StringBuilder()
+        content.append("ext.defaultExtensionModules = [\n")
+
+        modules.eachWithIndex { module, index ->
+            String comma = index < modules.size() - 1 ? "," : ""
+            content.append("        'git@github.com:etendosoftware/${module}.git'${comma}\n")
+        }
+
+        content.append("]\n")
+
+        extensionModulesFile.text = content.toString()
+    }
+
 }
