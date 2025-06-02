@@ -262,7 +262,7 @@ spec:
             }
         }
 
-        stage('Run EtendoPluginPreReleaseTests Test Suite') { // MARK: Run EtendoPluginPreReleaseTests Test Suite
+        stage('Run Multiple Pre-Release Test Suites') { // MARK: Run EtendoPluginPreReleaseTests Test Suite
             when {
                 allOf {
                     expression { currentBuild.result == SUCCESS || currentBuild.result == UNSTABLE }
@@ -284,9 +284,39 @@ spec:
                                     echo "--------------- ${env.DESCRIPTION} ---------------"
                                     updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
 
-                                    sh "./gradlew test --tests \"com.etendoerp.gradle.tests.EtendoPluginPreReleaseTests\" --info"
+                                    sh "./gradlew test --tests \"com.etendoerp.gradle.tests.EtendoPluginPreReleaseTestsPart1\" --info"
 
                                     sh "mv build/jacoco/test.exec build/jacoco/test2.exec"
+
+                                    publishHTML([
+                                        allowMissing: true,
+                                        alwaysLinkToLastBuild: false,
+                                        keepAll: true,
+                                        reportDir: "${REPOSITORY_NAME}/build/spock-reports/",
+                                        reportFiles: '*.html',
+                                        reportName: 'PLUGIN PRERELEASE1 TESTS REPORT',
+                                        reportTitles: ''
+                                    ])
+
+                                    sh "rm -rf build/spock-reports/*"
+
+                                    env.DESCRIPTION = "Running Pre-Release Tests - Suite 2"
+                                    echo "--------------- ${env.DESCRIPTION} ---------------"
+                                    updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+
+                                    sh "./gradlew test --tests \"com.etendoerp.gradle.tests.EtendoPluginPreReleaseTestsPart2\" --info"
+
+                                    sh "mv build/jacoco/test.exec build/jacoco/test3.exec"
+                                    publishHTML([
+                                        allowMissing: true,
+                                        alwaysLinkToLastBuild: false,
+                                        keepAll: true,
+                                        reportDir: "${REPOSITORY_NAME}/build/spock-reports/",
+                                        reportFiles: '*.html',
+                                        reportName: 'PLUGIN PRERELEASE2 TESTS REPORT',
+                                        reportTitles: ''
+                                    ])
+
                                 }
                                 currentBuild.result = SUCCESS
                             } catch (Exception e) {
@@ -296,16 +326,6 @@ spec:
                                 echo "--------------- ${env.DESCRIPTION} ---------------"
                                 currentBuild.result = UNSTABLE
                                 unstable(env.DESCRIPTION)
-                            } finally {
-                                publishHTML([
-                                    allowMissing: true,
-                                    alwaysLinkToLastBuild: false,
-                                    keepAll: true,
-                                    reportDir: "${REPOSITORY_NAME}/build/spock-reports/",
-                                    reportFiles: '*.html',
-                                    reportName: 'PLUGIN PRERELEASE TESTS REPORT',
-                                    reportTitles: ''
-                                ])
                             }
                         }
                     }
