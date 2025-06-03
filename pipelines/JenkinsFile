@@ -261,16 +261,15 @@ spec:
                 }
             }
         }
-
-        stage('Run Multiple Pre-Release Test Suites') { // MARK: Run EtendoPluginPreReleaseTests Test Suite
+        stage('Run EtendoPluginPreReleaseTests1 Test Suite') { // MARK: Run EtendoPluginPreReleaseTestsPart1 Test Suite
             when {
                 allOf {
                     expression { currentBuild.result == SUCCESS || currentBuild.result == UNSTABLE }
-                    /* anyOf {
+                    /*anyOf {
                         branch 'main'
                         branch 'develop'
                         expression { return env.GIT_BRANCH.startsWith("release/") }
-                    } */
+                    }*/
                 }
             }
             steps {
@@ -280,26 +279,56 @@ spec:
                             try {
                                 echo "--------------- Printenv ---------------"
                                 dir(REPOSITORY_NAME) {
-                                    env.DESCRIPTION = "Running Pre-Release Tests"
+                                    env.DESCRIPTION = "Running Pre-Release Tests - Suite 1"
                                     echo "--------------- ${env.DESCRIPTION} ---------------"
                                     updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
 
                                     sh "./gradlew test --tests \"com.etendoerp.gradle.tests.EtendoPluginPreReleaseTestsPart1\" --info"
 
                                     sh "mv build/jacoco/test.exec build/jacoco/test2.exec"
-
-                                    publishHTML([
-                                        allowMissing: true,
-                                        alwaysLinkToLastBuild: false,
-                                        keepAll: true,
-                                        reportDir: "${REPOSITORY_NAME}/build/spock-reports/",
-                                        reportFiles: '*.html',
-                                        reportName: 'PLUGIN PRERELEASE1 TESTS REPORT',
-                                        reportTitles: ''
-                                    ])
-
-                                    sh "rm -rf build/spock-reports/*"
-
+                                }
+                                currentBuild.result = SUCCESS
+                            } catch (Exception e) {
+                                env.STATUS_TEST = UNSTABLE
+                                echo 'Exception occurred: ' + e.toString()
+                                env.DESCRIPTION = "Pre-Release Part 1 Tests Failed"
+                                echo "--------------- ${env.DESCRIPTION} ---------------"
+                                currentBuild.result = UNSTABLE
+                                unstable(env.DESCRIPTION)
+                            } finally {
+                                publishHTML([
+                                    allowMissing: true,
+                                    alwaysLinkToLastBuild: false,
+                                    keepAll: true,
+                                    reportDir: "${REPOSITORY_NAME}/build/spock-reports/",
+                                    reportFiles: '*.html',
+                                    reportName: 'PLUGIN PRE-RELEASE PART 1 TESTS REPORT',
+                                    reportTitles: ''
+                                ])
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        stage('Run EtendoPluginPreReleaseTests2 Test Suite') { // MARK: Run EtendoPluginPreReleaseTestsPart2 Test Suite
+            when {
+                allOf {
+                    expression { currentBuild.result == SUCCESS || currentBuild.result == UNSTABLE }
+                    /*anyOf {
+                        branch 'main'
+                        branch 'develop'
+                        expression { return env.GIT_BRANCH.startsWith("release/") }
+                    }*/
+                }
+            }
+            steps {
+                container('compiler') {
+                    script {
+                        withCredentials([sshUserPrivateKey(credentialsId: 'my-credentials', keyFileVariable: 'keyfile')]) {
+                            try {
+                                echo "--------------- Printenv ---------------"
+                                dir(REPOSITORY_NAME) {
                                     env.DESCRIPTION = "Running Pre-Release Tests - Suite 2"
                                     echo "--------------- ${env.DESCRIPTION} ---------------"
                                     updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
@@ -307,32 +336,31 @@ spec:
                                     sh "./gradlew test --tests \"com.etendoerp.gradle.tests.EtendoPluginPreReleaseTestsPart2\" --info"
 
                                     sh "mv build/jacoco/test.exec build/jacoco/test3.exec"
-                                    publishHTML([
-                                        allowMissing: true,
-                                        alwaysLinkToLastBuild: false,
-                                        keepAll: true,
-                                        reportDir: "${REPOSITORY_NAME}/build/spock-reports/",
-                                        reportFiles: '*.html',
-                                        reportName: 'PLUGIN PRERELEASE2 TESTS REPORT',
-                                        reportTitles: ''
-                                    ])
-
                                 }
                                 currentBuild.result = SUCCESS
                             } catch (Exception e) {
                                 env.STATUS_TEST = UNSTABLE
                                 echo 'Exception occurred: ' + e.toString()
-                                env.DESCRIPTION = "Pre-Release Tests Failed"
+                                env.DESCRIPTION = "Pre-Release Part 2 Tests Failed"
                                 echo "--------------- ${env.DESCRIPTION} ---------------"
                                 currentBuild.result = UNSTABLE
                                 unstable(env.DESCRIPTION)
+                            } finally {
+                                publishHTML([
+                                    allowMissing: true,
+                                    alwaysLinkToLastBuild: false,
+                                    keepAll: true,
+                                    reportDir: "${REPOSITORY_NAME}/build/spock-reports/",
+                                    reportFiles: '*.html',
+                                    reportName: 'PLUGIN PRE-RELEASE PART 2 TESTS REPORT',
+                                    reportTitles: ''
+                                ])
                             }
                         }
                     }
                 }
             }
         }
-
         stage('Generate Coverage Report') { // MARK: Generate Coverage Report
             when {
                 expression { env.STATUS_TEST == SUCCESS }
