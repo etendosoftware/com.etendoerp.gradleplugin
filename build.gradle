@@ -124,20 +124,20 @@ tasks.withType(Test).configureEach {
 
 
 test {
-    maxHeapSize = "4g"
-    minHeapSize = "1g"
+    maxHeapSize = "8192m"
+    minHeapSize = "1024m"
 
-    forkEvery = 1
-    maxParallelForks = 1
+    doFirst {
+        file("$buildDir/heap-dumps").mkdirs()
+    }
 
     jvmArgs = [
             '-XX:+UseG1GC',
             '-XX:+HeapDumpOnOutOfMemoryError',
-            '-XX:HeapDumpPath=./build/heap-dumps/',
-            '-XX:MaxMetaspaceSize=512m',
-            '-XX:ReservedCodeCacheSize=256m',
-            '-XX:MaxGCPauseMillis=200',
             '-XX:+ExitOnOutOfMemoryError',
+            '-XX:HeapDumpPath=./build/heap-dumps/heap.hprof',
+            '-XX:MaxMetaspaceSize=1024m',
+            '-XX:ReservedCodeCacheSize=256m',
             '-Dfile.encoding=UTF-8'
     ]
 

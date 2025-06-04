@@ -255,6 +255,7 @@ spec:
                                     reportName: 'PLUGIN SOS TESTS REPORT',
                                     reportTitles: ''
                                 ])
+                                sh "rm -rf ${REPOSITORY_NAME}/build/spock-reports/"
                             }
                         }
                     }
@@ -305,6 +306,7 @@ spec:
                                     reportName: 'PLUGIN PRE-RELEASE PART 1 TESTS REPORT',
                                     reportTitles: ''
                                 ])
+                                sh "rm -rf ${REPOSITORY_NAME}/build/spock-reports/"
                             }
                         }
                     }
