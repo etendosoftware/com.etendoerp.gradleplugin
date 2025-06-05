@@ -44,16 +44,6 @@ version(pluginVersion)
 
 repositories {
     mavenCentral()
-    repositories {
-        mavenCentral()
-        maven {
-            url = 'https://maven.pkg.github.com/etendosoftware/com.etendoerp.public.jars'
-            credentials {
-                username = "${githubUser}"
-                password = "${githubToken}"
-            }
-        }
-    }
 }
 
 publishing {

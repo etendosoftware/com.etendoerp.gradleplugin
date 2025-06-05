@@ -74,23 +74,23 @@ class PublishAllTest extends EtendoCoreResolutionSpecificationTest {
         assert resultCreateModuleBuild.task(":createModuleBuild").outcome == TaskOutcome.SUCCESS
 
         and: "The Bundle which includes modules A, B and C as dependencies"
-        def moduleBundle = "com.test.moduleBundle"
+        def moduleBundle = "com.test.module.bundle"
         FileUtils.copyDirectoryToDirectory(new File("${ENVIRONMENTS_LOCATION}/${moduleBundle}"), modulesDir)
 
         and: "The build.gradle files will be created for all modules including the bundle"
-        // Módulo A
+        // Módule A
         File moduleALocationAfterCreation = new File(testProjectDir, "modules/${moduleA}")
         File buildFileAfterCreationModuleA = new File(moduleALocationAfterCreation, "build.gradle")
         assert buildFileAfterCreationModuleA.exists()
         fixCoreVersion(buildFileAfterCreationModuleA, getCurrentCoreVersion())
 
-        // Módulo B
+        // Módule B
         File moduleBLocationAfterCreation = new File(testProjectDir, "modules/${moduleB}")
         File buildFileAfterCreationModuleB = new File(moduleBLocationAfterCreation, "build.gradle")
         assert buildFileAfterCreationModuleB.exists()
         fixCoreVersion(buildFileAfterCreationModuleB, getCurrentCoreVersion())
 
-        // Módulo C
+        // Módule C
         File moduleCLocationAfterCreation = new File(testProjectDir, "modules/${moduleC}")
         File buildFileAfterCreationModuleC = new File(moduleCLocationAfterCreation, "build.gradle")
         assert buildFileAfterCreationModuleC.exists()
@@ -130,10 +130,10 @@ class PublishAllTest extends EtendoCoreResolutionSpecificationTest {
         PublicationUtils.repoContainsModules(REPOSITORY, modulesData)
 
         and: "The bundle module POM should contain the correct dependencies"
-        def bundlePomAddress = "${REPOSITORY_URL}${REPOSITORY}/com/test/moduleBundle/1.0.0/moduleBundle-1.0.0.pom"
+        def bundlePomAddress = "${REPOSITORY_URL}${REPOSITORY}/com/test/module/bundle/1.0.0/module.bundle-1.0.0.pom"
         Map bundlePomDependencies = new TreeMap(String.CASE_INSENSITIVE_ORDER)
         bundlePomDependencies.put(moduleB, ["group":"com.test", "artifact": "moduleBpublish", "version": "1.0.0"])
         bundlePomDependencies.put(moduleC, ["group":"com.test", "artifact": "moduleCpublish", "version": "1.0.0"])
-        PublicationUtils.downloadAndValidatePomFile(bundlePomAddress, testProjectDir, "moduleBundle-1.0.0.pom", "1.0.0", bundlePomDependencies)
+        PublicationUtils.downloadAndValidatePomFile(bundlePomAddress, testProjectDir, "module.bundle-1.0.0.pom", "1.0.0", bundlePomDependencies)
     }
 }
