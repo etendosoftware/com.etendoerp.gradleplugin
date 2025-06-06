@@ -17,12 +17,11 @@ class EtendoSpecificationTest extends EtendoSpecification {
     @Issue("ERP-431")
     def "base test class configures the project properly"() {
         when:
-        def result = runTask("init")
+        def result = runTask("tasks")
 
         then:
-        // Skipped because build.gradle already exists
-        // No prior errors to executing the task
-        result.task(":init").outcome == TaskOutcome.SKIPPED
+        // Tasks should execute successfully, showing project is configured properly
+        result.task(":tasks").outcome == TaskOutcome.SUCCESS
         // Nexus user (and therefore password) should be read from gradle.properties
         args.containsKey("nexusUser") && args.get("nexusUser") != null
     }

@@ -46,8 +46,8 @@ class CoreRemoveOldVersionInsideWebContentTest extends EtendoCoreResolutionSpeci
 
         // TODO: Use the release versions
 
-        def oldCoreVersion = "22.1.3"
-        def newCoreVersion = "22.2.0"
+        def oldCoreVersion = "24.4.9"
+        def newCoreVersion = ETENDO_LATEST_SNAPSHOT
 
         coreVersionToInstall = oldCoreVersion
 

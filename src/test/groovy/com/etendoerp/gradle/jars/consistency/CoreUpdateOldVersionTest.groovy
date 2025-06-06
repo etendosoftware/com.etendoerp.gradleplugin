@@ -30,7 +30,7 @@ class CoreUpdateOldVersionTest extends EtendoCoreResolutionSpecificationTest {
         testProjectDir
     }
 
-    def coreVersionToInstall = "22.1.3"
+    def coreVersionToInstall = "24.4.9"
 
     @Override
     String getCoreVersion() {
@@ -44,13 +44,15 @@ class CoreUpdateOldVersionTest extends EtendoCoreResolutionSpecificationTest {
 
     def "Update the core JAR to an old version"() {
         given: "The user with an installed version of the CORE in JARs"
-        def currentCoreVersion = "22.2.0"
-        def currentCoreVersionXML = "22.2.0"
+        def currentCoreVersion = ETENDO_LATEST_SNAPSHOT
+        def currentCoreVersionXML = ETENDO_LATEST_SNAPSHOT
 
-        def newCoreVersion = "22.1.3"
-        def newCoreVersionXML = "22.1.3"
+        def newCoreVersion = "24.4.9"
+        def newCoreVersionXML = "24.4.9"
 
         coreVersionToInstall = currentCoreVersion
+
+        addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
 
         Map pluginVariables = ["coreVersion" : "'${getCoreVersion()}'"]
         loadCore([coreType : "jar", pluginVariables: pluginVariables])
@@ -84,7 +86,7 @@ class CoreUpdateOldVersionTest extends EtendoCoreResolutionSpecificationTest {
         Exception exception  = null
         def dependenciesTaskResult = null
         try {
-            dependenciesTaskResult = runTask(":dependencies","--refresh-dependencies", "-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
+            dependenciesTaskResult = runTask(":dependencies","--refresh-dependencies", "-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}", "-DgithubUser=${args.get("githubUser")}", "-DgithubToken=${args.get("githubToken")}")
         } catch (UnexpectedBuildFailure ignored) {
             exception = ignored
             success = false
@@ -103,7 +105,7 @@ class CoreUpdateOldVersionTest extends EtendoCoreResolutionSpecificationTest {
         exception  = null
         dependenciesTaskResult = null
         try {
-            dependenciesTaskResult = runTask(":dependencies","--refresh-dependencies", "-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
+            dependenciesTaskResult = runTask(":dependencies","--refresh-dependencies", "-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}", "-DgithubUser=${args.get("githubUser")}", "-DgithubToken=${args.get("githubToken")}")
         } catch (UnexpectedBuildFailure ignored) {
             exception = ignored
             success = false

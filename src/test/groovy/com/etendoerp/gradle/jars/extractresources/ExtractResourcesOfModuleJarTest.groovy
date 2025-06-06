@@ -2,7 +2,7 @@ package com.etendoerp.gradle.jars.extractresources
 
 import com.etendoerp.gradle.jars.JarsUtils
 import com.etendoerp.gradle.jars.modules.ModuleToJarUtils
-import com.etendoerp.gradle.tests.EtendoSpecification
+import com.etendoerp.gradle.jars.resolution.EtendoCoreResolutionSpecificationTest
 import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.TaskOutcome
 import spock.lang.Narrative
@@ -13,7 +13,7 @@ import spock.lang.Title
 @Narrative(""" When a Etendo dependency is added it should be resolved correctly. After the project is evaluated
 all the Etendo module dependencies should be extracted in the 'build/etendo/module' dir.
 """)
-class ExtractResourcesOfModuleJarTest extends EtendoSpecification {
+class ExtractResourcesOfModuleJarTest extends EtendoCoreResolutionSpecificationTest {
 
     @TempDir File testProjectDir
 
@@ -44,6 +44,9 @@ class ExtractResourcesOfModuleJarTest extends EtendoSpecification {
         def buildFile = new File("${testProjectDir.absolutePath}/modules/${module}/build.gradle")
         assert buildFile.exists()
 
+        and: "Fix the core version in the build.gradle file"
+        fixCoreVersion(buildFile, getCurrentCoreVersion())
+
         and: "The users sets a Etendo dependency in the 'build.gradle' file of the module"
         buildFile << JarsUtils.generateDependenciesBlock(dependencies)
 
@@ -62,7 +65,7 @@ class ExtractResourcesOfModuleJarTest extends EtendoSpecification {
 
         where:
         moduleProperties                                                                        | moduleName           | repository    | dependencies
-        [javapackage: "com.test.etendodep", version: "1.0.0", description: "com.test.etendodep"]| "com.test.etendodep" | "etendo-test" |["com.test:dummytopublish:1.0.0"]
+        [javapackage: "com.test.etendodep", version: "1.0.0", description: "com.test.etendodep"]| "com.test.etendodep" | "https://repo.futit.cloud/repository/etendo-test" |["com.test:dummytopublish:1.0.0"]
     }
 
     static void containDependencies(List<String> dependencies, String taskOutput) {

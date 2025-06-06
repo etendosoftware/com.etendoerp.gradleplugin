@@ -21,6 +21,7 @@ class ExpandCustomModuleTest extends EtendoSpecification {
         given : "A custom module to expand"
         def moduleSourceGroup = SOURCE_MODULE_GROUP
         def moduleSourceName = SOURCE_MODULE_NAME
+        def repoEtendoTest = TEST_REPO
         buildFile << """
         dependencies {
           moduleDeps('${moduleSourceGroup}:${moduleSourceName}:[1.0.0,)@zip') { transitive = true }
@@ -28,12 +29,12 @@ class ExpandCustomModuleTest extends EtendoSpecification {
 
         repositories {
           maven {
-            url 'https://repo.futit.cloud/repository/etendo-test'
+            url '${repoEtendoTest}'
           }
         }
         """
         when: "The users runs the expandCustomModule task passing by command line the module to expand"
-        def expandCustomModuleTaskResult = runTask(":expandCustomModule","-Ppkg=${moduleSourceGroup}.${moduleSourceName}","-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
+        def expandCustomModuleTaskResult = runTask(":expandCustomModule","-Ppkg=${moduleSourceGroup}.${moduleSourceName}","-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}", "-DgithubUser=${args.get("githubUser")}", "-DgithubToken=${args.get("githubToken")}")
 
         then: "The task will finish successfully"
         expandCustomModuleTaskResult.task(":expandCustomModule").outcome == TaskOutcome.SUCCESS

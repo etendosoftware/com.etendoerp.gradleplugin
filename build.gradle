@@ -3,6 +3,7 @@ plugins {
     id 'groovy'
     id 'java-gradle-plugin'
     id 'maven-publish'
+    id 'jacoco'
 }
 
 def MAIN = "main"
@@ -96,11 +97,13 @@ dependencies {
     testImplementation platform("org.spockframework:spock-bom:2.0-M4-groovy-3.0")
     testImplementation 'org.spockframework:spock-core'
     testImplementation 'org.spockframework:spock-junit4'
-    testImplementation 'junit:junit:4.13.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.9.2'
+    testImplementation 'org.junit.platform:junit-platform-suite-api:1.9.2'
+    testImplementation 'org.junit.platform:junit-platform-suite-engine:1.9.2'
     testImplementation( "com.athaydes:spock-reports:2.0-groovy-3.0" ) {
         transitive = false // this avoids affecting your version of Groovy/Spock
     }
-    testImplementation 'org.postgresql:postgresql:42.5.4'
 
 }
 
@@ -109,20 +112,41 @@ tasks.withType(Test).configureEach {
     useJUnitPlatform()
 }
 
+
 test {
+    maxHeapSize = "8192m"
+    minHeapSize = "1024m"
+
+    doFirst {
+        file("$buildDir/heap-dumps").mkdirs()
+    }
+
+    jvmArgs = [
+            '-XX:+UseG1GC',
+            '-XX:+HeapDumpOnOutOfMemoryError',
+            '-XX:+ExitOnOutOfMemoryError',
+            '-XX:HeapDumpPath=./build/heap-dumps/heap.hprof',
+            '-XX:MaxMetaspaceSize=1024m',
+            '-XX:ReservedCodeCacheSize=256m',
+            '-Dfile.encoding=UTF-8'
+    ]
+
     systemProperty 'com.athaydes.spockframework.report.showCodeBlocks', true
     systemProperty 'nexusUser', project.hasProperty('nexusUser') ? project.nexusUser : System.getenv("NEXUS_USR")
     systemProperty 'nexusPassword', project.hasProperty('nexusPassword') ? project.nexusPassword : System.getenv("NEXUS_PSW")
-    systemProperty 'test.bbdd.sid', project.hasProperty('test.bbdd.sid') ? project['test.bbdd.sid'] : ''
-    systemProperty 'test.bbdd.systemUser', project.hasProperty('test.bbdd.systemUser') ? project['test.bbdd.systemUser'] : ''
-    systemProperty 'test.bbdd.systemPassword', project.hasProperty('test.bbdd.systemPassword') ? project['test.bbdd.systemPassword'] : ''
-    systemProperty 'test.bbdd.user', project.hasProperty('test.bbdd.systemUser') ? project['test.bbdd.systemUser'] : ''
-    systemProperty 'test.bbdd.password', project.hasProperty('test.bbdd.systemPassword') ? project['test.bbdd.systemPassword'] : ''
-    systemProperty 'test.bbdd.url', project.hasProperty('test.bbdd.url') ? project['test.bbdd.url'] : ''
+    systemProperty 'githubUser', project.hasProperty('githubUser') ? project.githubUser : System.getenv("GITHUB_USER")
+    systemProperty 'githubToken', project.hasProperty('githubToken') ? project.githubToken : System.getenv("GITHUB_TOKEN")
+    systemProperty 'test.bbdd.sid', project['test.bbdd.sid']
+    systemProperty 'test.bbdd.systemUser', project['test.bbdd.systemUser']
+    systemProperty 'test.bbdd.systemPassword', project['test.bbdd.systemPassword']
+    systemProperty 'test.bbdd.user', project['test.bbdd.systemUser']
+    systemProperty 'test.bbdd.password', project['test.bbdd.systemPassword']
+    systemProperty 'test.bbdd.url', project['test.bbdd.url']
     systemProperty 'org.gradle.jvmargs', '-Dfile.encoding=UTF-8'
-    environment 'JAVA_HOME', System.getenv('JAVA_HOME')
+    systemProperty 'etendoCoreName', project.hasProperty('etendoCoreName') ? project.etendoCoreName : "etendo-core"
+    systemProperty 'etendoCoreVersion', project.property('etendoCoreVersion')
+    environment 'JAVA_HOME', System.getProperties().get("java.home")
 
-    maxHeapSize = "2048m"
 }
 
 task upgradePluginVersion() {
@@ -185,5 +209,24 @@ gradlePlugin {
     }
 }
 
-test.onlyIf { false }
+jacoco {
+    toolVersion = "0.8.11"
+}
+
+test {
+    useJUnitPlatform()
+}
+
+task jacocoRootReport(type: JacocoReport) {
+    executionData fileTree(dir: "$buildDir/jacoco", include: "*.exec")
+    sourceDirectories.setFrom(files("src/main/groovy"))
+    classDirectories.setFrom(fileTree(dir: "$buildDir/classes/groovy/main", include: '**/*.class'))
+
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+test.onlyIf { true }
 
