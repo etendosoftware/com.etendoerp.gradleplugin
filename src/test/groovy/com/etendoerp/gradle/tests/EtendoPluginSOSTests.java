@@ -43,8 +43,8 @@ import org.junit.platform.suite.api.Suite;
         PrepareConfigJarTest.class,
         JarCoreModulesInstallTest.class,
         JarCoreModulesUpdateTest.class,
-        //NexusPublicationTest.class, failure to publish core and modules
-        //PublishAllTest.class, The plugin is not automatically configuring that generateModuleZip depends on compileJava
+        NexusPublicationTest.class, // failure to publish core and modules
+        PublishAllTest.class, // The plugin is not automatically configuring that generateModuleZip depends on compileJava
         CoreConflictsTest.class,
         CoreTransitiveJarModulesResolutionTest.class,
         CompilationTasksConsistencyVerificationTest.class,
@@ -54,12 +54,12 @@ import org.junit.platform.suite.api.Suite;
         ExpandModulesWithoutOverwriteTransitivesTest.class,
         ExtractResourcesOfCoreJarTest.class,
         ExtractResourcesOfModuleJarTest.class,
-        //MultiplePublicationTest.class, The test never proves this functionality because it fails in the first step of publication due to the problem of task dependencies.
-        //BuildDirPublication.class, La tarea generateModuleZip está intentando usar el output de la tarea compileJava sin declarar explícitamente esta dependencia.
+        MultiplePublicationTest.class, // The test never proves this functionality because it fails in the first step of publication due to the problem of task dependencies.
+        BuildDirPublication.class, // La tarea generateModuleZip está intentando usar el output de la tarea compileJava sin declarar explícitamente esta dependencia.
         BundleBuildFileCreationTest.class,
         BuildFileCreationAllModulesTest.class,
         CoreJarAutomaticUpdate.class,
-        //ModulesCompilationTest.class, the module resolution system is not respecting the expected isolation between versions when using coreType: "jar".
+        ModulesCompilationTest.class, // the module resolution system is not respecting the expected isolation between versions when using coreType: "jar".
         CoreExpandTransitiveModulesTest.class,
         ExpandCoreWithResolution.class,
         CoreModuleSkipExtractionTest.class,

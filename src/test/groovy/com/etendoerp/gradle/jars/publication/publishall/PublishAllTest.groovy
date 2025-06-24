@@ -116,7 +116,7 @@ class PublishAllTest extends EtendoCoreResolutionSpecificationTest {
         assert bundleBuildContent.contains("implementation 'com.test:moduleCpublish:1.0.0'")
 
         when: "The user runs the 'publishAll' task"
-        def runPublishAllResult = runTask(":publishAll", "-P${com.etendoerp.publication.PublicationUtils.MODULE_NAME_PROP}=${moduleBundle}")
+        def runPublishAllResult = runTask(":publishAll", "-P${com.etendoerp.publication.PublicationUtils.MODULE_NAME_PROP}=${moduleBundle}", "-PupdateLeaf=true", "-Pupdate=major")
 
         then: "The task will finish successfully"
         assert runPublishAllResult.task(":publishAll").outcome == TaskOutcome.SUCCESS

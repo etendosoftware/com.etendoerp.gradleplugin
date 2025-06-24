@@ -197,7 +197,7 @@ class PublicationConfiguration {
         if (!bundle) {
             throw new IllegalArgumentException("* The 'pkg' property is not set. Please provide a valid bundle name to publish.")
         } else {
-            if(project.gradle.taskGraph.hasTask("publishAll")) {
+            if(project.gradle.getStartParameter().getTaskNames().contains("publishAll")) {
               def buildGradleFile = project.file("modules/${bundle}/extension-modules.gradle")
               if (buildGradleFile.exists()) {
                   def buildGradleContent = buildGradleFile.text
@@ -251,18 +251,22 @@ class PublicationConfiguration {
       for (int i = 0; i < deps.size() - 1; i++) {
           String subprojectName = deps.get(i)
           def subproject = project.findProject(":modules:${subprojectName}")
-          def jarTask = subproject.tasks.findByName("jar")
-          def sourcesJarTask = subproject.tasks.findByName("sourcesJar")
-          if(!jarTask || !sourcesJarTask) {
-              throw new IllegalArgumentException("* The subproject '${subprojectName}' does not contain the 'jar' or 'sourcesJar' task. Please ensure it is a valid Java project.")
-          }
-          sourcesJarTask?.mustRunAfter(jarTask)
-          for (int j = i + 1; j < deps.size() - 1; j++) {
-              def dependentSubprojectName = deps.get(j)
-              def dependentSubproject = project.findProject(":modules:${dependentSubprojectName}")
-              def compileJavaTask = dependentSubproject.tasks.findByName("compileJava")
-              if (jarTask && sourcesJarTask && compileJavaTask) {
-                  //compileJavaTask.mustRunAfter([jarTask, sourcesJarTask])
+          if (subproject) {
+              def jarTask = subproject.tasks.findByName("jar")
+              def sourcesJarTask = subproject.tasks.findByName("sourcesJar")
+              if (!jarTask || !sourcesJarTask) {
+                  throw new IllegalArgumentException("* The subproject '${subprojectName}' does not contain the 'jar' or 'sourcesJar' task. Please ensure it is a valid Java project.")
+              }
+              sourcesJarTask?.mustRunAfter(jarTask)
+              for (int j = i + 1; j < deps.size() - 1; j++) {
+                  def dependentSubprojectName = deps.get(j)
+                  def dependentSubproject = project.findProject(":modules:${dependentSubprojectName}")
+                  if (!dependentSubproject) {
+                      def compileJavaTask = dependentSubproject.tasks.findByName("compileJava")
+                      if (jarTask && sourcesJarTask && compileJavaTask) {
+                          compileJavaTask.mustRunAfter([jarTask, sourcesJarTask])
+                      }
+                  }
               }
           }
       }

@@ -18,7 +18,7 @@ import org.junit.platform.suite.api.Suite;
 
 @Suite
 @SelectClasses({
-        //ModuleValidationsTest.class, The problem is that the build validation system cannot find the compiled classes
+        ModuleValidationsTest.class, // The problem is that the build validation system cannot find the compiled classes
         ExpandModulesNoOverwriteTest.class,
         ExpandModulesPkgFlagTest.class,
         ExpandTest.class,

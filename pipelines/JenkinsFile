@@ -266,11 +266,11 @@ spec:
             when {
                 allOf {
                     expression { currentBuild.result == SUCCESS || currentBuild.result == UNSTABLE }
-                    anyOf {
-                        branch 'main'
-                        branch 'develop'
-                        expression { return env.GIT_BRANCH.startsWith("release/") }
-                    }
+                    //anyOf {
+                        //branch 'main'
+                        //branch 'develop'
+                        //expression { return env.GIT_BRANCH.startsWith("release/") }
+                    //}
                 }
             }
             steps {
@@ -317,11 +317,11 @@ spec:
             when {
                 allOf {
                     expression { currentBuild.result == SUCCESS || currentBuild.result == UNSTABLE }
-                    anyOf {
-                        branch 'main'
-                        branch 'develop'
-                        expression { return env.GIT_BRANCH.startsWith("release/") }
-                    }
+                    //anyOf {
+                        //branch 'main'
+                        //branch 'develop'
+                        //expression { return env.GIT_BRANCH.startsWith("release/") }
+                    //}
                 }
             }
             steps {
