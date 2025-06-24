@@ -51,6 +51,7 @@ class JarCoreExportDatabaseTest extends EtendoCoreResolutionSpecificationTest {
         and: "The users adds a sources module dependency before running the install"
         def preExpandModGroup = PRE_EXPAND_MODULE_GROUP
         def preExpandModName = PRE_EXPAND_MODULE_NAME
+        def repoEtendoTest = TEST_REPO
         buildFile << """
         dependencies {
           moduleDeps('${preExpandModGroup}:${preExpandModName}:[1.0.0,)@zip') { transitive = true }
@@ -58,7 +59,7 @@ class JarCoreExportDatabaseTest extends EtendoCoreResolutionSpecificationTest {
 
         repositories {
           maven {
-            url 'https://repo.futit.cloud/repository/etendo-test'
+            url '${repoEtendoTest}'
           }
         }
         """

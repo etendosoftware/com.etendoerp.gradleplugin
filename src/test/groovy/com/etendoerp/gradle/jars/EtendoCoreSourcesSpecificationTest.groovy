@@ -5,9 +5,9 @@ import com.etendoerp.gradle.tests.EtendoSpecification
 abstract class EtendoCoreSourcesSpecificationTest extends EtendoSpecification {
 
     public final static String ETENDO_CORE_GROUP   = "com.etendoerp.platform"
-    public final static String ETENDO_CORE_NAME    = "etendo-core"
+    public final static String ETENDO_CORE_NAME    = System.getProperty("etendoCoreName");
     public final static String ETENDO_CORE_VERSION = "[1.0.0,)@zip"
-    public final static String ETENDO_CORE_REPO    = "https://repo.futit.cloud/repository/maven-snapshots/"
+    public final static String ETENDO_CORE_REPO    = "https://repo.futit.cloud/repository/etendo-resolution-test/"
 
     public final static String CORE = "${ETENDO_CORE_GROUP}:${ETENDO_CORE_NAME}:${ETENDO_CORE_VERSION}"
 
