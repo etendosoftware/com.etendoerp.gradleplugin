@@ -80,19 +80,19 @@ class PublicationUtils {
         for (def module : modules.items) {
             String moduleName = "${module.group}.${module.name}"
             if (!modulesFromRepo.containsKey(moduleName)) {
-                modulesFromRepo.put(moduleName, new ArrayList())
+                modulesFromRepo.put(moduleName, [])
             }
             (modulesFromRepo.get(moduleName) as List).add(module.version)
         }
 
         // Check that the modules are in the repository
         for (def moduleToVerify : modulesData) {
-            assert modulesFromRepo.containsKey(moduleToVerify.key)
+            assert modulesFromRepo.containsKey(moduleToVerify.key) : "Module ${moduleToVerify.key} not found in repository ${repo}"
             List<String> versionsFromRepo = modulesFromRepo.get(moduleToVerify.key) as List<String>
 
             List<String> versionsToVerify = moduleToVerify.value
             versionsToVerify.each {
-                assert it in versionsFromRepo
+                assert versionsFromRepo.contains(it) : "Module ${moduleToVerify.key} with version ${it} not found in repository ${repo}. Existing versions are ${versionsFromRepo} and expected versions are ${versionsToVerify}."
             }
         }
     }
@@ -102,7 +102,7 @@ class PublicationUtils {
         for (def module : modules.items) {
             String moduleName = "${module.group}.${module.name}"
             if (modulesData.containsKey(moduleName)) {
-                assert module.version in modulesData.get(moduleName)
+                assert module.version in modulesData.get(moduleName) : "Module ${moduleName} with version ${module.version} not found in repository ${repo}"
             }
         }
     }
@@ -115,7 +115,7 @@ class PublicationUtils {
     static void validatePomFile(File pomFile, String moduleVersion, Map<String , Map> dependencies) {
         String pomFileText = pomFile.text
         def project = new XmlParser().parseText(pomFileText)
-        assert project.version.text() == moduleVersion
+        assert project.version.text() == moduleVersion : "Expected version ${moduleVersion} but found ${project.version.text()} in POM file."
 
         def xmlDependencies = project.dependencies
 
@@ -139,11 +139,11 @@ class PublicationUtils {
         dependencies.entrySet().each {
             String depName = it.key
             Map depValues = it.value
-            assert pomDependenciesMap.containsKey(depName)
+            assert pomDependenciesMap.containsKey(depName) : "Dependency ${depName} not found in POM file."
             def pomValues = pomDependenciesMap.get(depName)
-            assert depValues.group == pomValues.group
-            assert depValues.artifact == pomValues.artifact
-            assert depValues.version == pomValues.version
+            assert depValues.group == pomValues.group : "Expected group ${depValues.group} but found ${pomValues.group} in POM file for dependency ${depName}."
+            assert depValues.artifact == pomValues.artifact : "Expected artifact ${depValues.artifact} but found ${pomValues.artifact} in POM file for dependency ${depName}."
+            assert depValues.version == pomValues.version : "Expected version ${depValues.version} but found ${pomValues.version} in POM file for dependency ${depName}."
         }
     }
 

@@ -197,7 +197,8 @@ class PublicationConfiguration {
         if (!bundle) {
             throw new IllegalArgumentException("* The 'pkg' property is not set. Please provide a valid bundle name to publish.")
         } else {
-            if(project.gradle.getStartParameter().getTaskNames().contains("publishAll")) {
+            if(project.gradle.getStartParameter().getTaskNames().contains(PublicationLoader.PUBLISH_ALL_MODULES_TASK) ||
+                    project.gradle.getStartParameter().getTaskNames().contains(":${PublicationLoader.PUBLISH_ALL_MODULES_TASK}".toString())) {
               def buildGradleFile = project.file("modules/${bundle}/extension-modules.gradle")
               if (buildGradleFile.exists()) {
                   def buildGradleContent = buildGradleFile.text
@@ -261,7 +262,7 @@ class PublicationConfiguration {
               for (int j = i + 1; j < deps.size() - 1; j++) {
                   def dependentSubprojectName = deps.get(j)
                   def dependentSubproject = project.findProject(":modules:${dependentSubprojectName}")
-                  if (!dependentSubproject) {
+                  if (dependentSubproject) {
                       def compileJavaTask = dependentSubproject.tasks.findByName("compileJava")
                       if (jarTask && sourcesJarTask && compileJavaTask) {
                           compileJavaTask.mustRunAfter([jarTask, sourcesJarTask])
