@@ -214,8 +214,7 @@ class PomConfigurationContainer {
                     && it.value.isRecursivePublication() && it.value.projectDependency != null
                     && it.value.group != null && !it.value.group.isBlank() && it.value.name != null && !it.value.name.isBlank())
         }).filter({
-            Project project = it.value.projectDependency
-            return line.contains(it.value.group) && line.contains(it.value.name)
+            return line.contains("${it.value.group}:${it.value.name}:")
         }).map({
             it.value
         }).collect({

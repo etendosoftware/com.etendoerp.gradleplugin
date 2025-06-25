@@ -137,10 +137,14 @@ class PublicationConfiguration {
         Queue<Map.Entry<String, Project>> processedProjects = new LinkedList<>()
         Queue<Map.Entry<String, Project>> unprocessedProjects = new LinkedList<>()
         PomConfigurationType pomType = PomConfigurationType.MULTIPLE_PUBLISH
-
-        // Load the leaf subprojects to the unprocessed list
-        for (def subproject : subProjectsLeafs) {
-            unprocessedProjects.add(new EntryProjects<String, Project>(subproject.key, subproject.value))
+        List<String> deps = PublicationConfigurationUtils.getDepsToProcess(project)
+        for (int i = 0; i < deps.size() - 1; i++) {
+            String subprojectName = deps.get(i)
+            def subproject = subProjectsLeafs.find { it.key == subprojectName }
+            if (subproject) {
+                // Load the leaf subprojects to the unprocessed list
+                unprocessedProjects.add(new EntryProjects<String, Project>(subproject.key, subproject.value))
+            }
         }
 
         // Load module subprojects
@@ -192,58 +196,22 @@ class PublicationConfiguration {
     }
 
     void loadPublicationTasksToMainProject(String subprojectPublicationTaskName, String mainProjectPublicationTaskName) {
-      List<String> deps = []
-      String bundle = project.findProperty("pkg") as String
-        if (!bundle) {
-            throw new IllegalArgumentException("* The 'pkg' property is not set. Please provide a valid bundle name to publish.")
-        } else {
-            if(project.gradle.getStartParameter().getTaskNames().contains(PublicationLoader.PUBLISH_ALL_MODULES_TASK) ||
-                    project.gradle.getStartParameter().getTaskNames().contains(":${PublicationLoader.PUBLISH_ALL_MODULES_TASK}".toString())) {
-              def buildGradleFile = project.file("modules/${bundle}/extension-modules.gradle")
-              if (buildGradleFile.exists()) {
-                  def buildGradleContent = buildGradleFile.text
-                  def pattern = /git@[\w.-]+:([\w.-]+\/)?([\w.-]+)\.git/
-                  def matcher = buildGradleContent =~ pattern
-                  matcher.each { List<String> match -> // Each match is a list of strings: [fullMatch, optionalGroup/, projectName]
-                      String depIdentifier = null
-                      if (match.size() == 3) { // [fullMatch, groupPath, projectName]
-                          depIdentifier = match[2] // The project name part
-                      } else if (match.size() == 2) {
-                          // [fullMatch, projectName] (if groupPath was empty)
-                          depIdentifier = match[1]
-                          // This case might need refinement based on actual git URLs
-                      }
-                      if (depIdentifier) {
-                          deps.add(depIdentifier.toString()) // Ensure it's a String
-                          project.logger.lifecycle("[PublicationConfiguration] Found dependency: '${depIdentifier}' in bundle '${bundle}'")
-                      } else {
-                          project.logger.warn("[PublicationConfiguration] Skipping invalid dependency format in bundle '${bundle}': ${match[0]}")
-                      }
-                  }
-                  deps.add(bundle) // Also add the main bundle itself to the list
-              } else {
-                  throw new IllegalArgumentException("* The bundle '${bundle}' file 'modules/${bundle}/extension-modules.gradle' does not exist.")
-              }
-            } else {
-                deps.add(bundle)
-            }
-      }
+      List<String> deps = PublicationConfigurationUtils.getDepsToProcess(project);
 
       List<Task> subprojectPublicationTasks = []
-      List<String> foundSubprojects = []
       deps.each { String subprojectName ->
-          def subproject = project.findProject(":modules:${subprojectName}")
-          if (!subproject) {
-              project.logger.warn("* The subproject '${subprojectName}' does not exist in the project. Skipping it.")
-          } else {
-              if (!subproject.tasks.findByName(subprojectPublicationTaskName)) {
-                  throw new IllegalArgumentException("* The subproject '${subprojectName}' is missing the publication task '${subprojectPublicationTaskName}'.")
-              }
-              project.logger.info("* Adding the task '${subprojectPublicationTaskName}' from the '${subprojectName}' to be runned.")
-              subprojectPublicationTasks.add(subproject.tasks.getByName(subprojectPublicationTaskName))
-              foundSubprojects.add(subprojectName)
-          }
+         def subproject = project.findProject(":modules:${subprojectName}")
+         if (!subproject) {
+            project.logger.warn("* The subproject '${subprojectName}' does not exist in the project. Skipping it.")
+         } else {
+            if (!subproject.tasks.findByName(subprojectPublicationTaskName)) {
+                throw new IllegalArgumentException("* The subproject '${subprojectName}' is missing the publication task '${subprojectPublicationTaskName}'.")
+            }
+            project.logger.info("* Adding the task '${subprojectPublicationTaskName}' from the '${subprojectName}' to be runned.")
+            subprojectPublicationTasks.add(subproject.tasks.getByName(subprojectPublicationTaskName))
+         }
       }
+
       for (int i = 0; i < subprojectPublicationTasks.size() - 1; i++) {
           def currentTask = subprojectPublicationTasks[i]
           def nextTask = subprojectPublicationTasks[i + 1]
@@ -278,4 +246,5 @@ class PublicationConfiguration {
           mainPublicationTask.dependsOn(subprojectTask)
       }
     }
+
 }
