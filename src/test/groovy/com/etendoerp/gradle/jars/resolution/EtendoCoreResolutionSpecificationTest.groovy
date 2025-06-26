@@ -135,7 +135,7 @@ abstract class EtendoCoreResolutionSpecificationTest extends EtendoSpecification
      * @param modules List of module names in the order they should be published
      * @param comments Optional map of module -> comment to add descriptive comments
      */
-    void createExtensionModulesFileInModule(File moduleDir, List<String> modules) {
+    File createExtensionModulesFileInModule(File moduleDir, List<String> modules) {
         File extensionModulesFile = new File(moduleDir, "extension-modules.gradle")
 
         StringBuilder content = new StringBuilder()
@@ -149,6 +149,7 @@ abstract class EtendoCoreResolutionSpecificationTest extends EtendoSpecification
         content.append("]\n")
 
         extensionModulesFile.text = content.toString()
+        return extensionModulesFile
     }
 
 }

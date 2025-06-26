@@ -72,6 +72,8 @@ task exportProjectVersion doLast {
 task configPublishJAR(){
     doLast {
         def publishTask = tasks.findByName("publishCorePublicationToMavenRepository") as AbstractPublishToMaven
+        def jar = tasks.named("jar").get()
+        publishTask.dependsOn(jar)
         publishTask.publication.artifact( file("$buildDir/libs/etendo-core-1.0.0.jar"))
         if(project.version.endsWith('-SNAPSHOT')) {
             publishing.repositories.maven.url = "https://repo.futit.cloud/repository/etendo-test-publish"
@@ -88,6 +90,14 @@ task configPublishJAR(){
 }
 
 task publishCoreJar(dependsOn: [jar, configPublishJAR, publishCorePublicationToMavenRepository]) { }
+
+tasks.named('publishCorePublicationToMavenRepository') {
+    dependsOn tasks.named('jar')
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+}
 
 
 

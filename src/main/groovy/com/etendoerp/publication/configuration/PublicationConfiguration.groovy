@@ -11,7 +11,6 @@ import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.internal.artifacts.ivyservice.projectmodule.ProjectPublicationRegistry
 import org.gradle.api.internal.project.DefaultProject
-import org.gradle.api.tasks.TaskProvider
 
 class PublicationConfiguration {
 
@@ -128,20 +127,24 @@ class PublicationConfiguration {
         }
 
         // Load local publication tasks
-        loadPublicationTasksToMainProject(subprojectsToPublish, PublishTaskGenerator.PUBLISH_LOCAL_TASK, PublicationLoader.PUBLISH_LOCAL_DUMMY_TASK)
+        loadPublicationTasksToMainProject(PublishTaskGenerator.PUBLISH_LOCAL_TASK, PublicationLoader.PUBLISH_LOCAL_DUMMY_TASK)
 
         // Load maven publication tasks
-        loadPublicationTasksToMainProject(subprojectsToPublish, PublishTaskGenerator.PUBLISH_MAVEN_TASK, PublicationLoader.PUBLISH_MAVEN_DUMMY_TASK)
+        loadPublicationTasksToMainProject(PublishTaskGenerator.PUBLISH_MAVEN_TASK, PublicationLoader.PUBLISH_MAVEN_DUMMY_TASK)
     }
 
     List<Project> processLeafProjects(Map<String, Project> subProjectsLeafs, boolean updateSubprojectsLeafVersion, List<String> extraConfigurations=[]) {
         Queue<Map.Entry<String, Project>> processedProjects = new LinkedList<>()
         Queue<Map.Entry<String, Project>> unprocessedProjects = new LinkedList<>()
         PomConfigurationType pomType = PomConfigurationType.MULTIPLE_PUBLISH
-
-        // Load the leaf subprojects to the unprocessed list
-        for (def subproject : subProjectsLeafs) {
-            unprocessedProjects.add(new EntryProjects<String, Project>(subproject.key, subproject.value))
+        List<String> deps = PublicationConfigurationUtils.getDepsToProcess(project)
+        for (int i = 0; i < deps.size() - 1; i++) {
+            String subprojectName = deps.get(i)
+            def subproject = subProjectsLeafs.find { it.key == subprojectName }
+            if (subproject) {
+                // Load the leaf subprojects to the unprocessed list
+                unprocessedProjects.add(new EntryProjects<String, Project>(subproject.key, subproject.value))
+            }
         }
 
         // Load module subprojects
@@ -192,57 +195,56 @@ class PublicationConfiguration {
         return PublicationConfigurationUtils.queueToList(processedProjects)
     }
 
-    void loadPublicationTasksToMainProject(List<Project> subprojects, String subprojectPublicationTaskName, String mainProjectPublicationTaskName) {
-        // Get the local publication tasks
-        List<Task> subprojectPublicationTasks = []
-        for (Project subproject : subprojects) {
-            def subprojectTask = subproject.tasks.findByName(subprojectPublicationTaskName)
-            if (!subprojectTask) {
-                throw new IllegalArgumentException("* The subproject '${subproject}' is missing the publication task '${subprojectPublicationTaskName}'.")
+    void loadPublicationTasksToMainProject(String subprojectPublicationTaskName, String mainProjectPublicationTaskName) {
+      List<String> deps = PublicationConfigurationUtils.getDepsToProcess(project);
+
+      List<Task> subprojectPublicationTasks = []
+      deps.each { String subprojectName ->
+         def subproject = project.findProject(":modules:${subprojectName}")
+         if (!subproject) {
+            project.logger.warn("* The subproject '${subprojectName}' does not exist in the project. Skipping it.")
+         } else {
+            if (!subproject.tasks.findByName(subprojectPublicationTaskName)) {
+                throw new IllegalArgumentException("* The subproject '${subprojectName}' is missing the publication task '${subprojectPublicationTaskName}'.")
             }
-            project.logger.info("* Adding the task '${subprojectTask.name}' from the '${subproject}' to be runned.")
-            subprojectPublicationTasks.add(subprojectTask)
-        }
+            project.logger.info("* Adding the task '${subprojectPublicationTaskName}' from the '${subprojectName}' to be runned.")
+            subprojectPublicationTasks.add(subproject.tasks.getByName(subprojectPublicationTaskName))
+         }
+      }
 
-        // Configure the order of the tasks
-        for (int i = 0; i < subprojectPublicationTasks.size() - 1; i++) {
-            def currentTask = subprojectPublicationTasks[i]
-            def nextTask = subprojectPublicationTasks[i + 1]
-            nextTask.mustRunAfter(currentTask)
-        }
+      for (int i = 0; i < subprojectPublicationTasks.size() - 1; i++) {
+          def currentTask = subprojectPublicationTasks[i]
+          def nextTask = subprojectPublicationTasks[i + 1]
+          nextTask.mustRunAfter(currentTask)
+      }
+      for (int i = 0; i < deps.size() - 1; i++) {
+          String subprojectName = deps.get(i)
+          def subproject = project.findProject(":modules:${subprojectName}")
+          if (subproject) {
+              def jarTask = subproject.tasks.findByName("jar")
+              def sourcesJarTask = subproject.tasks.findByName("sourcesJar")
+              if (!jarTask || !sourcesJarTask) {
+                  throw new IllegalArgumentException("* The subproject '${subprojectName}' does not contain the 'jar' or 'sourcesJar' task. Please ensure it is a valid Java project.")
+              }
+              sourcesJarTask?.mustRunAfter(jarTask)
+              for (int j = i + 1; j < deps.size() - 1; j++) {
+                  def dependentSubprojectName = deps.get(j)
+                  def dependentSubproject = project.findProject(":modules:${dependentSubprojectName}")
+                  if (dependentSubproject) {
+                      def compileJavaTask = dependentSubproject.tasks.findByName("compileJava")
+                      if (jarTask && sourcesJarTask && compileJavaTask) {
+                          compileJavaTask.mustRunAfter([jarTask, sourcesJarTask])
+                      }
+                  }
+              }
+          }
+      }
 
-        // Previous configuration of the tasks order requires to order the jar and sourcesJar tasks
-        for (int i = 0; i < subprojects.size() - 1; i++) {
-            def jarTask = subprojects.get(i).tasks.findByName("jar")
-            def sourcesJarTask = subprojects.get(i).tasks.findByName("sourcesJar")
-            sourcesJarTask?.mustRunAfter(jarTask)
-
-            for (int j = i + 1; j < subprojects.size() - 1; j++) {
-                def compileJavaTask = subprojects.get(j).tasks.findByName("compileJava")
-                if (jarTask && compileJavaTask) {
-                    def currentSubproject = subprojects.get(i)
-                    def dependentSubproject = subprojects.get(j)
-                    boolean dependencyFound = false
-                    currentSubproject.getConfigurations()
-                                     .getByName("implementation")
-                                     .getDependencies()
-                                     .each { dependency ->
-                                        if (dependency.name == dependentSubproject.name) {
-                                            dependencyFound = true
-                                        }
-                                     }
-                    if (!dependencyFound) {
-                        compileJavaTask.mustRunAfter([jarTask, sourcesJarTask])
-                    }
-                }
-            }
-        }
-
-        // Add each task to the main project local publication
-        def mainPublicationTask = project.tasks.findByName(mainProjectPublicationTaskName)
-        for (def subprojectTask : subprojectPublicationTasks) {
-            mainPublicationTask.dependsOn(subprojectTask)
-        }
+      // Add each task to the main project local publication
+      def mainPublicationTask = project.tasks.findByName(mainProjectPublicationTaskName)
+      for (def subprojectTask : subprojectPublicationTasks) {
+          mainPublicationTask.dependsOn(subprojectTask)
+      }
     }
 
 }

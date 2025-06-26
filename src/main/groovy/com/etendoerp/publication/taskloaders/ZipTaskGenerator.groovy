@@ -17,6 +17,7 @@ class ZipTaskGenerator {
     static void load(Project mainProject, Project subProject) {
         if (!subProject.tasks.findByName(ZIP_CONFIG_TASK)) {
             subProject.tasks.register(ZIP_CONFIG_TASK) {
+                dependsOn "compileJava"
                 doLast {
                     // Get the module name
                     String moduleName = PublicationUtils.loadModuleName(mainProject, subProject).orElseThrow()

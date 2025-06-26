@@ -15,7 +15,7 @@ class JarTaskGenerator {
 
         if (!subProject.tasks.findByName(JAR_CONFIG_TASK)) {
             subProject.tasks.register(JAR_CONFIG_TASK) {
-                dependsOn({mainProject.tasks.findByName("compileJava")})
+                dependsOn "compileJava"
                 doLast {
                     // Get the module name
                     String moduleName = PublicationUtils.loadModuleName(mainProject, subProject).orElseThrow()
@@ -72,15 +72,12 @@ class JarTaskGenerator {
         }
 
         // JAR configuration
-        def jarModuleTask = GradleUtils.getTaskByName(mainProject, subProject, "jar")
+        def jarModuleTask = subProject.getTasks().findByName("jar") as Task
         if (!jarModuleTask) {
             mainProject.logger.warn("WARNING: The subproject ${subProject} is missing the 'jar' task.")
             mainProject.logger.warn("*** Make sure that the 'build.gradle' file is using the 'java' plugin.")
         }
-
-        jarModuleTask?.configure({
-            dependsOn({JAR_CONFIG_TASK})
-        })
+        jarModuleTask.dependsOn(JAR_CONFIG_TASK)
     }
 
 }

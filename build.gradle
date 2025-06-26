@@ -46,6 +46,10 @@ repositories {
     mavenCentral()
 }
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+}
+
 publishing {
     publications {
         pluginMaven(MavenPublication) {

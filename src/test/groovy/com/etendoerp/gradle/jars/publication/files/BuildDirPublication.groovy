@@ -20,6 +20,7 @@ class BuildDirPublication extends EtendoSpecification {
 
     @Override
     File getProjectDir() {
+        System.out.println("🦜 "+ testProjectDir.getAbsolutePath())
         return testProjectDir
     }
 

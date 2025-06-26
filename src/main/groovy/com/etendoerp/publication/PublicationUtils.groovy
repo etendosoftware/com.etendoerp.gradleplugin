@@ -47,6 +47,9 @@ class PublicationUtils {
     final static EXCLUDED_FILES = [
             "build/",
             "build/**",
+            ".github/**",
+            "pipelines/**",
+            "bitbucket-pipelines.yml",
             ".gradle/**",
             "gradle/**",
             "deploy.gradle",
