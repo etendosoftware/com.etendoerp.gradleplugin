@@ -78,16 +78,24 @@ class ModulesConfigurationLoader {
                      * BuildValidationHandler considers it as a core class. (Search all classes in 'build/classes' for each module).
                      * The BuildValidationHandler tries to load the classes but
                      * if a class contains a library not included in the classpath, the 'update.database' task fails.
+                     * But, this config is applied only when the subproject is going to be published or is a task that starts with the subproject artifact.
                      */
-                    def output = subproject.file("${subproject.layout.buildDirectory.get().asFile.absolutePath}/etendo-classes")
+                    String subprojectArtifact = ":modules:${subproject.name}:".toString()
+                    def tasks = subproject.gradle.getStartParameter().getTaskNames()
+                    boolean mustConfigure = tasks.any { it.startsWith(subprojectArtifact) }
+                    if(!mustConfigure && tasks.any { it.startsWith("publish") }) {
+                        mustConfigure = true
+                    }
+                    if (mustConfigure) {
+                        def output = subproject.file("${subproject.layout.buildDirectory.get().asFile.absolutePath}/etendo-classes")
+                        subproject.sourceSets.main.java.destinationDirectory.set(output)
 
-                    subproject.sourceSets.main.java.destinationDirectory.set(output)
-
-                    subproject.sourceSets.main.java.srcDirs += JAVA_SOURCES
-                    subproject.sourceSets.main.compileClasspath += project.sourceSets.main.output
-                    subproject.sourceSets.main.runtimeClasspath += project.sourceSets.main.output
-                    subproject.sourceSets.main.compileClasspath += project.sourceSets.main.compileClasspath
-                    subproject.sourceSets.main.runtimeClasspath += project.sourceSets.main.runtimeClasspath
+                        subproject.sourceSets.main.java.srcDirs += JAVA_SOURCES
+                        subproject.sourceSets.main.compileClasspath += project.sourceSets.main.output
+                        subproject.sourceSets.main.runtimeClasspath += project.sourceSets.main.output
+                        subproject.sourceSets.main.compileClasspath += project.sourceSets.main.compileClasspath
+                        subproject.sourceSets.main.runtimeClasspath += project.sourceSets.main.runtimeClasspath
+                    }
 
                 }
                 // Each subproject should be evaluated before the root project
