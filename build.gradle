@@ -12,7 +12,7 @@ def PROD = "prod"
 
 final String URL_PROD = "https://maven.pkg.github.com/etendosoftware/com.etendoerp.gradleplugin"
 final String URL_DEV = "https://repo.futit.cloud/repository/maven-public-snapshots"
-final String PLUGIN_VERSION = "2.0.2"
+final String PLUGIN_VERSION = "2.0.3"
 final String PUBLICATION_TYPE = "-rc"
 
 // Default mode
