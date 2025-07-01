@@ -53,3 +53,9 @@ repositories {
  */
 dependencies {
 }
+
+beforeEvaluate {
+    tasks.named("publish") {
+        dependsOn tasks.named("publishComTestNontransactionalPublicationToMavenRepository")
+    }
+}

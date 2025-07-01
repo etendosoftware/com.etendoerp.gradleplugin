@@ -1,16 +1,16 @@
 group          = "com.test"
 version        = "1.0.0"
-description    = "Bundle module that includes modules A, B and C"
-ext.artifact   = "module.bundle"
+description    = "module B publish"
+ext.artifact   = "moduleBpublish"
 ext.repository = "https://repo.futit.cloud/repository/etendo-multiplepublish-test"
-apply from: 'extension-modules.gradle'
+
 configurations {
     moduleDependencyContainer
 }
 
 publishing {
     publications {
-        "com.test.module.bundle"(MavenPublication) {
+        "com.test.moduleBpublish"(MavenPublication) {
             from components.java
             groupId    = group
             artifactId = artifact
@@ -23,10 +23,8 @@ publishing {
         }
     }
 }
-
 dependencies {
-    implementation 'com.test:moduleBpublish:1.0.0'
-    implementation 'com.test:moduleCpublish:1.0.0'
+    implementation 'com.test:moduleApublish:1.0.0'
 }
 
 repositories {

@@ -2,6 +2,7 @@ package com.etendoerp.publication.configuration
 
 import com.etendoerp.jars.modules.metadata.DependencyUtils
 import com.etendoerp.legacy.dependencies.ResolverDependencyUtils
+import com.etendoerp.publication.PublicationLoader
 import com.etendoerp.publication.PublicationUtils
 import com.etendoerp.publication.configuration.pom.PomConfigurationContainer
 import com.etendoerp.publication.configuration.pom.PomConfigurationType
@@ -82,6 +83,7 @@ class PublicationConfigurationUtils {
         String dependencyContainerProperty = pomType.getInternalDependenciesProperty()
         String configurationContainerProperty = pomType.getInternalConfigurationProperty()
 
+        List<String> depsToProcess = getDepsToProcess(mainProject)
         // Check if the 'subProject' is dependency of any 'moduleSubproject'
         for (Project moduleSubproject : moduleSubprojects) {
             // Contains the dependencies set using the 'java' plugin configurations (implementation, runtime, etc.)
@@ -105,7 +107,7 @@ class PublicationConfigurationUtils {
 
             // Add the 'subproject' dependency to the 'moduleSubproject' custom configuration
             // Used later in the POM to update the correct version
-            if (isDependency) {
+            if (isDependency && depsToProcess.contains(subprojectName)) {
                 addDependencyToProject(mainProject, moduleSubproject, subProject, configurationContainerProperty, dependency, pomType)
                 projectDependencies.add(moduleSubproject)
             }
@@ -167,6 +169,53 @@ class PublicationConfigurationUtils {
                     "Make sure that the project exists and contains the 'build.gradle' file, or run the 'createModuleBuild' task to generate it.")
         }
         return moduleProject
+    }
+
+    static List<String> getDepsToProcess(Project project) {
+        List<String> deps = []
+        String bundle = project.findProperty("pkg") as String
+        if (!bundle) {
+            throw new IllegalArgumentException("* The 'pkg' property is not set. Please provide a valid bundle name to publish.")
+        } else {
+            if (project.gradle.getStartParameter().getTaskNames().contains(PublicationLoader.PUBLISH_ALL_MODULES_TASK) ||
+                    project.gradle.getStartParameter().getTaskNames().contains(":${PublicationLoader.PUBLISH_ALL_MODULES_TASK}".toString())) {
+                def buildGradleFile = project.file("modules/${bundle}/extension-modules.gradle")
+                if (buildGradleFile.exists()) {
+                    def buildGradleContent = buildGradleFile.text
+                    def pattern = /git@[\w.-]+:([\w.-]+\/)?([\w.-]+)\.git/
+                    def matcher = buildGradleContent =~ pattern
+                    matcher.each { List<String> match -> // Each match is a list of strings: [fullMatch, optionalGroup/, projectName]
+                        String depIdentifier = null
+                        if (match.size() == 3) { // [fullMatch, groupPath, projectName]
+                            depIdentifier = match[2] // The project name part
+                        } else if (match.size() == 2) {
+                            // [fullMatch, projectName] (if groupPath was empty)
+                            depIdentifier = match[1]
+                            // This case might need refinement based on actual git URLs
+                        }
+                        if (depIdentifier) {
+                            deps.add(depIdentifier.toString()) // Ensure it's a String
+                            project.logger.lifecycle("[PublicationConfiguration] Found dependency: '${depIdentifier}' in bundle '${bundle}'")
+                        } else {
+                            project.logger.warn("[PublicationConfiguration] Skipping invalid dependency format in bundle '${bundle}': ${match[0]}")
+                        }
+                    }
+                    deps.add(bundle) // Also add the main bundle itself to the list
+                } else {
+                    throw new IllegalArgumentException("* The bundle '${bundle}' file 'modules/${bundle}/extension-modules.gradle' does not exist.")
+                }
+            } else {
+                deps.add(bundle)
+            }
+        }
+        List<String> foundSubprojects = []
+        deps.each { String subprojectName ->
+            def subproject = project.findProject(":modules:${subprojectName}")
+            if (subproject) {
+                foundSubprojects.add(subprojectName)
+            }
+        }
+        return foundSubprojects;
     }
 
 }

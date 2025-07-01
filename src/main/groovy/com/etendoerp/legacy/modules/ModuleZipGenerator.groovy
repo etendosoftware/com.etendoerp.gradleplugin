@@ -13,6 +13,7 @@ class ModuleZipGenerator {
     static void load(Project project) {
 
         project.tasks.register("generateModuleZipConfig") {
+            dependsOn("compileJava")
             doLast {
                 // Get the module name
                 String moduleName = PublicationUtils.loadModuleName(project)
@@ -43,13 +44,12 @@ class ModuleZipGenerator {
 
         }
 
-        project.tasks.register("generateModuleZip", Zip) {
+        def generateModuleZip = project.tasks.register("generateModuleZip", Zip) {
             dependsOn("generateModuleZipConfig")
             doLast {
                 project.logger.info("The ZIP file '${archiveFileName.get()}' has been created in the '${destinationDirectory.get()}' directory.")
             }
         }
-
     }
 
 }

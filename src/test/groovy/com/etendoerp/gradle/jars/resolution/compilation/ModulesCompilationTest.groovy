@@ -134,7 +134,7 @@ class ModulesCompilationTest extends EtendoCoreResolutionSpecificationTest {
         }
 
         then: "The task will fail because the class is not found."
-        assert !success
+        assert !success : "Expected the task to fail, but it succeeded."
         assert exception.message.contains("cannot find symbol")
         assert exception.message.contains("symbol:   class CompilationAExtra")
 
