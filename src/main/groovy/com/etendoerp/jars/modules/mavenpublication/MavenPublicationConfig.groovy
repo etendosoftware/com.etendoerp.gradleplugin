@@ -29,7 +29,7 @@ class MavenPublicationConfig {
         }
 
         moduleProject.tasks.register("mavenJarConfig") {
-            dependsOn({project.tasks.findByName("compileJava")})
+            dependsOn({moduleProject.tasks.findByName("compileJava")})
             doLast {
                 // Get the module name
                 moduleName = PublicationUtils.loadModuleName(project)

@@ -79,7 +79,8 @@ class ModulesConfigurationLoader {
                      * The BuildValidationHandler tries to load the classes but
                      * if a class contains a library not included in the classpath, the 'update.database' task fails.
                      */
-                    def output = subproject.file("${subproject.buildDir.absolutePath}/etendo-classes")
+                    def output = subproject.file("${subproject.layout.buildDirectory.get().asFile.absolutePath}/etendo-classes")
+
                     subproject.sourceSets.main.java.destinationDirectory.set(output)
 
                     subproject.sourceSets.main.java.srcDirs += JAVA_SOURCES

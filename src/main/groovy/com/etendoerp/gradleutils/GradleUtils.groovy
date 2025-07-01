@@ -6,12 +6,6 @@ import org.gradle.api.tasks.TaskProvider
 
 class GradleUtils {
 
-    static setTasksOrder(Project project, List<String> tasks) {
-        for (int i = 0; i < tasks.size() - 1; i++) {
-            project.tasks.named(tasks.get(i + 1)).get().mustRunAfter(project.tasks.named(tasks.get(i)))
-        }
-    }
-
     static TaskProvider<Task> getTaskByName(Project mainProject, Project subProject, String taskName) {
         TaskProvider<Task> task = null
         try {
