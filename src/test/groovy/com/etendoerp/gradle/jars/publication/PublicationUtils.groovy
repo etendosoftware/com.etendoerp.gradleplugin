@@ -3,6 +3,7 @@ package com.etendoerp.gradle.jars.publication
 import com.etendoerp.publication.configuration.pom.PomConfigurationContainer
 import groovy.json.JsonSlurper
 
+import java.util.jar.JarFile
 import java.util.zip.ZipFile
 
 class PublicationUtils {
@@ -249,6 +250,92 @@ class PublicationUtils {
         String adModuleText = adModuleFile.text
         def data = new XmlParser().parseText(adModuleText)
         assert data.AD_MODULE.VERSION.text() == moduleVersion
+    }
+
+    static void validateModuleContents(String moduleName, String version, String expectedClassPath,
+                                       String expectedSourcePath, String repository, String repositoryUrl,
+                                       File tempBaseDir) {
+        Map<String, List<String>> modulesData = new TreeMap(String.CASE_INSENSITIVE_ORDER)
+        modulesData.put(moduleName, [version])
+        repoContainsModules(repository, modulesData)
+
+        println "✓ Module ${moduleName} ${version} validated successfully"
+
+        validateModuleContentDetails(moduleName, version, expectedClassPath, expectedSourcePath,
+                repository, repositoryUrl, tempBaseDir)
+    }
+
+    static void validateModuleContentDetails(String moduleName, String version, String expectedClassPath,
+                                             String expectedSourcePath, String repository, String repositoryUrl,
+                                             File tempBaseDir) {
+        String baseUrl = "${repositoryUrl}${repository}"
+
+        String groupPath = moduleName.replace('.', '/')
+        String artifactId = moduleName.substring(moduleName.lastIndexOf('.') + 1)
+
+        String jarUrl = "${baseUrl}/${groupPath}/${version}/${artifactId}-${version}.jar"
+        String zipUrl = "${baseUrl}/${groupPath}/${version}/${artifactId}-${version}.zip"
+
+        File tempDir = new File(tempBaseDir, "temp-validation-${artifactId}-${System.currentTimeMillis()}")
+        tempDir.mkdirs()
+
+        try {
+            File jarFile = download(jarUrl, tempDir, "${artifactId}-${version}.jar")
+            File zipFile = download(zipUrl, tempDir, "${artifactId}-${version}.zip")
+
+            validateJarContainsClass(jarFile, expectedClassPath)
+            validateZipContainsFile(zipFile, expectedSourcePath)
+
+
+        } finally {
+            if (tempDir.exists()) {
+                tempDir.deleteDir()
+            }
+        }
+    }
+
+    static void validateJarContainsClass(File jarFile, String expectedClassPath) {
+        assert jarFile.exists() : "Downloaded JAR file does not exist: ${jarFile.absolutePath}"
+
+        JarFile jar = new JarFile(jarFile)
+        try {
+            def entries = jar.entries().toList()
+            println "JAR contains ${entries.size()} entries"
+
+            println "Sample JAR entries:"
+            entries.take(10).each { entry ->
+                println "  - ${entry.name}"
+            }
+
+            def foundEntry = entries.find { it.name == expectedClassPath }
+            assert foundEntry : "Class ${expectedClassPath} not found in JAR. Available entries: ${entries.collect { it.name }.take(20)}"
+
+            println "✓ Found expected class: ${expectedClassPath}"
+        } finally {
+            jar.close()
+        }
+    }
+
+    static void validateZipContainsFile(File zipFile, String expectedFilePath) {
+        assert zipFile.exists() : "Downloaded ZIP file does not exist: ${zipFile.absolutePath}"
+
+        ZipFile zip = new ZipFile(zipFile)
+        try {
+            def entries = zip.entries().toList()
+            println "ZIP contains ${entries.size()} entries"
+
+            println "Sample ZIP entries:"
+            entries.take(10).each { entry ->
+                println "  - ${entry.name}"
+            }
+
+            def foundEntry = entries.find { it.name == expectedFilePath }
+            assert foundEntry : "File ${expectedFilePath} not found in ZIP. Available entries: ${entries.collect { it.name }.take(20)}"
+
+            println "✓ Found expected file: ${expectedFilePath}"
+        } finally {
+            zip.close()
+        }
     }
 
 }
