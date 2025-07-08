@@ -83,7 +83,7 @@ class ModulesConfigurationLoader {
                     String subprojectArtifact = ":modules:${subproject.name}:".toString()
                     def tasks = subproject.gradle.getStartParameter().getTaskNames()
                     boolean mustConfigure = tasks.any { it.startsWith(subprojectArtifact) }
-                    if(!mustConfigure && tasks.any { it.startsWith("publish") }) {
+                    if(!mustConfigure && tasks.any { it.startsWith("publish") || it.startsWith(":publish") }) {
                         mustConfigure = true
                     }
                     if (mustConfigure) {

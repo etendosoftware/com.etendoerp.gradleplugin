@@ -17,6 +17,8 @@ import com.etendoerp.gradle.jars.publication.buildfile.BuildFileCreationAllModul
 import com.etendoerp.gradle.jars.publication.buildfile.BundleBuildFileCreationTest;
 import com.etendoerp.gradle.jars.publication.files.BuildDirPublication;
 import com.etendoerp.gradle.jars.publication.publishall.PublishAllTest;
+import com.etendoerp.gradle.jars.publication.publishall.PublishAllVersionTest;
+import com.etendoerp.gradle.jars.publication.publishall.publishesOnlySelectedModulesInBundleTest;
 import com.etendoerp.gradle.jars.resolution.automaticupdate.CoreJarAutomaticUpdate;
 import com.etendoerp.gradle.jars.resolution.compilation.ModulesCompilationTest;
 import com.etendoerp.gradle.jars.resolution.coreconflicts.CoreConflictsTest;
@@ -42,8 +44,10 @@ import org.junit.platform.suite.api.Suite;
         PrepareConfigJarTest.class,
         JarCoreModulesInstallTest.class,
         JarCoreModulesUpdateTest.class,
-        NexusPublicationTest.class, // failure to publish core and modules
-        PublishAllTest.class, // The plugin is not automatically configuring that generateModuleZip depends on compileJava
+        NexusPublicationTest.class,
+        PublishAllTest.class,
+        PublishAllVersionTest.class,
+        publishesOnlySelectedModulesInBundleTest.class,
         CoreConflictsTest.class,
         CoreTransitiveJarModulesResolutionTest.class,
         CompilationTasksConsistencyVerificationTest.class,
@@ -53,7 +57,7 @@ import org.junit.platform.suite.api.Suite;
         ExpandModulesWithoutOverwriteTransitivesTest.class,
         ExtractResourcesOfCoreJarTest.class,
         ExtractResourcesOfModuleJarTest.class,
-        BuildDirPublication.class, // La tarea generateModuleZip está intentando usar el output de la tarea compileJava sin declarar explícitamente esta dependencia.
+        BuildDirPublication.class,
         BundleBuildFileCreationTest.class,
         BuildFileCreationAllModulesTest.class,
         CoreJarAutomaticUpdate.class,

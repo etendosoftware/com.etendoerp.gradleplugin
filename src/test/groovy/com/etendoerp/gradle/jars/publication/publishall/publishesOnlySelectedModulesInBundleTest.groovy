@@ -5,13 +5,11 @@ import com.etendoerp.gradle.jars.resolution.EtendoCoreResolutionSpecificationTes
 import com.etendoerp.publication.buildfile.ModuleBuildTemplateLoader
 import org.gradle.internal.impldep.org.apache.commons.io.FileUtils
 import org.gradle.testkit.runner.TaskOutcome
-import spock.lang.Issue
 import spock.lang.TempDir
 import spock.lang.Title
 
-@Issue("EM-62")
 @Title("Running the 'publishAll' task publish all the source modules including bundle modules")
-class PublishAllTest extends EtendoCoreResolutionSpecificationTest {
+class publishesOnlySelectedModulesInBundleTest extends EtendoCoreResolutionSpecificationTest {
 
     static final String ENVIRONMENTS_LOCATION = "src/test/resources/jars/multiplepublication/updatepublication/modules"
     static final String REPOSITORY = "etendo-multiplepublish-test"
@@ -25,45 +23,43 @@ class PublishAllTest extends EtendoCoreResolutionSpecificationTest {
         return testProjectDir
     }
 
-    // Clean the repository
     def cleanupSpec() {
         PublicationUtils.cleanRepositoryModules(REPOSITORY)
     }
 
-    def "Publishing all the source modules including a bundle module"() {
+    def "Publishing all modules and then a minor version of moduleC should not increment other modules"() {
 
         given: "The user with modules to publish A, B and C"
         def modulesDir = new File(testProjectDir, "modules")
         modulesDir.mkdirs()
 
         def moduleA = "com.test.moduleApublish"
+        def moduleB = "com.test.moduleBpublish"
+        def moduleC = "com.test.moduleCpublish"
+        def moduleBundle = "com.test.module.bundle"
+
         FileUtils.copyDirectoryToDirectory(new File("${ENVIRONMENTS_LOCATION}/${moduleA}"), modulesDir)
         File moduleALocation = new File(testProjectDir, "modules/${moduleA}")
-        assert moduleALocation.exists() : "Module A directory does not exist: ${moduleALocation.absolutePath}"
-        // Delete the 'build.gradle' from the module A to be recreated
+        assert moduleALocation.exists(): "Module A directory does not exist: ${moduleALocation.absolutePath}"
         File buildFileA = new File(moduleALocation, "build.gradle")
         if (buildFileA.exists()) {
             buildFileA.delete()
         }
 
         and: "The module B which depends on A, declared in the 'AD_MODULE_DEPENDENCY.xml' file"
-        def moduleB = "com.test.moduleBpublish"
         FileUtils.copyDirectoryToDirectory(new File("${ENVIRONMENTS_LOCATION}/${moduleB}"), modulesDir)
         File moduleBLocation = new File(testProjectDir, "modules/${moduleB}")
-        assert moduleBLocation.exists() : "Module B directory does not exist: ${moduleBLocation.absolutePath}"
-        // Delete the 'build.gradle'
+        assert moduleBLocation.exists(): "Module B directory does not exist: ${moduleBLocation.absolutePath}"
         File buildFileB = new File(moduleBLocation, "build.gradle")
         if (buildFileB.exists()) {
             buildFileB.delete()
         }
 
         and: "The module C without dependencies"
-        def moduleC = "com.test.moduleCpublish"
         FileUtils.copyDirectoryToDirectory(new File("${ENVIRONMENTS_LOCATION}/${moduleC}"), modulesDir)
         File moduleCLocation = new File(testProjectDir, "modules/${moduleC}")
-        // Delete the 'build.gradle'
+        assert moduleCLocation.exists(): "Module C directory does not exist: ${moduleCLocation.absolutePath}"
         File buildFileC = new File(moduleCLocation, "build.gradle")
-        assert moduleCLocation.exists() : "Module C directory does not exist: ${moduleCLocation.absolutePath}"
         if (buildFileC.exists()) {
             buildFileC.delete()
         }
@@ -77,58 +73,50 @@ class PublishAllTest extends EtendoCoreResolutionSpecificationTest {
         assert resultCreateModuleBuild.task(":createModuleBuild").outcome == TaskOutcome.SUCCESS
 
         and: "The Bundle which includes modules A, B and C as dependencies"
-        def moduleBundle = "com.test.module.bundle"
         FileUtils.copyDirectoryToDirectory(new File("${ENVIRONMENTS_LOCATION}/${moduleBundle}"), modulesDir)
         File moduleBundleLocation = new File(testProjectDir, "modules/${moduleBundle}")
-        assert moduleBundleLocation.exists() : "Module Bundle directory does not exist: ${moduleBundleLocation.absolutePath}"
+        assert moduleBundleLocation.exists(): "Module Bundle directory does not exist: ${moduleBundleLocation.absolutePath}"
 
         and: "The build.gradle files will be created for all modules including the bundle"
-        // Module A
         File moduleALocationAfterCreation = new File(testProjectDir, "modules/${moduleA}")
         File buildFileAfterCreationModuleA = new File(moduleALocationAfterCreation, "build.gradle")
         assert buildFileAfterCreationModuleA.exists()
         fixCoreVersion(buildFileAfterCreationModuleA, getCurrentCoreVersion())
 
-        // Module B
         File moduleBLocationAfterCreation = new File(testProjectDir, "modules/${moduleB}")
         File buildFileAfterCreationModuleB = new File(moduleBLocationAfterCreation, "build.gradle")
         assert buildFileAfterCreationModuleB.exists()
         fixCoreVersion(buildFileAfterCreationModuleB, getCurrentCoreVersion())
 
-        // Module C
         File moduleCLocationAfterCreation = new File(testProjectDir, "modules/${moduleC}")
         File buildFileAfterCreationModuleC = new File(moduleCLocationAfterCreation, "build.gradle")
         assert buildFileAfterCreationModuleC.exists()
         fixCoreVersion(buildFileAfterCreationModuleC, getCurrentCoreVersion())
 
-        // Module Bundle
         File moduleBundleLocationAfterCreation = new File(testProjectDir, "modules/${moduleBundle}")
         File buildFileAfterCreationmoduleBundle = new File(moduleBundleLocationAfterCreation, "build.gradle")
         def moduleBundleDir = new File(testProjectDir, "modules/${moduleBundle}")
         def modules = [
-                'com.test.moduleApublish',      // A - Base module (no dependencies)
-                'com.test.moduleCpublish',      // C - Independent module (no dependencies)
-                'com.test.moduleBpublish'       // B - Depends on A (must come after A)
+                'com.test.moduleApublish',
+                'com.test.moduleCpublish',
+                'com.test.moduleBpublish'
         ]
         File extensionModulesFile = createExtensionModulesFileInModule(moduleBundleDir, modules)
-        assert extensionModulesFile.exists() : "Extension modules file does not exist: ${extensionModulesFile.absolutePath} "
+        assert extensionModulesFile.exists(): "Extension modules file does not exist: ${extensionModulesFile.absolutePath}"
 
         assert buildFileAfterCreationmoduleBundle.exists()
         fixCoreVersion(buildFileAfterCreationmoduleBundle, getCurrentCoreVersion())
 
-        and: "The bundle module should have dependencies to modules A, B and C"
-        String bundleBuildContent = buildFileAfterCreationmoduleBundle.text
-        assert bundleBuildContent.contains("dependencies {")
-        assert bundleBuildContent.contains("implementation 'com.test:moduleBpublish:1.0.0'")
-        assert bundleBuildContent.contains("implementation 'com.test:moduleCpublish:1.0.0'")
-
-        when: "The user runs the 'publishAll' task"
-        def runPublishAllResult = runTask(":publishAll", "-P${com.etendoerp.publication.PublicationUtils.MODULE_NAME_PROP}=${moduleBundle}", "-PupdateLeaf=true", "-Pupdate=major")
+        when: "The user publishes all modules with version 2.0.0"
+        def runPublishAllResult = runTask(":publishAll",
+                "-P${com.etendoerp.publication.PublicationUtils.MODULE_NAME_PROP}=${moduleBundle}",
+                "-PupdateLeaf=true",
+                "-Pupdate=major")
 
         then: "The task will finish successfully"
         assert runPublishAllResult.task(":publishAll").outcome == TaskOutcome.SUCCESS
 
-        and: "Validate module publication contents"
+        and: "Validate module publication contents for version 2.0.0"
         PublicationUtils.validateModuleContents(moduleA, "2.0.0", "com/test/moduleApublish/ModuleA.class",
                 "com.test.moduleApublish/src/com/test/moduleApublish/ModuleA.java", REPOSITORY, REPOSITORY_URL, testProjectDir)
         PublicationUtils.validateModuleContents(moduleB, "2.0.0", "com/test/ModuleB.class",
@@ -136,13 +124,41 @@ class PublishAllTest extends EtendoCoreResolutionSpecificationTest {
         PublicationUtils.validateModuleContents(moduleC, "2.0.0", "com/test/ModuleC.class",
                 "com.test.moduleCpublish/src/com/test/ModuleC.java", REPOSITORY, REPOSITORY_URL, testProjectDir)
 
-        and: "All modules including the bundle will be published to the nexus repository"
-        Map<String, List<String>> modulesData = new TreeMap(String.CASE_INSENSITIVE_ORDER)
-        def modA = modulesData.put(moduleA, ["2.0.0"])
-        def modB = modulesData.put(moduleB, ["2.0.0"])
-        def modC = modulesData.put(moduleC, ["2.0.0"])
-        def modBundle = modulesData.put(moduleBundle, ["2.0.0"])
-        PublicationUtils.repoContainsModules(REPOSITORY, modulesData)
+        when: "Remove modules A and C from the temporary directory to simulate publishing only moduleB"
+        def moduleADir = new File(testProjectDir, "modules/${moduleA}")
+        def moduleBDir = new File(testProjectDir, "modules/${moduleB}")
+
+        if (moduleADir.exists()) {
+            FileUtils.deleteDirectory(moduleADir)
+        }
+        if (moduleBDir.exists()) {
+            FileUtils.deleteDirectory(moduleBDir)
+        }
+
+        and: "The user publishes only moduleC with a minor version update through the bundle"
+        def runPublishMinorResult = runTask(":publishAll",
+                "-P${com.etendoerp.publication.PublicationUtils.MODULE_NAME_PROP}=${moduleBundle}",
+                "-PupdateLeaf=true",
+                "-Pupdate=minor")
+
+        then: "The task will finish successfully"
+        assert runPublishMinorResult.task(":publishAll").outcome == TaskOutcome.SUCCESS
+
+        and: "Validate module publication contents for the updated versions"
+        PublicationUtils.validateModuleContents(moduleC, "2.1.0", "com/test/ModuleC.class",
+                "com.test.moduleCpublish/src/com/test/ModuleC.java", REPOSITORY, REPOSITORY_URL, testProjectDir)
+
+        and: "Other modules remain at version 2.0.0 and were not republished"
+        Map<String, List<String>> expectedModulesData = new TreeMap(String.CASE_INSENSITIVE_ORDER)
+        expectedModulesData.putAll([
+                (moduleA)     : ["2.0.0"],
+                (moduleB)     : ["2.0.0"],
+                (moduleC)     : ["2.0.0", "2.1.0"],
+                (moduleBundle): ["2.0.0", "2.1.0"]
+        ])
+
+        and: "Verify repository contains exactly the expected module versions"
+        PublicationUtils.repoContainsModules(REPOSITORY, expectedModulesData)
 
     }
 }
