@@ -8,6 +8,7 @@ import com.etendoerp.gradle.jars.core.coreinjars.JarCoreCompilationTasksTest;
 import com.etendoerp.gradle.jars.core.coreinjars.JarCoreModulesInstallTest;
 import com.etendoerp.gradle.jars.core.coreinjars.JarCoreModulesUpdateTest;
 import com.etendoerp.gradle.jars.dependencies.ProjectWithEtendoCoreDependency;
+import com.etendoerp.gradle.jars.dependencies.buildvalidations.ModuleValidationsTest;
 import com.etendoerp.gradle.jars.expand.expandModules.ExpandModulesPkgNotFoundTest;
 import com.etendoerp.gradle.jars.expand.expandModules.ExpandModulesWithoutOverwriteTransitivesTest;
 import com.etendoerp.gradle.jars.extractresources.ExtractResourcesOfCoreJarTest;
@@ -61,7 +62,7 @@ import org.junit.platform.suite.api.Suite;
         BundleBuildFileCreationTest.class,
         BuildFileCreationAllModulesTest.class,
         CoreJarAutomaticUpdate.class,
-        //ModulesCompilationTest.class, // the module resolution system is not respecting the expected isolation between versions when using coreType: "jar".
+        ModulesCompilationTest.class,
         CoreExpandTransitiveModulesTest.class,
         ExpandCoreWithResolution.class,
         CoreModuleSkipExtractionTest.class,
@@ -73,7 +74,8 @@ import org.junit.platform.suite.api.Suite;
         SetupOmitCredentialsTest.class,
         SetupTest.class,
         ExpandCustomModuleTest.class,
-        ExpandTest.class
+        ExpandTest.class,
+        ModuleValidationsTest.class
 
 })
 public class EtendoPluginSOSTests {

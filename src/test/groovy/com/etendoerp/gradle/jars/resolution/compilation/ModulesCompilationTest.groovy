@@ -44,11 +44,6 @@ class ModulesCompilationTest extends EtendoCoreResolutionSpecificationTest {
 
     @Unroll
     def "Compiling a module does not include the JAR module classpath if is already in Sources (coreType: #coreType)"() {
-        // Skip the test for "sources" coreType due to issues with Java path
-        if (coreType == "sources") {
-            println "Skipping test for coreType"
-            return
-        }
 
         given: "A Etendo core '#coreType'"
         addRepositoryToBuildFile(SNAPSHOT_REPOSITORY_URL)

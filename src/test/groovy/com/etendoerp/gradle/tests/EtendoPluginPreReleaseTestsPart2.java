@@ -1,6 +1,5 @@
 package com.etendoerp.gradle.tests;
 
-import com.etendoerp.gradle.jars.dependencies.buildvalidations.ModuleValidationsTest;
 import com.etendoerp.gradle.jars.expand.ExpandTest;
 import com.etendoerp.gradle.jars.expand.expandModules.ExpandModulesNoOverwriteTest;
 import com.etendoerp.gradle.jars.expand.expandModules.ExpandModulesPkgFlagTest;
@@ -18,7 +17,6 @@ import org.junit.platform.suite.api.Suite;
 
 @Suite
 @SelectClasses({
-        //ModuleValidationsTest.class, // The problem is that the build validation system cannot find the compiled classes
         ExpandModulesNoOverwriteTest.class,
         ExpandModulesPkgFlagTest.class,
         ExpandTest.class,
