@@ -5,6 +5,7 @@ import com.etendoerp.legacy.utils.ModulesUtils
 import com.etendoerp.legacy.utils.GithubUtils
 import com.etendoerp.legacy.utils.NexusUtils
 import com.etendoerp.publication.PublicationUtils
+import com.etendoerp.legacy.interactive.InteractiveSetupManager
 import org.gradle.api.Project
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.Delete
@@ -397,6 +398,51 @@ class LegacyScriptLoader {
             }
 
         }
+
+        // =============================================================
+        // Interactive Setup Integration
+        // =============================================================
+        
+        /**
+         * Interactive setup task that guides users through property configuration.
+         * This task is only created when the 'interactive' property is present,
+         * typically activated via: ./gradlew setup --interactive
+         */
+        if (project.hasProperty('interactive')) {
+            project.task("interactiveSetup") {
+                description = "Interactive wizard for configuring Etendo project properties"
+                group = "etendo setup"
+                
+                doLast {
+                    project.logger.lifecycle("Starting Etendo Interactive Setup...")
+                    try {
+                        def setupManager = new InteractiveSetupManager(project)
+                        
+                        // Validate environment before starting
+                        setupManager.validateEnvironment()
+                        
+                        // Execute interactive setup process
+                        setupManager.execute()
+                        
+                    } catch (StopExecutionException e) {
+                        // User cancelled - this is expected, just re-throw to stop execution
+                        throw e
+                    } catch (Exception e) {
+                        project.logger.error("Interactive setup failed: ${e.message}")
+                        throw new RuntimeException("Interactive setup process failed", e)
+                    }
+                }
+            }
+            
+            // Make prepareConfig depend on interactiveSetup when in interactive mode
+            project.tasks.findByName("prepareConfig").dependsOn "interactiveSetup"
+            
+            project.logger.info("Interactive setup mode enabled. Use 'interactiveSetup' task for guided configuration.")
+        }
+
+        // =============================================================
+        // End Interactive Setup Integration  
+        // =============================================================
 
         /** Expand core and modules from the dependencies */
         project.task("expandLegacy") {
