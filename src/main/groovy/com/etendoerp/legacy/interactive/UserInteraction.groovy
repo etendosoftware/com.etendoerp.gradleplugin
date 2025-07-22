@@ -274,11 +274,16 @@ class UserInteraction {
         println "2️⃣  Group configuration:"
         println "   📦 a. all - Configure all groups"
         
-        // Show available groups with letters
+        // Show available groups with letters (max 25 groups to prevent index out of bounds)
         def letters = ['b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+        def maxGroupsToShow = Math.min(availableGroups.size(), letters.size())
+        
         availableGroups.eachWithIndex { group, index ->
-            if (index < letters.size()) {
+            if (index < maxGroupsToShow) {
                 println "   📋 ${letters[index]}. ${group}"
+            } else {
+                // Show remaining groups with numbers if we exceed letter capacity
+                println "   📋 ${index + 2}. ${group} (use number ${index + 2})"
             }
         }
         
@@ -336,8 +341,30 @@ class UserInteraction {
                         return null // Continue menu loop
                     }
                 } else {
-                    println "❌ Invalid option: '${input}'. Please select a valid number (1-3) or letter (a-z)."
-                    return null // Continue menu loop
+                    // Check if it's a numeric input for groups beyond letter capacity
+                    try {
+                        def numericInput = Integer.parseInt(input)
+                        def groupIndex = numericInput - 2 // Adjust for 0-based index (options 1,2 are taken)
+                        
+                        if (groupIndex >= 0 && groupIndex < availableGroups.size()) {
+                            def selectedGroup = availableGroups[groupIndex]
+                            def groupProperties = groupedProperties[selectedGroup]
+                            
+                            if (groupProperties && !groupProperties.isEmpty()) {
+                                println "🎯 Configuring group: ${selectedGroup}"
+                                return collectUserInputForGroup(selectedGroup, groupProperties)
+                            } else {
+                                println "❌ No properties available for group: ${selectedGroup}"
+                                return null // Continue menu loop
+                            }
+                        } else {
+                            println "❌ Invalid option: '${input}'. Please select a valid number (1-3), letter (a-z), or number for specific groups."
+                            return null // Continue menu loop
+                        }
+                    } catch (NumberFormatException e) {
+                        println "❌ Invalid option: '${input}'. Please select a valid number (1-3) or letter (a-z)."
+                        return null // Continue menu loop
+                    }
                 }
         }
     }

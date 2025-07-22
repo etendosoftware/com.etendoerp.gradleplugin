@@ -1,6 +1,7 @@
 package com.etendoerp.legacy.interactive
 
 import com.etendoerp.legacy.interactive.model.PropertyDefinition
+import com.etendoerp.legacy.interactive.utils.PropertyParser
 import org.gradle.api.Project
 
 /**
@@ -19,14 +20,13 @@ import org.gradle.api.Project
 class ConfigSlurperPropertyScanner {
     
     private static final String CONFIG_GRADLE_FILE = "config.gradle"
-    private static final String LEGACY_DOC_FILE = "setup.properties.docs"
     
     private final Project project
-    private final PropertyScanner legacyScanner
+    private final PropertyParser parser
     
     ConfigSlurperPropertyScanner(Project project) {
         this.project = project
-        this.legacyScanner = new PropertyScanner(project)
+        this.parser = new PropertyParser(project)
     }
     
     /**
@@ -41,21 +41,19 @@ class ConfigSlurperPropertyScanner {
         long startTime = System.currentTimeMillis()
         
         try {
-            // Scan gradle.properties for current values (same as before)
+            // Scan gradle.properties for current values (now using internal method)
             project.logger.debug("Scanning gradle.properties...")
-            def gradleProperties = legacyScanner.scanGradleProperties()
+            def gradleProperties = scanGradleProperties()
             project.logger.info("Found ${gradleProperties.size()} properties in gradle.properties")
             
             // Try to scan config.gradle files first
             project.logger.debug("Scanning config.gradle files...")
             def configProperties = scanConfigGradleFiles()
             
-            // If no config.gradle files found, fallback to legacy format
+            // Legacy .docs format support removed in ETP-1960-06
             if (configProperties.isEmpty()) {
-                project.logger.info("No config.gradle files found, falling back to setup.properties.docs format...")
-                def docProperties = legacyScanner.scanModuleDocumentation()
-                project.logger.info("Found ${docProperties.size()} documented properties in legacy format")
-                configProperties = docProperties
+                project.logger.info("No config.gradle files found. Legacy setup.properties.docs support removed.")
+                project.logger.info("Please migrate to config.gradle format in your modules.")
             } else {
                 project.logger.info("Found ${configProperties.size()} documented properties in config.gradle files")
             }
@@ -300,11 +298,11 @@ class ConfigSlurperPropertyScanner {
     
     /**
      * Unifies properties from gradle.properties and config.gradle files.
-     * Uses the same logic as the legacy scanner for consistency.
+     * Uses PropertyParser's merge logic for consistent behavior.
      */
     private List<PropertyDefinition> unifyAndSort(List<PropertyDefinition> gradleProperties, 
                                                  List<PropertyDefinition> configProperties) {
-        return legacyScanner.unifyAndSort(gradleProperties, configProperties)
+        return PropertyParser.mergeProperties(gradleProperties, configProperties)
     }
     
     /**
@@ -342,6 +340,43 @@ class ConfigSlurperPropertyScanner {
      * Validates the scanning results.
      */
     boolean validateScanResults(List<PropertyDefinition> properties) {
-        return legacyScanner.validateScanResults(properties)
+        if (properties == null) {
+            project.logger.error("Property scanning returned null results")
+            return false
+        }
+        
+        if (properties.isEmpty()) {
+            project.logger.warn("No properties found during scanning")
+            return true // Empty is valid, just a warning
+        }
+        
+        // Check for null or invalid properties
+        def invalidProperties = properties.findAll { prop ->
+            prop == null || 
+            prop.key == null || 
+            prop.key.trim().isEmpty()
+        }
+        
+        if (!invalidProperties.isEmpty()) {
+            project.logger.error("Found ${invalidProperties.size()} invalid properties with null/empty keys")
+            return false
+        }
+        
+        project.logger.debug("Property scanning validation passed: ${properties.size()} valid properties")
+        return true
+    }
+    
+    /**
+     * Scans gradle.properties for current values (migrated from PropertyScanner).
+     * 
+     * @return List of PropertyDefinition objects from gradle.properties
+     */
+    List<PropertyDefinition> scanGradleProperties() {
+        def startTime = System.currentTimeMillis()
+        def properties = parser.parseGradleProperties()
+        def elapsed = System.currentTimeMillis() - startTime
+        
+        project.logger.debug("Scanned gradle.properties in ${elapsed}ms")
+        return properties
     }
 }
