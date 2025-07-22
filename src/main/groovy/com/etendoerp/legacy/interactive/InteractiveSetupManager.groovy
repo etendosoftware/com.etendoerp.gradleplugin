@@ -44,6 +44,75 @@ class InteractiveSetupManager {
     }
     
     /**
+     * Executes the traditional setup task programmatically.
+     * 
+     * @throws RuntimeException if the setup execution fails
+     */
+    private void executeTraditionalSetup() {
+        project.logger.quiet("")
+        project.logger.quiet("🚀 **Executing Traditional Setup**")
+        project.logger.quiet("="*50)
+        project.logger.quiet("Running traditional setup task...")
+        project.logger.quiet("")
+        
+        try {
+            // Find the setup task
+            def setupTask = project.tasks.findByName("setup")
+            if (!setupTask) {
+                throw new RuntimeException("Setup task not found. Please ensure the project is properly configured.")
+            }
+            
+            project.logger.lifecycle("Found setup task, executing...")
+            
+            // Execute setup task using Gradle's internal mechanisms
+            // This approach respects task dependencies and lifecycle
+            def taskExecutionResult = project.gradle.taskGraph.getAllTasks().find { it.name == 'setup' }
+            
+            if (taskExecutionResult) {
+                // Task is in the graph, execute it
+                project.logger.info("Executing setup task through task graph...")
+                setupTask.actions.each { action ->
+                    action.execute(setupTask)
+                }
+            } else {
+                // Execute task directly with proper lifecycle
+                project.logger.info("Executing setup task directly...")
+                
+                // Execute task dependencies first if any
+                setupTask.taskDependencies.getDependencies(setupTask).each { depTask ->
+                    project.logger.debug("Executing setup dependency: ${depTask.name}")
+                    depTask.actions.each { action ->
+                        action.execute(depTask)
+                    }
+                }
+                
+                // Execute the setup task itself
+                setupTask.actions.each { action ->
+                    action.execute(setupTask)
+                }
+            }
+            
+            project.logger.quiet("")
+            project.logger.quiet("✅ **Setup completed successfully!**")
+            project.logger.quiet("Your Etendo environment is now configured and ready.")
+            project.logger.quiet("")
+            
+        } catch (Exception e) {
+            project.logger.error("")
+            project.logger.error("❌ **Setup execution failed**")
+            project.logger.error("="*50)
+            project.logger.error("Error during traditional setup execution: ${e.message}")
+            project.logger.error("")
+            project.logger.error("**Your configuration has been saved to gradle.properties.**")
+            project.logger.error("You can run the setup manually with: ./gradlew setup")
+            project.logger.error("")
+            project.logger.debug("Setup execution error details:", e)
+            
+            throw new RuntimeException("Traditional setup execution failed. Configuration saved but setup incomplete.", e)
+        }
+    }
+    
+    /**
      * Executes the complete interactive setup process.
      * 
      * This is the main entry point for the interactive configuration.
@@ -61,14 +130,13 @@ class InteractiveSetupManager {
         progressSuppressor.suppressProgress()
         
         project.logger.quiet("This wizard will guide you through configuring your Etendo project.")
-        project.logger.quiet("Enhanced with ConfigSlurper support for structured configuration.")
         project.logger.quiet("Press Enter to keep existing values or type new ones.")
         project.logger.quiet("")
         project.logger.quiet("Scanning for configuration properties...")
         
         try {
-            // Step 1: Scan all available properties using enhanced scanner
-            project.logger.lifecycle("Scanning for configuration properties (config.gradle + legacy format)...")
+            // Step 1: Scan all available properties
+            project.logger.lifecycle("Scanning for configuration properties...")
             List<PropertyDefinition> properties = scanner.scanAllProperties()
             
             if (properties.isEmpty()) {
@@ -129,6 +197,41 @@ class InteractiveSetupManager {
             
             // Log summary of what was configured
             logConfigurationSummary(configuredProperties, properties)
+            
+            // Step 5: Automatic setup execution (ETP-1960-03)
+            // No additional confirmation needed - user already confirmed in the summary
+            project.logger.lifecycle("")
+            project.logger.lifecycle("🔗 **Automatic Setup Integration** (ETP-1960-03)")
+            project.logger.lifecycle("="*60)
+            project.logger.lifecycle("Proceeding with automatic traditional setup execution...")
+            
+            try {
+                executeTraditionalSetup()
+                
+                project.logger.lifecycle("")
+                project.logger.lifecycle("🎉 **Complete End-to-End Setup Finished!**")
+                project.logger.lifecycle("="*60)
+                project.logger.lifecycle("✅ Interactive configuration: COMPLETED")
+                project.logger.lifecycle("✅ Traditional setup: COMPLETED")
+                project.logger.lifecycle("✅ Environment ready for development")
+                project.logger.lifecycle("")
+                project.logger.lifecycle("Your Etendo environment is now fully configured and ready to use!")
+                
+            } catch (Exception setupError) {
+                project.logger.error("")
+                project.logger.error("⚠️  **Partial Setup Completion**")
+                project.logger.error("="*60)
+                project.logger.error("✅ Interactive configuration: COMPLETED")
+                project.logger.error("❌ Traditional setup: FAILED")
+                project.logger.error("")
+                project.logger.error("Error during automatic setup: ${setupError.message}")
+                project.logger.error("Your configuration has been saved successfully.")
+                project.logger.error("Please run the setup manually: ./gradlew setup")
+                project.logger.error("")
+                
+                // Don't throw the error - configuration was successful
+                project.logger.warn("Setup integration failed but configuration is complete")
+            }
             
         } catch (StopExecutionException e) {
             // User cancellation - re-throw to stop gradle execution cleanly

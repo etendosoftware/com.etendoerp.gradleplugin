@@ -99,25 +99,47 @@ class ConfigSlurperPropertyScanner {
             }
         }
         
-        // Check modules directory
-        def modulesDir = project.file('modules')
-        if (modulesDir.exists() && modulesDir.isDirectory()) {
-            // Scan each module for config.gradle
-            modulesDir.listFiles()?.findAll { it.isDirectory() }?.each { moduleDir ->
-                def configFile = new File(moduleDir, CONFIG_GRADLE_FILE)
-                if (configFile.exists()) {
-                    project.logger.debug("Processing config.gradle in module: ${moduleDir.name}")
-                    try {
-                        def moduleProperties = parseConfigGradle(configFile, moduleDir.name)
-                        properties.addAll(moduleProperties)
-                        project.logger.debug("Loaded ${moduleProperties.size()} properties from ${moduleDir.name}")
-                    } catch (Exception e) {
-                        project.logger.warn("Failed to parse config.gradle in ${moduleDir.name}: ${e.message}")
+        // Define all search paths for config.gradle files
+        def searchPaths = [
+            [path: 'modules', description: 'Standard modules'],
+            [path: 'modules_core', description: 'Core modules'],
+            [path: 'build/etendo/modules', description: 'Build modules']
+        ]
+        
+        // Scan each search path for config.gradle files
+        searchPaths.each { searchPath ->
+            def searchDir = project.file(searchPath.path)
+            project.logger.debug("Scanning ${searchPath.description} directory: ${searchDir.absolutePath}")
+            
+            if (searchDir.exists() && searchDir.isDirectory()) {
+                project.logger.info("✓ Found ${searchPath.description} directory: ${searchDir.absolutePath}")
+                
+                // Scan each module directory for config.gradle
+                def moduleCount = 0
+                def configCount = 0
+                
+                searchDir.listFiles()?.findAll { it.isDirectory() }?.each { moduleDir ->
+                    moduleCount++
+                    def configFile = new File(moduleDir, CONFIG_GRADLE_FILE)
+                    if (configFile.exists()) {
+                        configCount++
+                        project.logger.debug("✓ Processing config.gradle in ${searchPath.description} module: ${moduleDir.name}")
+                        try {
+                            def moduleProperties = parseConfigGradle(configFile, "${searchPath.path}/${moduleDir.name}")
+                            properties.addAll(moduleProperties)
+                            project.logger.debug("Loaded ${moduleProperties.size()} properties from ${searchPath.path}/${moduleDir.name}")
+                        } catch (Exception e) {
+                            project.logger.warn("✗ Failed to parse config.gradle in ${searchPath.path}/${moduleDir.name}: ${e.message}")
+                        }
+                    } else {
+                        project.logger.debug("✗ No config.gradle found in ${searchPath.path}/${moduleDir.name}")
                     }
                 }
+                
+                project.logger.info("Scanned ${moduleCount} modules in ${searchPath.description}, found ${configCount} config.gradle files")
+            } else {
+                project.logger.info("✗ ${searchPath.description} directory not found: ${searchDir.absolutePath}")
             }
-        } else {
-            project.logger.debug("No modules directory found at ${modulesDir.absolutePath}")
         }
         
         def elapsed = System.currentTimeMillis() - startTime
