@@ -112,8 +112,8 @@ dependencies {
 }
 
 tasks.withType(Test).configureEach {
-    // Using JUnitPlatform for running tests
-    useJUnitPlatform()
+    // Using traditional test framework for Spock compatibility
+    // useJUnitPlatform()
 }
 
 

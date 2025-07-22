@@ -25,6 +25,9 @@ class ConfigSlurperPropertyScanner {
     private final PropertyParser parser
     
     ConfigSlurperPropertyScanner(Project project) {
+        if (project == null) {
+            throw new Exception("Project cannot be null")
+        }
         this.project = project
         this.parser = new PropertyParser(project)
     }

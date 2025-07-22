@@ -50,6 +50,9 @@ class ConfigWriter {
             return
         }
         
+        // Validate properties before writing
+        validateProperties(properties)
+        
         def gradlePropsFile = project.file(GRADLE_PROPERTIES_FILE)
         project.logger.debug("Writing ${properties.size()} properties to ${gradlePropsFile.absolutePath}")
         
@@ -293,16 +296,20 @@ class ConfigWriter {
         
         // Check for keys containing problematic characters
         def problematicKeys = properties.keySet().findAll { key ->
-            key.contains('\n') || key.contains('\r') || key.contains('=')
+            key.contains('\n') || key.contains('\r') || key.contains(' ')
         }
         if (!problematicKeys.isEmpty()) {
             throw new IllegalArgumentException("Found property keys with invalid characters: ${problematicKeys}")
         }
         
-        // Validate values (allow empty values, but not null)
+        // Validate values (allow empty values, but handle null specially)
         def nullValues = properties.findAll { key, value -> value == null }
         if (!nullValues.isEmpty()) {
-            throw new IllegalArgumentException("Found properties with null values: ${nullValues.keySet()}")
+            project.logger.warn("Found properties with null values, will write as 'null': ${nullValues.keySet()}")
+            // Convert null values to string "null" for writing
+            nullValues.each { key, value ->
+                properties[key] = "null"
+            }
         }
         
         return true
@@ -323,7 +330,7 @@ class ConfigWriter {
             .replace('\r', '\\r')   // Escape carriage returns
             .replace('\t', '\\t')   // Escape tabs
     }
-    
+
     /**
      * Gets information about the current state of gradle.properties file.
      * 
