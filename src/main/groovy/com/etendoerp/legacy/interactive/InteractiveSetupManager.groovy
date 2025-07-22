@@ -301,10 +301,6 @@ class InteractiveSetupManager {
         }
         
         project.logger.lifecycle("")
-        project.logger.lifecycle("Next steps:")
-        project.logger.lifecycle("1. Review your configuration in gradle.properties")
-        project.logger.lifecycle("2. Run './gradlew setup' to apply the configuration")
-        project.logger.lifecycle("3. Run './gradlew install' to complete the installation")
     }
     
     /**

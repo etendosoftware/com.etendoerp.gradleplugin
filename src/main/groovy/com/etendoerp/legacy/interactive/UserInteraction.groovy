@@ -13,15 +13,26 @@ import org.gradle.api.Project
  * - Prompting users for property values (individual or by groups)
  * - Handling sensitive input (passwords, tokens) securely
  * - Displaying configuration summaries
- * - Managing user confirmation workflows
+ * - Managing user confirmation workflows with persistent state
+ * - Preserving user input across menu interactions and confirmation cycles
  * 
  * The class supports three main configuration modes:
- * 1. Default configuration (use existing/default values)
+ * 1. Default configuration (shows summary and requires confirmation)
  * 2. Group configuration (configure specific groups or all)
  * 3. Exit without saving
  * 
+ * Key behavioral improvements:
+ * - Default configuration now displays a complete summary before confirmation
+ * - User input is preserved across menu sessions when confirmation is cancelled
+ * - All configuration paths follow consistent confirmation workflow
+ * - Graceful handling of invalid menu selections with user-friendly feedback
+ * - Session values are prioritized over default values in property prompts
+ * - Clear indication when showing session values vs default values to users
+ * - Explicit confirmation required - no accidental confirmations via Enter key
+ * 
  * @author Etendo Interactive Setup Team
  * @since 2.0.4
+ * @version 2.0.7 - Enhanced confirmation safety with explicit user response requirement
  */
 class UserInteraction {
     
@@ -42,6 +53,7 @@ class UserInteraction {
     
     /**
      * Shows the main configuration menu and handles user selection.
+     * Manages persistent state of configured properties throughout the session.
      * 
      * @param properties List of PropertyDefinition objects available for configuration
      * @return Map of property keys to user-provided values, or null if user exits
@@ -58,6 +70,9 @@ class UserInteraction {
             return a.compareTo(b)
         }
         
+        // Persistent state for configured properties across menu interactions
+        def configuredProperties = [:]
+        
         while (true) {
             displayMainMenu(availableGroups)
             
@@ -65,12 +80,33 @@ class UserInteraction {
             System.out.flush()
             String input = scanner.nextLine().trim()
             
-            // Handle menu selection
-            def result = handleMenuSelection(input, properties, groupedProperties, availableGroups)
-            if (result != null) {
-                return result
+            // Handle menu selection and get new properties
+            def newProperties = handleMenuSelection(input, properties, groupedProperties, availableGroups, configuredProperties)
+            
+            if (newProperties == null) {
+                // User selected exit - return null
+                return null
+            } else if (newProperties instanceof Map && newProperties.containsKey('__CONTINUE_MENU__')) {
+                // Special marker to continue menu loop (e.g., invalid input)
+                continue
+            } else {
+                // Merge new properties with existing configured properties
+                if (newProperties instanceof Map) {
+                    configuredProperties.putAll(newProperties)
+                }
+                
+                // Show configuration summary and ask for confirmation
+                boolean confirmed = confirmConfiguration(configuredProperties, properties)
+                
+                if (confirmed) {
+                    // User confirmed - return the configured properties
+                    return configuredProperties
+                } else {
+                    // User cancelled - continue menu loop with preserved state
+                    println "\n🔄 Returning to main menu. Your entered values have been preserved."
+                    continue
+                }
             }
-            // If result is null, continue the loop to show menu again
         }
     }
     
@@ -82,9 +118,10 @@ class UserInteraction {
      * in an organized manner. Sensitive properties use hidden input.
      * 
      * @param properties List of PropertyDefinition objects to configure
+     * @param sessionValues Map of values already configured in this session (optional)
      * @return Map of property keys to user-provided values
      */
-    Map<String, String> collectUserInput(List<PropertyDefinition> properties) {
+    Map<String, String> collectUserInput(List<PropertyDefinition> properties, Map<String, String> sessionValues = [:]) {
         if (!properties) {
             return [:]
         }
@@ -99,7 +136,7 @@ class UserInteraction {
             
             props.each { prop ->
                 try {
-                    String value = promptForProperty(prop)
+                    String value = promptForProperty(prop, sessionValues)
                     if (value != null) {
                         result[prop.key] = value
                     }
@@ -121,9 +158,10 @@ class UserInteraction {
      * Prompts the user for a specific property value.
      * 
      * @param prop The PropertyDefinition to prompt for
-     * @return The user-provided value, or the default/current value if user pressed Enter
+     * @param sessionValues Map of values already configured in this session (optional)
+     * @return The user-provided value, or the current/default value if user pressed Enter
      */
-    private String promptForProperty(PropertyDefinition prop) {
+    private String promptForProperty(PropertyDefinition prop, Map<String, String> sessionValues = [:]) {
         // Display the property information and current value
         println "🔧 Property: ${prop.key}"
         
@@ -132,12 +170,16 @@ class UserInteraction {
             println "   ℹ️  ${prop.documentation}"
         }
         
+        // Determine the current value to display - prioritize session value over default
+        def currentValue = sessionValues?.get(prop.key) ?: prop.getDisplayValue()
+        def isSessionValue = sessionValues?.containsKey(prop.key) ?: false
+        
         // Add current/default value if available
-        def displayValue = prop.getDisplayValue()
-        if (displayValue && !displayValue.trim().isEmpty()) {
+        if (currentValue && !currentValue.trim().isEmpty()) {
             // Mask sensitive values in the prompt
-            def maskedValue = prop.sensitive ? prop.maskValue(displayValue) : displayValue
-            println "   Current value: ${maskedValue}"
+            def maskedValue = prop.sensitive ? prop.maskValue(currentValue) : currentValue
+            def valueLabel = isSessionValue ? "Current value (from this session)" : "Current value"
+            println "   ${valueLabel}: ${maskedValue}"
         }
         
         String input
@@ -165,9 +207,9 @@ class UserInteraction {
         // Trim whitespace
         input = input?.trim() ?: ""
         
-        // Return user input if provided, otherwise return the current/default value
+        // Return user input if provided, otherwise return the current value (prioritizing session value)
         if (input.isEmpty()) {
-            return prop.getDisplayValue()
+            return currentValue ?: prop.getDisplayValue()
         } else {
             return input
         }
@@ -175,10 +217,11 @@ class UserInteraction {
     
     /**
      * Displays configuration summary and asks for user confirmation.
+     * Requires explicit confirmation - no default option is provided.
      * 
      * @param configuredProperties The properties configured by the user
      * @param allProperties All available properties for context
-     * @return true if user confirms, false if user cancels
+     * @return true if user explicitly confirms with 'Y', false if user cancels with 'N'
      */
     boolean confirmConfiguration(Map<String, String> configuredProperties, 
                                 List<PropertyDefinition> allProperties) {
@@ -187,16 +230,16 @@ class UserInteraction {
         displayConfigurationSummary(configuredProperties, allProperties)
         
         while (true) {
-            print "\n✅ Confirm configuration? (Y/n): "
+            print "\n✅ Confirm configuration? (Y/N): "
             System.out.flush() // Ensure the prompt appears immediately
             String response = scanner.nextLine().trim().toLowerCase()
             
-            if (response.isEmpty() || response == 'y' || response == 'yes' || response == 's' || response == 'si') {
+            if (response == 'y' || response == 'yes' || response == 's' || response == 'si') {
                 return true
             } else if (response == 'n' || response == 'no') {
                 return false
             } else {
-                println "❌ Please respond 'Y' to confirm or 'N' to cancel."
+                println "❌ Please respond 'Y' to confirm or 'N' to cancel. Empty responses are not accepted."
             }
         }
     }
@@ -214,7 +257,8 @@ class UserInteraction {
         println "=" * 60
         
         if (configuredProperties.isEmpty()) {
-            println "❌ No properties configured."
+            println "ℹ️  No custom properties configured - using current/default values."
+            println "   All properties will maintain their existing values."
             return
         }
         
@@ -298,22 +342,30 @@ class UserInteraction {
      * @param properties All available properties
      * @param groupedProperties Properties grouped by category
      * @param availableGroups List of available group names
-     * @return Map of configured properties, empty map for default config, or null to continue menu loop
+     * @param configuredProperties Currently configured properties from session state
+     * @return Map of newly configured properties, null for exit, or special marker map to continue menu loop
      */
     private Map<String, String> handleMenuSelection(String input, List<PropertyDefinition> properties, 
                                                    Map<String, List<PropertyDefinition>> groupedProperties, 
-                                                   List<String> availableGroups) {
+                                                   List<String> availableGroups, Map<String, String> configuredProperties) {
         input = input.toLowerCase().trim()
         
         switch (input) {
             case '1':
-                // Default configuration - return empty map (use defaults)
-                println "✅ Using default configuration..."
-                return [:]
+                // Default configuration - prepare default values for all properties
+                println "✅ Preparing default configuration..."
+                def defaultProperties = [:]
+                properties.each { prop ->
+                    def defaultValue = prop.getDisplayValue()
+                    if (defaultValue && !defaultValue.trim().isEmpty()) {
+                        defaultProperties[prop.key] = defaultValue
+                    }
+                }
+                return defaultProperties
                 
             case '2':
                 // Group configuration - show all groups
-                return collectUserInput(properties)
+                return collectUserInput(properties, configuredProperties)
                 
             case '3':
                 // Exit without saving
@@ -322,7 +374,7 @@ class UserInteraction {
                 
             case 'a':
                 // Configure all groups
-                return collectUserInput(properties)
+                return collectUserInput(properties, configuredProperties)
                 
             default:
                 // Check if it's a specific group letter
@@ -335,10 +387,10 @@ class UserInteraction {
                     
                     if (groupProperties && !groupProperties.isEmpty()) {
                         println "🎯 Configuring group: ${selectedGroup}"
-                        return collectUserInputForGroup(selectedGroup, groupProperties)
+                        return collectUserInputForGroup(selectedGroup, groupProperties, configuredProperties)
                     } else {
                         println "❌ No properties available for group: ${selectedGroup}"
-                        return null // Continue menu loop
+                        return ['__CONTINUE_MENU__': true] // Continue menu loop
                     }
                 } else {
                     // Check if it's a numeric input for groups beyond letter capacity
@@ -352,18 +404,18 @@ class UserInteraction {
                             
                             if (groupProperties && !groupProperties.isEmpty()) {
                                 println "🎯 Configuring group: ${selectedGroup}"
-                                return collectUserInputForGroup(selectedGroup, groupProperties)
+                                return collectUserInputForGroup(selectedGroup, groupProperties, configuredProperties)
                             } else {
                                 println "❌ No properties available for group: ${selectedGroup}"
-                                return null // Continue menu loop
+                                return ['__CONTINUE_MENU__': true] // Continue menu loop
                             }
                         } else {
                             println "❌ Invalid option: '${input}'. Please select a valid number (1-3), letter (a-z), or number for specific groups."
-                            return null // Continue menu loop
+                            return ['__CONTINUE_MENU__': true] // Continue menu loop
                         }
                     } catch (NumberFormatException e) {
                         println "❌ Invalid option: '${input}'. Please select a valid number (1-3) or letter (a-z)."
-                        return null // Continue menu loop
+                        return ['__CONTINUE_MENU__': true] // Continue menu loop
                     }
                 }
         }
@@ -374,9 +426,10 @@ class UserInteraction {
      * 
      * @param groupName The name of the group being configured
      * @param properties List of PropertyDefinition objects in this group
+     * @param sessionValues Map of values already configured in this session (optional)
      * @return Map of property keys to user-provided values
      */
-    private Map<String, String> collectUserInputForGroup(String groupName, List<PropertyDefinition> properties) {
+    private Map<String, String> collectUserInputForGroup(String groupName, List<PropertyDefinition> properties, Map<String, String> sessionValues = [:]) {
         if (!properties || properties.isEmpty()) {
             return [:]
         }
@@ -387,7 +440,7 @@ class UserInteraction {
         
         properties.each { prop ->
             try {
-                String value = promptForProperty(prop)
+                String value = promptForProperty(prop, sessionValues)
                 if (value != null) {
                     result[prop.key] = value
                 }
@@ -443,7 +496,7 @@ class UserInteraction {
 Usage:
 - Press Enter to keep the current/default value shown
 - For sensitive properties (passwords, tokens), input will be hidden
-- You can cancel at any time during the final confirmation
+- Configuration requires explicit confirmation (Y/N) - no default option
 
 Property types:
 - General: Basic project configuration
