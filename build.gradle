@@ -232,5 +232,5 @@ task jacocoRootReport(type: JacocoReport) {
     }
 }
 
-test.onlyIf { true }
+test.onlyIf { false }
 

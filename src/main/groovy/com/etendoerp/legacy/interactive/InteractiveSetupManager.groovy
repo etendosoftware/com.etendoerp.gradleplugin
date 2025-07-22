@@ -8,13 +8,16 @@ import org.gradle.api.tasks.StopExecutionException
  * Main orchestrator for the interactive setup process.
  * 
  * This class coordinates the entire interactive configuration workflow:
- * 1. Scanning properties from multiple sources
- * 2. Collecting user input through guided prompts
+ * 1. Scanning properties from multiple sources (config.gradle and setup.properties.docs)
+ * 2. Collecting user input through guided prompts with main menu navigation
  * 3. Confirming configuration with the user
  * 4. Writing the final configuration to gradle.properties
  * 
  * The manager ensures that the process is robust, user-friendly, and
  * maintains data integrity throughout the configuration process.
+ * 
+ * Enhanced in version 2.0.4 to support ConfigSlurper-based configuration
+ * with backward compatibility for legacy setup.properties.docs format.
  * 
  * @author Etendo Interactive Setup Team
  * @since 2.0.4
@@ -22,20 +25,22 @@ import org.gradle.api.tasks.StopExecutionException
 class InteractiveSetupManager {
     
     private final Project project
-    private final PropertyScanner scanner
+    private final ConfigSlurperPropertyScanner scanner
     private final UserInteraction ui
     private final ConfigWriter writer
+    private final ProgressSuppressor progressSuppressor
     
     /**
-     * Creates a new InteractiveSetupManager with all required components.
+     * Creates a new InteractiveSetupManager with enhanced ConfigSlurper support.
      * 
      * @param project The Gradle project context
      */
     InteractiveSetupManager(Project project) {
         this.project = project
-        this.scanner = new PropertyScanner(project)
+        this.scanner = new ConfigSlurperPropertyScanner(project)
         this.ui = new UserInteraction(project)
         this.writer = new ConfigWriter(project)
+        this.progressSuppressor = new ProgressSuppressor(project)
     }
     
     /**
@@ -48,13 +53,22 @@ class InteractiveSetupManager {
      * @throws RuntimeException if a critical error occurs during the process
      */
     void execute() {
-        project.logger.lifecycle("=== Etendo Interactive Setup ===")
-        project.logger.lifecycle("This wizard will guide you through configuring your Etendo project.")
-        project.logger.lifecycle("")
+        // Ensure quiet output during user interaction
+        def originalLogLevel = project.gradle.startParameter.logLevel
+        project.gradle.startParameter.logLevel = org.gradle.api.logging.LogLevel.LIFECYCLE
+        
+        // Apply comprehensive progress suppression
+        progressSuppressor.suppressProgress()
+        
+        project.logger.quiet("This wizard will guide you through configuring your Etendo project.")
+        project.logger.quiet("Enhanced with ConfigSlurper support for structured configuration.")
+        project.logger.quiet("Press Enter to keep existing values or type new ones.")
+        project.logger.quiet("")
+        project.logger.quiet("Scanning for configuration properties...")
         
         try {
-            // Step 1: Scan all available properties
-            project.logger.lifecycle("Scanning for configuration properties...")
+            // Step 1: Scan all available properties using enhanced scanner
+            project.logger.lifecycle("Scanning for configuration properties (config.gradle + legacy format)...")
             List<PropertyDefinition> properties = scanner.scanAllProperties()
             
             if (properties.isEmpty()) {
@@ -67,24 +81,36 @@ class InteractiveSetupManager {
                 throw new RuntimeException("Property scanning validation failed")
             }
             
-            project.logger.lifecycle("Found ${properties.size()} configurable properties.")
-            project.logger.lifecycle("")
+            project.logger.quiet("Found ${properties.size()} configurable properties.")
+            project.logger.quiet("")
             
-            // Step 2: Collect user input for all properties
-            project.logger.lifecycle("Please provide values for the following properties.")
-            project.logger.lifecycle("Press Enter to keep the current/default value shown in parentheses.")
-            project.logger.lifecycle("")
+            // Step 2: Show main menu and collect user input based on selection
+            project.logger.quiet("Please select your configuration preference:")
+            project.logger.quiet("")
             
-            Map<String, String> configuredProperties = ui.collectUserInput(properties)
+            Map<String, String> configuredProperties = ui.showMainMenu(properties)
             
+            // Check if user chose to exit
+            if (configuredProperties == null) {
+                project.logger.lifecycle("Setup cancelled by user.")
+                throw new StopExecutionException("Interactive setup cancelled by user")
+            }
+            
+            project.logger.quiet("DEBUG: Configured properties map size: ${configuredProperties.size()}")
+            project.logger.quiet("DEBUG: Configured properties: ${configuredProperties}")
+            
+            // If empty map from default configuration, handle it differently
             if (configuredProperties.isEmpty()) {
-                project.logger.lifecycle("No properties configured. Exiting setup.")
+                project.logger.lifecycle("Using default configuration values.")
+                project.logger.lifecycle("✅ Configuration completed successfully!")
+                project.logger.lifecycle("Default settings are already configured.")
                 return
             }
             
             // Step 3: Show configuration summary and confirm
-            project.logger.lifecycle("")
+            project.logger.quiet("DEBUG: About to call confirmConfiguration")
             boolean confirmed = ui.confirmConfiguration(configuredProperties, properties)
+            project.logger.quiet("DEBUG: Confirmation result: ${confirmed}")
             
             if (!confirmed) {
                 project.logger.lifecycle("Configuration cancelled by user.")
@@ -110,6 +136,12 @@ class InteractiveSetupManager {
         } catch (Exception e) {
             project.logger.error("❌ Interactive setup failed: ${e.message}", e)
             throw new RuntimeException("Interactive setup process failed", e)
+        } finally {
+            // Restore original log level
+            project.gradle.startParameter.logLevel = originalLogLevel
+            
+            // Restore progress suppression settings
+            progressSuppressor.restoreProgress()
         }
     }
     

@@ -3,7 +3,8 @@ package com.etendoerp.legacy.interactive.model
 /**
  * Model class representing a property configuration with its metadata.
  * This class encapsulates all information needed to prompt the user for
- * property configuration including documentation, default values, and sensitivity.
+ * property configuration including documentation, default values, sensitivity,
+ * and source tracking for enhanced ConfigSlurper support.
  * 
  * @author Etendo Interactive Setup Team
  * @since 2.0.4
@@ -31,6 +32,9 @@ class PropertyDefinition {
     /** Whether this property is required for the application to function */
     boolean required = false
     
+    /** Source of this property definition (for debugging and tracking) */
+    String source
+    
     /**
      * Gets the value to display to the user (current or default).
      * Prioritizes current value over default value.
@@ -50,23 +54,23 @@ class PropertyDefinition {
     String getPromptText() {
         def prompt = ""
         
+        // Property name with tree-like structure
+        prompt += "  +- Property: ${key}\n"
+        
         // Add documentation if available
         if (documentation && !documentation.trim().isEmpty()) {
-            prompt += "${documentation}\n"
+            prompt += "  │  ${documentation}\n"
         }
         
-        // Add property key
-        prompt += "${key}"
-        
-        // Add current/default value in parentheses if available
+        // Add current/default value if available
         def displayValue = getDisplayValue()
         if (displayValue && !displayValue.trim().isEmpty()) {
             // Mask sensitive values in the prompt
             def maskedValue = sensitive ? maskValue(displayValue) : displayValue
-            prompt += " (${maskedValue})"
+            prompt += "  │  Current value: ${maskedValue}\n"
         }
         
-        prompt += ": "
+        prompt += "  +- New value: "
         return prompt
     }
     
@@ -100,7 +104,8 @@ class PropertyDefinition {
                 "group='${group}', " +
                 "sensitive=${sensitive}, " +
                 "required=${required}, " +
-                "hasValue=${hasValue()}" +
+                "hasValue=${hasValue()}, " +
+                "source='${source}'" +
                 "}"
     }
     

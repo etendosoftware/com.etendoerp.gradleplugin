@@ -8,10 +8,17 @@ import org.gradle.api.Project
  * Handles all user interaction aspects of the interactive setup process.
  * 
  * This class is responsible for:
- * - Prompting users for property values
+ * - Displaying the main configuration menu with multiple options
+ * - Handling menu navigation and option selection
+ * - Prompting users for property values (individual or by groups)
  * - Handling sensitive input (passwords, tokens) securely
  * - Displaying configuration summaries
  * - Managing user confirmation workflows
+ * 
+ * The class supports three main configuration modes:
+ * 1. Default configuration (use existing/default values)
+ * 2. Group configuration (configure specific groups or all)
+ * 3. Exit without saving
  * 
  * @author Etendo Interactive Setup Team
  * @since 2.0.4
@@ -34,8 +41,43 @@ class UserInteraction {
     }
     
     /**
+     * Shows the main configuration menu and handles user selection.
+     * 
+     * @param properties List of PropertyDefinition objects available for configuration
+     * @return Map of property keys to user-provided values, or null if user exits
+     */
+    Map<String, String> showMainMenu(List<PropertyDefinition> properties) {
+        if (!properties) {
+            return [:]
+        }
+        
+        def groupedProperties = groupPropertiesByCategory(properties)
+        def availableGroups = groupedProperties.keySet().sort { a, b ->
+            if (a == "General") return -1
+            if (b == "General") return 1
+            return a.compareTo(b)
+        }
+        
+        while (true) {
+            displayMainMenu(availableGroups)
+            
+            print "\n🎯 Select an option: "
+            System.out.flush()
+            String input = scanner.nextLine().trim()
+            
+            // Handle menu selection
+            def result = handleMenuSelection(input, properties, groupedProperties, availableGroups)
+            if (result != null) {
+                return result
+            }
+            // If result is null, continue the loop to show menu again
+        }
+    }
+    
+    /**
      * Collects user input for all provided properties.
      * 
+     * This method is used when the user selects "all groups" configuration.
      * Properties are grouped by category and presented to the user
      * in an organized manner. Sensitive properties use hidden input.
      * 
@@ -61,6 +103,8 @@ class UserInteraction {
                     if (value != null) {
                         result[prop.key] = value
                     }
+                    // Add spacing between properties for better readability
+                    println ""
                 } catch (Exception e) {
                     project.logger.warn("Error collecting input for ${prop.key}: ${e.message}")
                     // Continue with other properties
@@ -80,12 +124,27 @@ class UserInteraction {
      * @return The user-provided value, or the default/current value if user pressed Enter
      */
     private String promptForProperty(PropertyDefinition prop) {
-        // Display the prompt text
-        print prop.getPromptText()
+        // Display the property information and current value
+        println "🔧 Property: ${prop.key}"
+        
+        // Add documentation if available
+        if (prop.documentation && !prop.documentation.trim().isEmpty()) {
+            println "   ℹ️  ${prop.documentation}"
+        }
+        
+        // Add current/default value if available
+        def displayValue = prop.getDisplayValue()
+        if (displayValue && !displayValue.trim().isEmpty()) {
+            // Mask sensitive values in the prompt
+            def maskedValue = prop.sensitive ? prop.maskValue(displayValue) : displayValue
+            println "   Current value: ${maskedValue}"
+        }
         
         String input
         if (prop.sensitive && console != null) {
-            // Use console for secure password input
+            // For sensitive properties with console available
+            print "🔐 New value (hidden): "
+            System.out.flush() // Force the prompt to appear immediately
             char[] passwordChars = console.readPassword()
             input = passwordChars ? new String(passwordChars) : ""
             // Clear the password from memory
@@ -95,8 +154,11 @@ class UserInteraction {
         } else {
             if (prop.sensitive && console == null) {
                 // Warning about non-hidden input for sensitive properties
-                print "[WARNING: Input will be visible] "
+                println "⚠️  WARNING: Input will be visible"
             }
+            // Show the input prompt and flush to ensure it appears
+            print "✏️  New value: "
+            System.out.flush() // This ensures the prompt shows before waiting for input
             input = scanner.nextLine()
         }
         
@@ -121,18 +183,20 @@ class UserInteraction {
     boolean confirmConfiguration(Map<String, String> configuredProperties, 
                                 List<PropertyDefinition> allProperties) {
         
+        project.logger.quiet("\n" + "=" * 60)
         displayConfigurationSummary(configuredProperties, allProperties)
         
         while (true) {
-            print "\n¿Confirmar configuración? (S/n): "
+            print "\n✅ Confirm configuration? (Y/n): "
+            System.out.flush() // Ensure the prompt appears immediately
             String response = scanner.nextLine().trim().toLowerCase()
             
-            if (response.isEmpty() || response == 's' || response == 'si' || response == 'yes' || response == 'y') {
+            if (response.isEmpty() || response == 'y' || response == 'yes' || response == 's' || response == 'si') {
                 return true
             } else if (response == 'n' || response == 'no') {
                 return false
             } else {
-                println "Por favor responda 'S' para confirmar o 'N' para cancelar."
+                println "❌ Please respond 'Y' to confirm or 'N' to cancel."
             }
         }
     }
@@ -146,10 +210,11 @@ class UserInteraction {
     private void displayConfigurationSummary(Map<String, String> configuredProperties,
                                             List<PropertyDefinition> allProperties) {
         
-        println "=== Resumen de Configuración ==="
+        println "📊 Configuration Summary"
+        println "=" * 60
         
         if (configuredProperties.isEmpty()) {
-            println "No hay propiedades configuradas."
+            println "❌ No properties configured."
             return
         }
         
@@ -172,12 +237,12 @@ class UserInteraction {
         
         // Display each group
         groupedForDisplay.sort().each { group, properties ->
-            println "\n${group}:"
+            println "\n📋 ${group}:"
             properties.sort { it.key }.each { propInfo ->
                 def displayValue = propInfo.sensitive ? 
                     SecurityUtils.maskValue(propInfo.value) : 
                     propInfo.value
-                println "  ${propInfo.key} = ${displayValue}"
+                println "   🔧 ${propInfo.key} = ${displayValue}"
             }
         }
         
@@ -188,12 +253,128 @@ class UserInteraction {
             return prop?.sensitive ?: SecurityUtils.isSensitive(key, prop)
         }
         
-        println "\nTotal: ${totalProps} propiedades configuradas"
+        println "\n📊 Total: ${totalProps} properties configured"
         if (sensitiveProps > 0) {
-            println "Incluyendo ${sensitiveProps} propiedades sensibles (se mostrarán enmascaradas)"
+            println "🔐 Including ${sensitiveProps} sensitive properties (shown masked)"
         }
     }
     
+    /**
+     * Displays the main configuration menu.
+     * 
+     * @param availableGroups List of available property groups
+     */
+    private void displayMainMenu(List<String> availableGroups) {
+        println "\n🎛️  Interactive Setup - Main Menu"
+        println "=" * 60
+        println ""
+        println "📋 Choose configuration option:"
+        println ""
+        println "1️⃣  Default configuration (use current/default values)"
+        println "2️⃣  Group configuration:"
+        println "   📦 a. all - Configure all groups"
+        
+        // Show available groups with letters
+        def letters = ['b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+        availableGroups.eachWithIndex { group, index ->
+            if (index < letters.size()) {
+                println "   📋 ${letters[index]}. ${group}"
+            }
+        }
+        
+        println "3️⃣  Exit without saving"
+        println ""
+    }
+    
+    /**
+     * Handles the user's menu selection.
+     * 
+     * @param input User input string
+     * @param properties All available properties
+     * @param groupedProperties Properties grouped by category
+     * @param availableGroups List of available group names
+     * @return Map of configured properties, empty map for default config, or null to continue menu loop
+     */
+    private Map<String, String> handleMenuSelection(String input, List<PropertyDefinition> properties, 
+                                                   Map<String, List<PropertyDefinition>> groupedProperties, 
+                                                   List<String> availableGroups) {
+        input = input.toLowerCase().trim()
+        
+        switch (input) {
+            case '1':
+                // Default configuration - return empty map (use defaults)
+                println "✅ Using default configuration..."
+                return [:]
+                
+            case '2':
+                // Group configuration - show all groups
+                return collectUserInput(properties)
+                
+            case '3':
+                // Exit without saving
+                println "🚪 Exiting without saving changes..."
+                return null
+                
+            case 'a':
+                // Configure all groups
+                return collectUserInput(properties)
+                
+            default:
+                // Check if it's a specific group letter
+                def letters = ['b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+                def letterIndex = letters.indexOf(input)
+                
+                if (letterIndex >= 0 && letterIndex < availableGroups.size()) {
+                    def selectedGroup = availableGroups[letterIndex]
+                    def groupProperties = groupedProperties[selectedGroup]
+                    
+                    if (groupProperties && !groupProperties.isEmpty()) {
+                        println "🎯 Configuring group: ${selectedGroup}"
+                        return collectUserInputForGroup(selectedGroup, groupProperties)
+                    } else {
+                        println "❌ No properties available for group: ${selectedGroup}"
+                        return null // Continue menu loop
+                    }
+                } else {
+                    println "❌ Invalid option: '${input}'. Please select a valid number (1-3) or letter (a-z)."
+                    return null // Continue menu loop
+                }
+        }
+    }
+    
+    /**
+     * Collects user input for a specific group of properties.
+     * 
+     * @param groupName The name of the group being configured
+     * @param properties List of PropertyDefinition objects in this group
+     * @return Map of property keys to user-provided values
+     */
+    private Map<String, String> collectUserInputForGroup(String groupName, List<PropertyDefinition> properties) {
+        if (!properties || properties.isEmpty()) {
+            return [:]
+        }
+        
+        def result = [:]
+        
+        displayGroupHeader(groupName, properties.size())
+        
+        properties.each { prop ->
+            try {
+                String value = promptForProperty(prop)
+                if (value != null) {
+                    result[prop.key] = value
+                }
+                // Add spacing between properties for better readability
+                println ""
+            } catch (Exception e) {
+                project.logger.warn("Error collecting input for ${prop.key}: ${e.message}")
+                // Continue with other properties
+            }
+        }
+        
+        return result
+    }
+
     /**
      * Groups properties by their category/group for organized display.
      * 
@@ -220,13 +401,9 @@ class UserInteraction {
      * @param propertyCount Number of properties in the group
      */
     private void displayGroupHeader(String groupName, int propertyCount) {
-        def header = "=== ${groupName} ==="
-        println header
-        
-        if (propertyCount > 1) {
-            println "(${propertyCount} propiedades)"
-        }
-        println()
+        println "\n📋 ${groupName}"
+        println "=" * 50
+        println ""
     }
     
     /**
@@ -234,24 +411,24 @@ class UserInteraction {
      */
     void displayHelp() {
         println """
-=== Ayuda del Setup Interactivo ===
+=== Interactive Setup Help ===
 
-Uso:
-- Presiona Enter para mantener el valor actual/por defecto mostrado entre paréntesis
-- Para propiedades sensibles (contraseñas, tokens), la entrada estará oculta
-- Puedes cancelar en cualquier momento durante la confirmación final
+Usage:
+- Press Enter to keep the current/default value shown
+- For sensitive properties (passwords, tokens), input will be hidden
+- You can cancel at any time during the final confirmation
 
-Tipos de propiedades:
-- Generales: Configuración básica del proyecto
-- Base de Datos: Configuración de conexión a la base de datos  
-- Seguridad: Credenciales y tokens de acceso
-- Rutas: Directorios y ubicaciones de archivos
+Property types:
+- General: Basic project configuration
+- Database: Database connection configuration  
+- Security: Credentials and access tokens
+- Paths: Directories and file locations
 
-Propiedades sensibles:
-Las propiedades que contienen información sensible (contraseñas, tokens, claves)
-se detectan automáticamente y se muestran enmascaradas en los resúmenes.
+Sensitive properties:
+Properties containing sensitive information (passwords, tokens, keys)
+are automatically detected and shown masked in summaries.
 
-Para más información, consulta la documentación del proyecto.
+For more information, consult the project documentation.
 """
     }
     
@@ -261,9 +438,9 @@ Para más información, consulta la documentación del proyecto.
      * @return true if user wants help
      */
     boolean askForHelp() {
-        print "¿Desea ver la ayuda del setup interactivo? (s/N): "
+        print "Do you want to see the interactive setup help? (y/N): "
         String response = scanner.nextLine().trim().toLowerCase()
-        return response == 's' || response == 'si' || response == 'yes' || response == 'y'
+        return response == 'y' || response == 'yes' || response == 's' || response == 'si'
     }
     
     /**
