@@ -232,6 +232,5 @@ task jacocoRootReport(type: JacocoReport) {
     }
 }
 
-// Tests re-enabled after ETP-1960-06 review fixes
-// test.onlyIf { false }
+test.onlyIf { true }
 
