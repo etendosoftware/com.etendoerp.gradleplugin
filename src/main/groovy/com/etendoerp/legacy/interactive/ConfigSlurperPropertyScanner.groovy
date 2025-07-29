@@ -98,7 +98,9 @@ class ConfigSlurperPropertyScanner {
                 properties.addAll(rootProperties)
                 project.logger.debug("Loaded ${rootProperties.size()} properties from main config.gradle")
             } catch (Exception e) {
+                // Enhanced error handling - log error but continue processing modules
                 project.logger.warn("Failed to parse main config.gradle: ${e.message}")
+                project.logger.debug("Full stack trace for debugging:", e)
             }
         }
         
@@ -132,7 +134,9 @@ class ConfigSlurperPropertyScanner {
                             properties.addAll(moduleProperties)
                             project.logger.debug("Loaded ${moduleProperties.size()} properties from ${searchPath.path}/${moduleDir.name}")
                         } catch (Exception e) {
+                            // Enhanced error handling - log error but continue processing other modules
                             project.logger.warn("✗ Failed to parse config.gradle in ${searchPath.path}/${moduleDir.name}: ${e.message}")
+                            project.logger.debug("Full stack trace for debugging:", e)
                         }
                     } else {
                         project.logger.debug("✗ No config.gradle found in ${searchPath.path}/${moduleDir.name}")
@@ -171,8 +175,9 @@ class ConfigSlurperPropertyScanner {
             }
             
         } catch (Exception e) {
+            // Log error but don't throw - allow scanner to continue with other files
             project.logger.error("Error parsing config.gradle in ${moduleName}: ${e.message}", e)
-            throw e
+            project.logger.warn("✗ Failed to parse config.gradle in ${moduleName}. Continuing with other files.")
         }
         
         return properties
@@ -228,8 +233,8 @@ class ConfigSlurperPropertyScanner {
      * @return PropertyDefinition object or null if invalid
      */
     private PropertyDefinition createPropertyDefinitionFromRootLevel(String propertyKey, ConfigObject propertyConfig, String moduleName) {
-        // For root-level properties, use the key directly (no group prefix)
-        def gradleKey = propertyKey
+        // Check if custom name is specified, otherwise use the property key directly
+        def gradleKey = propertyConfig.name?.toString() ?: propertyKey
         
         // Extract metadata from the configuration
         def description = propertyConfig.description?.toString() ?: ""
@@ -262,8 +267,8 @@ class ConfigSlurperPropertyScanner {
      * @return PropertyDefinition object or null if invalid
      */
     private PropertyDefinition createPropertyDefinition(String groupKey, String propertyKey, ConfigObject propertyConfig, String moduleName) {
-        // Map the structured property key to gradle.properties format
-        def gradleKey = mapToGradlePropertyKey(groupKey, propertyKey)
+        // Check if custom name is specified, otherwise use default mapping
+        def gradleKey = propertyConfig.name?.toString() ?: mapToGradlePropertyKey(groupKey, propertyKey)
         
         // Extract metadata from the configuration
         def description = propertyConfig.description?.toString() ?: ""
@@ -289,28 +294,23 @@ class ConfigSlurperPropertyScanner {
     /**
      * Maps structured property keys to gradle.properties format.
      * 
-     * Uses automatic conversion from config.gradle structure to gradle.properties format.
-     * No hardcoded mappings - everything is determined by the config.gradle files.
+     * This method is used as fallback when no custom 'name' is specified
+     * in the property configuration. Preserves original property names 
+     * without any transformation.
      * 
      * Examples:
      * - database.host -> database.host
-     * - database.password -> database.password
-     * - application.contextName -> application.context.name
-     * - security.githubToken -> security.github.token
+     * - database.systemUser -> database.systemUser  
+     * - apiKeys.openai -> apiKeys.openai (unless name="OPENAI_API_KEY" is specified)
+     * - security.githubToken -> security.githubToken
      * 
      * @param groupKey The group key
-     * @param propertyKey The property key
+     * @param propertyKey The property key (preserved as-is)
      * @return The gradle.properties compatible key
      */
     private String mapToGradlePropertyKey(String groupKey, String propertyKey) {
-        // Convert camelCase to dot notation
-        def converted = propertyKey.replaceAll(/([A-Z])/, '.$1').toLowerCase()
-        if (converted.startsWith('.')) {
-            converted = converted.substring(1)
-        }
-        
-        // Combine group and property key
-        return "${groupKey.toLowerCase()}.${converted}"
+        // No transformation - preserve original property names
+        return "${groupKey.toLowerCase()}.${propertyKey}"
     }
     
     /**
