@@ -5,6 +5,7 @@ import com.etendoerp.legacy.utils.ModulesUtils
 import com.etendoerp.legacy.utils.GithubUtils
 import com.etendoerp.legacy.utils.NexusUtils
 import com.etendoerp.publication.PublicationUtils
+import com.etendoerp.legacy.interactive.InteractiveSetupManager
 import org.gradle.api.Project
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.Delete
@@ -397,6 +398,100 @@ class LegacyScriptLoader {
             }
 
         }
+
+        // =============================================================
+        // Interactive Setup Integration
+        // =============================================================
+        
+        /**
+         * Interactive setup task that guides users through property configuration.
+         * This task is only created when the 'interactive' property is present.
+         * 
+         * Usage:
+         *   ./gradlew interactiveSetup -Pinteractive=true --console=plain
+         * 
+         * Note: The --console=plain flag is recommended to suppress progress bars
+         * that appear during buildSrc compilation before the interactive session starts.
+         */
+        if (project.hasProperty('interactive')) {
+            project.task("interactiveSetup") {
+                description = "Interactive wizard for configuring Etendo project properties"
+                group = "etendo setup"
+                
+                // Disable progress reporting to avoid progress bar during user interaction
+                outputs.upToDateWhen { false }
+                // Mark as not cacheable since it requires user input
+                outputs.cacheIf { false }
+                // Disable build cache to avoid any progress-related interference
+                outputs.doNotCacheIf("Interactive task with user input") { true }
+                
+                doFirst {
+                    // Disable Gradle's progress output during user interaction
+                    project.gradle.startParameter.consoleOutput = org.gradle.api.logging.configuration.ConsoleOutput.Plain
+                    // Set logging level to suppress progress information
+                    project.gradle.startParameter.logLevel = org.gradle.api.logging.LogLevel.LIFECYCLE
+                    // Additional progress suppression
+                    System.setProperty("org.gradle.internal.progress.disable", "true")
+                    
+                    // Clear the console and prepare for clean interactive output
+                    print("\n\n")
+                    project.logger.quiet("="*60)
+                    project.logger.quiet("🔧 ETENDO INTERACTIVE SETUP")
+                    project.logger.quiet("="*60)
+                    
+                    // Try to force quiet execution by modifying the Gradle execution environment
+                    try {
+                        // Access the current build's execution controller if available
+                        def buildExecuter = project.gradle.services.find { service ->
+                            service.class.simpleName.contains('BuildExecuter') ||
+                            service.class.simpleName.contains('Executer')
+                        }
+                        
+                        if (buildExecuter?.hasProperty('progressReporting')) {
+                            buildExecuter.progressReporting = false
+                        }
+                    } catch (Exception e) {
+                        // Internal API access - ignore failures
+                    }
+                }
+                
+                doLast {
+                    try {
+                        def setupManager = new InteractiveSetupManager(project)
+                        
+                        // Validate environment before starting
+                        setupManager.validateEnvironment()
+                        
+                        // Execute interactive setup process
+                        setupManager.execute()
+                        
+                        // Show completion message
+                        project.logger.quiet("\n" + "="*60)
+                        project.logger.quiet("✅ Interactive setup completed successfully!")
+                        project.logger.quiet("="*60)
+                        
+                    } catch (StopExecutionException e) {
+                        // User cancelled - this is expected, just re-throw to stop execution
+                        project.logger.quiet("\n" + "="*60)
+                        project.logger.quiet("❌ Setup cancelled by user")
+                        project.logger.quiet("="*60)
+                        throw e
+                    } catch (Exception e) {
+                        project.logger.error("Interactive setup failed: ${e.message}")
+                        throw new RuntimeException("Interactive setup process failed", e)
+                    }
+                }
+            }
+            
+            // Make prepareConfig depend on interactiveSetup when in interactive mode
+            project.tasks.findByName("prepareConfig").dependsOn "interactiveSetup"
+            
+            project.logger.info("Interactive setup mode enabled. Use 'interactiveSetup' task for guided configuration.")
+        }
+
+        // =============================================================
+        // End Interactive Setup Integration  
+        // =============================================================
 
         /** Expand core and modules from the dependencies */
         project.task("expandLegacy") {

@@ -35,6 +35,8 @@ import com.etendoerp.gradle.tests.configuration.SetupOmitCredentialsTest;
 import com.etendoerp.gradle.tests.configuration.SetupTest;
 import com.etendoerp.gradle.tests.installation.ExpandCustomModuleTest;
 import com.etendoerp.gradle.tests.installation.ExpandTest;
+import com.etendoerp.legacy.interactive.*;
+import com.etendoerp.legacy.interactive.utils.SecurityUtilsSpec;
 import org.junit.platform.suite.api.SelectClasses;
 import org.junit.platform.suite.api.Suite;
 
@@ -75,7 +77,16 @@ import org.junit.platform.suite.api.Suite;
         SetupTest.class,
         ExpandCustomModuleTest.class,
         ExpandTest.class,
-        ModuleValidationsTest.class
+        ModuleValidationsTest.class,
+
+        // Interactive setup tests
+        SecurityUtilsSpec.class,
+        InteractiveSetupManagerSpec.class,
+        SecurityUtilsSpec.class,
+        ConfigSlurperPropertyScannerSpec.class,
+        PropertyDefinitionSpec.class,
+        ConfigWriterSpec.class,
+        UserInteractionSpec.class
 
 })
 public class EtendoPluginSOSTests {
