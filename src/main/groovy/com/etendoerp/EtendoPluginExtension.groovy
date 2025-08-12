@@ -8,6 +8,9 @@ class EtendoPluginExtension {
     String coreGroup = CoreMetadata.DEFAULT_ETENDO_CORE_GROUP
     String coreName = CoreMetadata.DEFAULT_ETENDO_CORE_NAME
 
+    public static final String COLOR_YELLOW = "\u001B[33m"
+    public static final String COLOR_RESET = "\u001B[0m"
+
     boolean loadCompilationDependencies = true
     boolean loadTestDependencies = false
 
@@ -128,7 +131,12 @@ class EtendoPluginExtension {
     static String forceResolutionMessage() {
         String message = ""
         message += "------------------------------------------------------------------------\n"
-        message += "To force the resolution use the plugin extension. \n"
+        message += COLOR_YELLOW + "WARNING: Forcing resolution may lead to unstable builds, compatibility issues, \n"
+        message += "         or unexpected behavior. \n"
+        message += "Use this option if you know what you are doing and understand the risks involved.\n"
+        message += "This option sometimes is needed on major version upgrades, if is your case is \n"
+        message += "mandatory to remove it when the upgrade is done.\n" + COLOR_RESET
+        message += "------------------------------------------------------------------------\n"
         message += "etendo {\n"
         message += "    forceResolution = true \n"
         message += "} \n"

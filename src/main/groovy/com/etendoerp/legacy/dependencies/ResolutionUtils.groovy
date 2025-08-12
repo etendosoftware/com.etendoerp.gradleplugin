@@ -2,6 +2,7 @@ package com.etendoerp.legacy.dependencies
 
 import com.etendoerp.EtendoPluginExtension
 import com.etendoerp.core.CoreMetadata
+import com.etendoerp.dependencies.DependencyArtifact
 import com.etendoerp.legacy.dependencies.container.ArtifactDependency
 import com.etendoerp.legacy.dependencies.container.DependencyType
 import com.etendoerp.modules.ModulesConfigurationUtils
@@ -11,12 +12,14 @@ import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.ModuleVersionIdentifier
 import org.gradle.api.artifacts.result.DependencyResult
+import org.gradle.api.artifacts.result.ResolutionResult
+import org.gradle.api.artifacts.result.ResolvedDependencyResult
+import org.gradle.api.artifacts.result.ResolvedComponentResult
 import org.gradle.api.internal.artifacts.DefaultProjectComponentIdentifier
 import org.gradle.api.internal.artifacts.ivyservice.resolveengine.result.ComponentSelectionReasonInternal
 import org.gradle.api.internal.artifacts.result.DefaultResolvedDependencyResult
 import org.gradle.api.internal.artifacts.result.DefaultUnresolvedDependencyResult
 import org.gradle.api.logging.LogLevel
-import org.gradle.api.tasks.diagnostics.DependencyInsightReportTask
 import org.gradle.internal.component.external.model.DefaultModuleComponentSelector
 import org.gradle.internal.component.local.model.DefaultProjectComponentSelector
 import com.etendoerp.connections.DatabaseConnection
@@ -81,6 +84,16 @@ class ResolutionUtils {
         return getIncomingDependencies(project, configuration, filterCoreDependency, obtainSelectedArtifacts, logLevel, artifactsConflicts)
     }
 
+    /**
+     * Handles the resolution conflict for a specific module.
+     * @param project
+     * @param configuration
+     * @param reason
+     * @param module
+     * @param force
+     * @param modulesToReport
+     * @param modulesToNotReport
+     */
     static void handleResolutionConflict(Project project, Configuration configuration, ComponentSelectionReasonInternal reason, ModuleVersionIdentifier module, boolean force,
                                          List<String> modulesToReport=[], List<String> modulesToNotReport=[]) {
 
@@ -91,30 +104,24 @@ class ResolutionUtils {
 
         boolean shouldReport = (!(moduleIdentifier in modulesToNotReport*.toLowerCase())
                 && (modulesToReport.isEmpty() || moduleIdentifier in modulesToReport*.toLowerCase()))
+                && isCoreDependency;
 
-        String taskReportName = RESOLUTION_REPORT_TASK + UUID.randomUUID().toString().replace("-","")
         if (shouldReport) {
             project.logger.info("")
             project.logger.info("********************************************")
             project.logger.info("* ${CONFLICT_WARNING_MESSAGE} ${module}")
             project.logger.info("* Description: ${reason.descriptions}")
-        }
-        shouldReport = false
-        if (shouldReport) {
-            // Create task to report the dependency graph
-            def reportTask = project.tasks.register(taskReportName, DependencyInsightReportTask).get()
-            reportTask.setConfiguration(configuration)
-            reportTask.setDependencySpec("${group}:${name}")
             project.logger.info("****************** REPORT ******************")
             project.logger.info("")
 
             def logLevel = project.gradle.startParameter.logLevel.name()
             if (logLevel == "INFO" || logLevel == "DEBUG") {
-                reportTask.report()
+                printDependencyInsight(project, configuration, "${group}:${name}")
+            } else {
+                project.logger.info("To see the dependency insight report, please run the task with --info or --debug flag.")
             }
         }
 
-        // Throw on core conflict, unless Dependency Manager module is installed
         if (!depManagerModuleInstalled(project)) {
             if (isCoreDependency && !force) {
                 def errorMessage = "${CORE_CONFLICTS_ERROR_MESSAGE} - ${module} \n"
@@ -122,7 +129,101 @@ class ResolutionUtils {
                 throw new IllegalArgumentException(errorMessage)
             }
         }
+    }
 
+    /**
+     * Prints the dependency insight for a specific dependency in a given configuration.
+     * @param project
+     * @param configuration
+     * @param dependencySpec
+     */
+    static void printDependencyInsight(Project project, Configuration configuration, String dependencySpec) {
+        def specParts = dependencySpec.split(':')
+        def targetGroup = specParts[0]
+        def targetName = specParts[1]
+
+        ResolutionResult resolutionResult = configuration.incoming.resolutionResult
+        ResolvedComponentResult root = resolutionResult.root
+
+        def groupedMatches = [:].withDefault { [] }
+
+        def stack = [[root, [root]]]  // Each entry in the stack is a tuple of [ResolvedComponentResult, List<ResolvedComponentResult>]
+        def visited = [] as Set  // Prevent cycles
+
+        while (!stack.isEmpty()) {
+            def current = stack.pop()
+            ResolvedComponentResult component = current[0]
+            List<ResolvedComponentResult> currentPath = current[1]
+
+            component.dependencies.each { dep ->
+                if (dep instanceof ResolvedDependencyResult) {
+                    ResolvedComponentResult selected = dep.selected
+                    // if selected id is a project component, we need to check its project path
+                    def group
+                    def module
+                    if (selected.id instanceof DefaultProjectComponentIdentifier) {
+                        (group, module) = selected.id.projectPath.toString().split(":")
+                    } else {
+                        group = selected.id.group
+                        module = selected.id.module
+                    }
+                    def newPath = currentPath + [selected]
+                    if (group == targetGroup && module == targetName) {
+                        def key = "${dep.requested.displayName}|${dep.selected.selectionReason.descriptions.join(', ')}"
+                        groupedMatches[key] << [dep, newPath]
+                    }
+                    // Add to the stack if not visited
+                    if (!visited.contains(selected.id)) {
+                        visited << selected.id
+                        stack << [selected, newPath]
+                    }
+                }
+            }
+        }
+
+        if (groupedMatches.isEmpty()) {
+            project.logger.info("No matches found for dependency '${dependencySpec}' in configuration '${configuration.name}'.")
+        } else {
+            def selectedDisplayName = groupedMatches.values().flatten()[0].selected.id.displayName
+            project.logger.info("Dependency insight for '${selectedDisplayName}' in configuration '${configuration.name}':")
+            project.logger.info("")
+            project.logger.info("This report shows why a specific version of the dependency was selected, including the requested versions, selection reasons, and paths in the dependency graph that led to it.")
+            project.logger.info("It is grouped by requested version and reason. For each group, the involved paths from the root to the target dependency are listed.")
+            project.logger.info("The paths help identify which modules are causing the conflict or version selection.")
+            groupedMatches.each { key, matches ->
+                def (requested, reason) = key.split('\\|')
+                if (reason == null) {
+                    reason = "No specific reason provided"
+                } else {
+                    if (reason.contains("between versions")) {
+                        def ( _ , conflictedVersions) = reason.split('between versions ')
+                        if (conflictedVersions.contains(' and ')) {
+                            // Split the conflicted versions if they are separated by 'and'
+                            def (version1, version2) = conflictedVersions.split(' and ')
+                            reason = " **CONFLICT** Current version: ${version1} Version requested: ${version2}"
+                        } else {
+                            // If not, just use the conflicted versions as is
+                            reason = " Conflicted versions: ${conflictedVersions}"
+                        }
+                    }
+                }
+                project.logger.info("")
+                project.logger.info("Requested by dependency: ${requested}")
+                project.logger.info("Resolved: ${selectedDisplayName}")
+                project.logger.info("Reason: " + EtendoPluginExtension.COLOR_YELLOW + "${reason}" + EtendoPluginExtension.COLOR_RESET)
+                project.logger.info("Involved paths:")
+
+                matches.each { match ->
+                    def path = match[1]
+
+                    path.eachWithIndex { comp, index ->
+                        def indent = '  ' * index
+                        project.logger.info("${indent}-> ${comp.id.displayName}")
+                    }
+                    project.logger.info("") // Add a blank line after each path
+                }
+            }
+        }
     }
 
     /**
