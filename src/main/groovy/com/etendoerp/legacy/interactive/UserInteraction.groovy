@@ -39,6 +39,8 @@ class UserInteraction {
     private final Project project
     private final Scanner scanner
     private final Console console
+    private InteractiveSetupManager setupManager  // Reference for executing process properties
+    private List<PropertyDefinition> allProperties  // Reference to all properties for updating after process execution
     
     /**
      * Creates a new UserInteraction handler.
@@ -49,6 +51,15 @@ class UserInteraction {
         this.project = project
         this.scanner = new Scanner(System.in)
         this.console = System.console()
+        this.setupManager = null  // Will be set later to avoid circular dependency
+    }
+    
+    /**
+     * Sets the setup manager reference for executing process properties.
+     * This is called after construction to avoid circular dependencies.
+     */
+    void setSetupManager(InteractiveSetupManager setupManager) {
+        this.setupManager = setupManager
     }
     
     /**
@@ -78,7 +89,7 @@ class UserInteraction {
             
             print "\n🎯 Select an option: "
             System.out.flush()
-            String input = scanner.nextLine().trim()
+            String input = scanner.nextLine().trim().toLowerCase()
             
             // Handle menu selection and get new properties
             def newProperties = handleMenuSelection(input, properties, groupedProperties, availableGroups, configuredProperties)
@@ -87,7 +98,13 @@ class UserInteraction {
                 // User selected exit - return null
                 return null
             } else if (newProperties instanceof Map && newProperties.containsKey('__CONTINUE_MENU__')) {
-                // Special marker to continue menu loop (e.g., invalid input)
+                // Special marker to continue menu loop
+                // But first, extract and preserve any configured properties
+                newProperties.remove('__CONTINUE_MENU__')  // Remove the special marker
+                if (!newProperties.isEmpty()) {
+                    configuredProperties.putAll(newProperties)  // Preserve the configured properties
+                    println "💾 Saved ${newProperties.size()} configured properties. Total saved: ${configuredProperties.size()}"
+                }
                 continue
             } else {
                 // Merge new properties with existing configured properties
@@ -126,7 +143,10 @@ class UserInteraction {
             return [:]
         }
         
-        def result = [:]
+        // Store reference to all properties for use in process property updates
+        this.allProperties = properties
+        
+        def result = [:] 
         def groupedProperties = groupPropertiesByCategory(properties)
         
         groupedProperties.each { group, props ->
@@ -162,12 +182,22 @@ class UserInteraction {
      * @return The user-provided value, or the current/default value if user pressed Enter
      */
     private String promptForProperty(PropertyDefinition prop, Map<String, String> sessionValues = [:]) {
+        // Handle process properties differently
+        if (prop.process) {
+            return promptForProcessProperty(prop, sessionValues)
+        }
+        
         // Display the property information and current value
         println "🔧 Property: ${prop.key}"
         
         // Add documentation if available
         if (prop.documentation && !prop.documentation.trim().isEmpty()) {
             println "   ℹ️  ${prop.documentation}"
+        }
+        
+        // Add help text if available
+        if (prop.help && !prop.help.trim().isEmpty()) {
+            println "   💡 ${prop.help}"
         }
         
         // Determine the current value to display - prioritize session value over default
@@ -216,6 +246,90 @@ class UserInteraction {
     }
     
     /**
+     * Prompts the user for a process property - offers to execute it.
+     * 
+     * @param prop The process PropertyDefinition
+     * @param sessionValues Map of values already configured in this session
+     * @return The result of the process or the current value
+     */
+    private String promptForProcessProperty(PropertyDefinition prop, Map<String, String> sessionValues) {
+        // Display the process property information
+        println "⚙️ Configuration task available: ${prop.key}"
+        
+        // Add documentation if available
+        if (prop.documentation && !prop.documentation.trim().isEmpty()) {
+            println "   ℹ️  ${prop.documentation}"
+        }
+        
+        // Add help text if available
+        if (prop.help && !prop.help.trim().isEmpty()) {
+            println "   💡 ${prop.help}"
+        }
+        
+        // Check if we have a session value (from previous execution in this session)
+        def sessionValue = sessionValues?.get(prop.key)
+        if (sessionValue) {
+            println "   ✅ Already executed in this session: ${sessionValue}"
+        }
+        
+        // Determine current value
+        def currentValue = sessionValue ?: prop.getDisplayValue()
+
+        
+        while (true) {
+            print "\n🔄 Execute this process? (y/N): "
+            System.out.flush()
+            String input = scanner.nextLine().trim().toLowerCase()
+            
+            if (input == 'y' || input == 'yes') {
+                // Execute the process property
+                if (setupManager) {
+                    try {
+                        println "\n🚀 Executing process property..."
+                        def processResults = setupManager.executeProcessProperty(prop)
+                        
+                        if (!processResults.isEmpty()) {
+                            println "✅ Process completed successfully!"
+                            println "📊 Generated ${processResults.size()} configuration values:"
+                            processResults.each { key, value ->
+                                println "   • ${key} = ${value}"
+                            }
+                            
+                            // Update the properties with the new values after process execution
+                            if (allProperties) {
+                                setupManager.updatePropertiesAfterProcessExecution(allProperties, processResults)
+                                println "🔄 Updated current values - these will be shown in subsequent property questions."
+                            }
+                            
+                            // For process properties, we return a special marker to indicate execution
+                            // The actual configured values are handled separately
+                            return "EXECUTED:${processResults.size()}_properties_configured"
+                        } else {
+                            println "⚠️  Process completed but no configuration values were generated."
+                            return currentValue ?: ""
+                        }
+                    } catch (Exception e) {
+                        println "❌ Process execution failed: ${e.message}"
+                        return currentValue ?: ""
+                    }
+                } else {
+                    println "❌ Cannot execute process - setup manager not available"
+                    return currentValue ?: ""
+                }
+            } else if (input == 'n' || input == 'no') {
+                // Skip execution
+                println "⏭️  Skipping process execution"
+                return currentValue ?: ""
+            } else if (input.isEmpty()) {
+                // Keep current value
+                return currentValue ?: ""
+            } else {
+                println "❌ Please respond 'Y' to execute, 'N' to skip, or Enter to keep current value."
+            }
+        }
+    }
+    
+    /**
      * Displays configuration summary and asks for user confirmation.
      * Requires explicit confirmation - no default option is provided.
      * 
@@ -230,7 +344,7 @@ class UserInteraction {
         displayConfigurationSummary(configuredProperties, allProperties)
         
         while (true) {
-            print "\n✅ Confirm configuration? (Y/N): "
+            print "\n✅ Confirm configuration? (y/n): "
             System.out.flush() // Ensure the prompt appears immediately
             String response = scanner.nextLine().trim().toLowerCase()
             
@@ -315,7 +429,7 @@ class UserInteraction {
         println "📋 Choose configuration option:"
         println ""
         println "1️⃣  Default configuration (use current/default values)"
-        println "2️⃣  Group configuration:"
+        println "2️⃣  Group configuration (you can configure multiple groups):"
         println "   📦 a. all - Configure all groups"
         
         // Show available groups with letters (max 25 groups to prevent index out of bounds)
@@ -434,6 +548,12 @@ class UserInteraction {
             return [:]
         }
         
+        // Store reference to all properties for use in process property updates
+        // Note: This might be just the group properties, but process properties should update the main list
+        if (this.allProperties == null) {
+            this.allProperties = properties
+        }
+        
         def result = [:]
         
         displayGroupHeader(groupName, properties.size())
@@ -452,18 +572,56 @@ class UserInteraction {
             }
         }
         
+        // After configuring the group, ask user what to do next
+        println ""
+        println "✅ Group '${groupName}' configuration completed!"
+        println "📊 Configured ${result.size()} properties in this group."
+        println ""
+        
+        while (true) {
+            print "🎯 What would you like to do next? (M=return to main Menu, C=Continue to confirmation): "
+            System.out.flush()
+            String nextAction = scanner.nextLine().trim().toLowerCase()
+            
+            if (nextAction == 'm' || nextAction == 'menu') {
+                println "🔄 Returning to main menu..."
+                // Return a special marker to indicate we should continue the menu loop
+                // but include the configured properties
+                def menuResult = ['__CONTINUE_MENU__': true]
+                menuResult.putAll(result)  // Include the configured properties
+                return menuResult
+            } else if (nextAction == 'c' || nextAction == 'continue') {
+                println "➡️ Continuing to configuration review..."
+                return result
+            } else {
+                println "❌ Please respond 'M' to return to menu or 'C' to continue to final confirmation step."
+            }
+        }
+        
         return result
     }
 
     /**
-     * Groups properties by their category/group for organized display.
+     * Groups properties by category while preserving original order within groups.
+     * Process properties are sorted first within each group, maintaining their definition order.
      * 
      * @param properties List of properties to group
-     * @return Map of group names to lists of properties
+     * @return Map of group names to lists of properties (ordered by definition, with process properties first)
      */
     private Map<String, List<PropertyDefinition>> groupPropertiesByCategory(List<PropertyDefinition> properties) {
         def grouped = properties.groupBy { prop -> 
             prop.group ?: "General" 
+        }
+        
+        // Sort properties within each group: process properties first (by order), then regular properties (by order)
+        grouped.each { groupName, groupProperties ->
+            groupProperties.sort { a, b ->
+                // Process properties come first
+                if (a.process && !b.process) return -1
+                if (!a.process && b.process) return 1
+                // Within the same type (both process or both regular), sort by original order
+                return (a.order ?: 999) <=> (b.order ?: 999)
+            }
         }
         
         // Sort groups, with "General" first, then alphabetically
