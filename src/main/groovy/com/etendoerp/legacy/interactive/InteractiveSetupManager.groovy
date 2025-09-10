@@ -3,6 +3,7 @@ package com.etendoerp.legacy.interactive
 import com.etendoerp.legacy.interactive.model.PropertyDefinition
 import org.gradle.api.Project
 import org.gradle.api.tasks.StopExecutionException
+import groovy.json.JsonSlurper
 
 /**
  * Main orchestrator for the interactive setup process.
@@ -41,6 +42,9 @@ class InteractiveSetupManager {
         this.ui = new UserInteraction(project)
         this.writer = new ConfigWriter(project)
         this.progressSuppressor = new ProgressSuppressor(project)
+        
+        // Set reference to avoid circular dependency
+        this.ui.setSetupManager(this)
     }
     
     /**
@@ -164,41 +168,35 @@ class InteractiveSetupManager {
                 throw new StopExecutionException("Interactive setup cancelled by user")
             }
             
-            project.logger.quiet("DEBUG: Configured properties map size: ${configuredProperties.size()}")
-            project.logger.quiet("DEBUG: Configured properties: ${configuredProperties}")
+            // Process any executed process properties and merge their results
+            def finalProperties = processExecutedProcessProperties(configuredProperties, properties)
+            
+            project.logger.quiet("DEBUG: User-configured properties: ${configuredProperties.size()}")
+            project.logger.quiet("DEBUG: Final properties map size: ${finalProperties.size()}")
+            project.logger.quiet("DEBUG: Final properties: ${finalProperties}")
             
             // If empty map from default configuration, handle it differently
-            if (configuredProperties.isEmpty()) {
+            if (finalProperties.isEmpty()) {
                 project.logger.lifecycle("Using default configuration values.")
                 project.logger.lifecycle("✅ Configuration completed successfully!")
                 project.logger.lifecycle("Default settings are already configured.")
                 return
             }
             
-            // Step 3: Show configuration summary and confirm
-            project.logger.quiet("DEBUG: About to call confirmConfiguration")
-            boolean confirmed = ui.confirmConfiguration(configuredProperties, properties)
-            project.logger.quiet("DEBUG: Confirmation result: ${confirmed}")
-            
-            if (!confirmed) {
-                project.logger.lifecycle("Configuration cancelled by user.")
-                throw new StopExecutionException("Interactive setup cancelled by user")
-            }
-            
-            // Step 4: Write configuration to gradle.properties
+            // Step 3: Write configuration to gradle.properties
             project.logger.lifecycle("")
             project.logger.lifecycle("Writing configuration to gradle.properties...")
             
-            writer.writeProperties(configuredProperties)
+            writer.writeProperties(finalProperties)
             
             project.logger.lifecycle("✅ Configuration completed successfully!")
             project.logger.lifecycle("Your settings have been saved to gradle.properties")
             project.logger.lifecycle("")
             
             // Log summary of what was configured
-            logConfigurationSummary(configuredProperties, properties)
+            logConfigurationSummary(finalProperties, properties)
             
-            // Step 5: Automatic setup execution (ETP-1960-03)
+            // Step 4: Automatic setup execution (ETP-1960-03)
             // No additional confirmation needed - user already confirmed in the summary
             project.logger.lifecycle("")
             project.logger.lifecycle("🔗 **Automatic Setup Integration** (ETP-1960-03)")
@@ -335,6 +333,417 @@ class InteractiveSetupManager {
         return true
     }
     
+        /**
+     * Executes a single process property and returns the configured values.
+     * These properties execute Gradle tasks that output JSON configuration.
+     * 
+     * @param processProperty The process property to execute
+     * @return Map of property keys to configured values from the task output
+     */
+    Map<String, String> executeProcessProperty(PropertyDefinition processProperty) {
+        def configuredProperties = [:]
+        
+        try {
+            project.logger.lifecycle("� Executing process property: ${processProperty.key}")
+            
+            // Create temporary file for task output
+            def tempFile = File.createTempFile("etendo-process-", ".json")
+            tempFile.deleteOnExit()
+            
+            // Extract task name from the process property
+            def taskName = extractTaskName(processProperty)
+            
+            project.logger.debug("Executing task '${taskName}' with output file: ${tempFile.absolutePath}")
+            
+            // Try to execute the task using Gradle's internal API first
+            try {
+                def results = executeGradleTaskInternal(taskName, tempFile, processProperty)
+                if (results != null) {
+                    configuredProperties.putAll(results)
+                    // Write the configured properties to gradle.properties if any were configured
+                    if (!configuredProperties.isEmpty()) {
+                        writer.writeProperties(configuredProperties)
+                        project.logger.debug("Wrote ${configuredProperties.size()} properties to gradle.properties (internal)")
+                    }
+                    return configuredProperties
+                }
+            } catch (Exception e) {
+                project.logger.debug("Internal task execution failed, trying external process: ${e.message}")
+            }
+            
+            // Fallback to external process execution
+            def results = executeGradleTaskExternal(taskName, tempFile)
+            if (results != null) {
+                configuredProperties.putAll(results)
+            }
+            
+            // Write the configured properties to gradle.properties if any were configured
+            if (!configuredProperties.isEmpty()) {
+                writer.writeProperties(configuredProperties)
+                project.logger.debug("Wrote ${configuredProperties.size()} properties to gradle.properties")
+            }
+            
+        } catch (Exception e) {
+            project.logger.error("❌ Error processing property ${processProperty.key}: ${e.message}", e)
+        }
+        
+        return configuredProperties
+    }
+    
+    /**
+     * Updates the current property values after a process property has been executed.
+     * This method reloads the properties from gradle.properties and updates any matching
+     * properties with their new values.
+     * 
+     * @param properties The list of all properties to update
+     * @param configuredProperties The properties that were configured by the process task
+     */
+    void updatePropertiesAfterProcessExecution(List<PropertyDefinition> properties, 
+                                             Map<String, String> configuredProperties) {
+        project.logger.debug("Updating property values after process execution...")
+        
+        try {
+            // Reload current values from gradle.properties
+            def currentGradleProperties = scanner.scanGradleProperties()
+            def gradlePropsMap = [:]
+            currentGradleProperties.each { prop ->
+                gradlePropsMap[prop.key] = prop.currentValue
+            }
+            
+            // Update the current values in the properties list
+            int updatedCount = 0
+            properties.each { prop ->
+                if (configuredProperties.containsKey(prop.key)) {
+                    // Property was configured by the process task
+                    def newValue = configuredProperties[prop.key]
+                    if (prop.currentValue != newValue) {
+                        project.logger.debug("Updating property ${prop.key}: '${prop.currentValue}' -> '${newValue}'")
+                        prop.currentValue = newValue
+                        updatedCount++
+                    }
+                } else if (gradlePropsMap.containsKey(prop.key)) {
+                    // Property might have been updated in gradle.properties
+                    def gradleValue = gradlePropsMap[prop.key]
+                    if (prop.currentValue != gradleValue) {
+                        project.logger.debug("Updating property ${prop.key} from gradle.properties: '${prop.currentValue}' -> '${gradleValue}'")
+                        prop.currentValue = gradleValue
+                        updatedCount++
+                    }
+                }
+            }
+            
+            project.logger.debug("Updated ${updatedCount} property values after process execution")
+            
+        } catch (Exception e) {
+            project.logger.warn("Failed to update properties after process execution: ${e.message}")
+        }
+    }
+    
+    /**
+     * Extracts the task name from a process property.
+     * Priority order:
+     * 1. Task name from documentation (Task: taskname)
+     * 2. Property key as-is (for tasks like copilot.variables.setup)  
+     * 3. Converted camelCase name
+     */
+    private String extractTaskName(PropertyDefinition processProperty) {
+        // First check if there's a task specification in documentation
+        if (processProperty.documentation && processProperty.documentation.contains("Task: ")) {
+            def matcher = processProperty.documentation =~ /Task: ([\w\.]+)/
+            if (matcher) {
+                return matcher[0][1]
+            }
+        }
+        
+        // For properties that map directly to task names (like copilot.variables.setup)
+        // Use the key as-is first
+        return processProperty.key
+    }
+    
+    /**
+     * Attempts to execute a Gradle task using internal API.
+     */
+    private Map<String, String> executeGradleTaskInternal(String taskName, File tempFile, PropertyDefinition processProperty) {
+        // Find the task in the current project or subprojects
+        def task = findGradleTask(taskName)
+        
+        if (!task) {
+            project.logger.debug("Task '${taskName}' not found in project hierarchy")
+            return null
+        }
+        
+        project.logger.lifecycle("✅ Found task '${taskName}' in project '${task.project.name}'")
+        
+        // Set the output parameter for the task
+        def originalOutputProperty = null
+        if (task.project.hasProperty('output')) {
+            originalOutputProperty = task.project.property('output')
+        }
+        
+        // Set the output parameter as a project property
+        task.project.ext.set('output', tempFile.absolutePath)
+        
+        try {
+            // Execute the task
+            project.logger.lifecycle("🚀 Executing task '${taskName}'...")
+            
+            // Execute task dependencies first if any exist
+            task.taskDependencies.getDependencies(task).each { depTask ->
+                project.logger.debug("Executing dependency: ${depTask.name}")
+                depTask.actions.each { action ->
+                    action.execute(depTask)
+                }
+            }
+            
+            // Execute the task itself
+            task.actions.each { action ->
+                action.execute(task)
+            }
+            
+            project.logger.lifecycle("✅ Task '${taskName}' completed successfully")
+            
+            // Read and parse the output JSON
+            return readJsonOutput(tempFile, taskName)
+            
+        } catch (Exception e) {
+            project.logger.warn("❌ Internal task execution failed: ${e.message}")
+            throw e
+        } finally {
+            // Restore original property value
+            if (originalOutputProperty != null) {
+                task.project.ext.set('output', originalOutputProperty)
+            } else {
+                // Remove the property if it didn't exist before
+                task.project.extensions.extraProperties.properties.remove('output')
+            }
+        }
+    }
+    
+    /**
+     * Finds a Gradle task by name in the project hierarchy.
+     * Searches current project, all subprojects, and specifically the modules directory.
+     */
+    private Object findGradleTask(String taskName) {
+        // First, check current project
+        def task = project.tasks.findByName(taskName)
+        if (task) {
+            project.logger.debug("Found task '${taskName}' in root project")
+            return task
+        }
+        
+        // Check all subprojects  
+        def foundTask = null
+        project.allprojects { proj ->
+            if (!foundTask) {
+                def projTask = proj.tasks.findByName(taskName)
+                if (projTask) {
+                    project.logger.debug("Found task '${taskName}' in project '${proj.name}'")
+                    foundTask = projTask
+                }
+            }
+        }
+        
+        if (foundTask) {
+            return foundTask
+        }
+        
+        // For module-specific tasks, check modules subproject structure
+        if (taskName.contains('.')) {
+            def moduleProject = project.findProject(':modules')
+            if (moduleProject) {
+                task = moduleProject.tasks.findByName(taskName)
+                if (task) {
+                    project.logger.debug("Found task '${taskName}' in modules project")
+                    return task
+                }
+                
+                // Check individual module subprojects
+                moduleProject.subprojects { subProj ->
+                    if (!task) {
+                        def subTask = subProj.tasks.findByName(taskName)
+                        if (subTask) {
+                            project.logger.debug("Found task '${taskName}' in module '${subProj.name}'")
+                            task = subTask
+                        }
+                    }
+                }
+            }
+        }
+        
+        return task
+    }
+    
+    /**
+     * Executes a Gradle task using external process (fallback method).
+     * This is used when internal task execution fails or the task can't be found internally.
+     */
+    private Map<String, String> executeGradleTaskExternal(String taskName, File tempFile) {
+        try {
+            def processBuilder = new ProcessBuilder()
+            def gradleWrapper = project.file('gradlew').exists() ? './gradlew' : 'gradle'
+            
+            // Build command with output parameter and console type
+            def command = [gradleWrapper, taskName, "--output=${tempFile.absolutePath}", "--console=plain"]
+            processBuilder.command(command)
+            processBuilder.directory(project.projectDir)
+            
+            project.logger.lifecycle("🚀 Executing external command: ${command.join(' ')}")
+            
+            // Capture output streams
+            def output = new StringBuilder()
+            def error = new StringBuilder()
+            
+            def process = processBuilder.start()
+            
+            // Read output in separate threads to prevent blocking
+            Thread.start {
+                process.inputStream.eachLine { line ->
+                    project.logger.info("TASK: ${line}")
+                    output.append(line).append('\n')
+                }
+            }
+            
+            Thread.start {
+                process.errorStream.eachLine { line ->
+                    project.logger.warn("TASK ERROR: ${line}")
+                    error.append(line).append('\n')
+                }
+            }
+            
+            def exitCode = process.waitFor()
+            
+            if (exitCode == 0) {
+                project.logger.lifecycle("✅ External task '${taskName}' completed successfully")
+                return readJsonOutput(tempFile, taskName)
+            } else {
+                project.logger.error("❌ Task ${taskName} failed with exit code: ${exitCode}")
+                if (error.length() > 0) {
+                    project.logger.error("Error details: ${error.toString()}")
+                }
+                return null
+            }
+            
+        } catch (Exception e) {
+            project.logger.error("❌ Error executing external task ${taskName}: ${e.message}", e)
+            return null
+        } finally {
+            // Cleanup is handled by the calling method
+        }
+    }
+    
+    /**
+     * Reads and parses JSON output from a task execution.
+     */
+    private Map<String, String> readJsonOutput(File tempFile, String taskName) {
+        if (!tempFile.exists() || tempFile.size() == 0) {
+            project.logger.warn("⚠️ Task ${taskName} did not create output file or file is empty")
+            return [:]
+        }
+        
+        try {
+            def jsonText = tempFile.text.trim()
+            if (!jsonText) {
+                project.logger.warn("⚠️ Task ${taskName} produced empty output")
+                return [:]
+            }
+            
+            project.logger.debug("Task ${taskName} JSON output: ${jsonText}")
+            
+            def jsonSlurper = new JsonSlurper()
+            def configJson = jsonSlurper.parseText(jsonText)
+            
+            def result = [:]
+            if (configJson instanceof Map) {
+                configJson.each { key, value ->
+                    result[key.toString()] = value.toString()
+                    project.logger.debug("Parsed configuration: ${key} = ${value}")
+                }
+                
+                project.logger.lifecycle("✅ Configured ${result.size()} properties from ${taskName}")
+                
+                // Log the configured properties with sensitive data masking
+                result.each { key, value ->
+                    def displayValue = isSensitiveProperty(key) ? "********" : value
+                    project.logger.lifecycle("  • ${key} = ${displayValue}")
+                }
+            } else {
+                project.logger.warn("⚠️ Task ${taskName} did not output a JSON object. Output type: ${configJson.class.simpleName}")
+            }
+            
+            return result
+            
+        } catch (Exception e) {
+            project.logger.error("❌ Error parsing JSON output from ${taskName}: ${e.message}", e)
+            project.logger.debug("Raw JSON content was: ${tempFile.text}")
+            return [:]
+        }
+    }
+    
+    /**
+     * Determines if a property key represents sensitive data.
+     */
+    private boolean isSensitiveProperty(String key) {
+        def sensitivePatterns = ['password', 'key', 'token', 'secret', 'auth']
+        return sensitivePatterns.any { pattern ->
+            key.toLowerCase().contains(pattern.toLowerCase())
+        }
+    }
+
+    /**
+     * Processes the results of executed process properties and merges them with regular properties.
+     * Process properties that were executed will have special marker values that indicate
+     * the task was run and configuration values were generated.
+     * 
+     * @param userConfiguredProperties Properties configured by the user (including process execution markers)
+     * @param allProperties All available properties for context
+     * @return Final map of properties to write to gradle.properties
+     */
+    private Map<String, String> processExecutedProcessProperties(Map<String, String> userConfiguredProperties, List<PropertyDefinition> allProperties) {
+        def finalProperties = [:]
+        
+        // First, add all regular (non-process) properties
+        def processExecutionResults = [:]
+        
+        userConfiguredProperties.each { key, value ->
+            def property = allProperties.find { it.key == key }
+            
+            if (property?.process && value?.startsWith("EXECUTED:")) {
+                // This is a process property that was already executed
+                // Instead of re-executing, get the values that were already written to gradle.properties
+                project.logger.debug("Process property '${key}' was already executed - using existing values from gradle.properties")
+                
+                // Get the current values from gradle.properties for all properties that might have been configured
+                def currentGradleProperties = scanner.scanGradleProperties()
+                def gradlePropsMap = [:]
+                currentGradleProperties.each { prop ->
+                    gradlePropsMap[prop.key] = prop.currentValue
+                }
+                
+                // Add all properties that have values in gradle.properties
+                allProperties.each { prop ->
+                    if (gradlePropsMap.containsKey(prop.key) && gradlePropsMap[prop.key]) {
+                        def gradleValue = gradlePropsMap[prop.key]
+                        if (gradleValue && !gradleValue.trim().isEmpty()) {
+                            processExecutionResults[prop.key] = gradleValue
+                        }
+                    }
+                }
+            } else if (!property?.process) {
+                // Regular property - add to final properties
+                finalProperties[key] = value
+            }
+            // Process properties with non-execution values (skipped or current values) are not added to final config
+        }
+        
+        // Add all process execution results
+        finalProperties.putAll(processExecutionResults)
+        
+        project.logger.debug("Process execution results: ${processExecutionResults.size()} properties")
+        project.logger.debug("Regular properties: ${finalProperties.size() - processExecutionResults.size()} properties")
+        
+        return finalProperties
+    }
+    
     /**
      * Gets the current configuration state for inspection or debugging.
      * 
@@ -348,5 +757,44 @@ class InteractiveSetupManager {
                 project.file('modules').listFiles()?.count { it.isDirectory() } : 0,
             timestamp: new Date()
         ]
+    }
+    
+    /**
+     * Writes results for interactive setup tasks in JSON format.
+     * This function is designed to be used by interactive tasks that need to output
+     * their results in a structured format for the interactive setup system.
+     * 
+     * @param project The Gradle project context
+     * @param results Map of property keys to values that were configured
+     * @param outputPath Optional custom output file path (uses project.output if not provided)
+     * @return boolean true if results were written successfully, false otherwise
+     */
+    static boolean writeResultsForInteractiveSetup(Project project, Map<String, String> results, String outputPath = null) {
+        try {
+            // Determine output file path
+            String finalOutputPath = outputPath ?: project.findProperty('output')?.toString()
+            
+            if (!finalOutputPath) {
+                project.logger.warn("No output path specified for interactive setup results")
+                return false
+            }
+            
+            // Create output file
+            def outputFile = new File(finalOutputPath)
+            outputFile.parentFile?.mkdirs()
+            
+            // Write JSON results
+            def json = groovy.json.JsonBuilder.newInstance(results)
+            outputFile.text = json.toPrettyString()
+            
+            project.logger.debug("Interactive setup results written to: ${finalOutputPath}")
+            project.logger.debug("Results: ${results}")
+            
+            return true
+            
+        } catch (Exception e) {
+            project.logger.error("Failed to write interactive setup results: ${e.message}", e)
+            return false
+        }
     }
 }
