@@ -12,6 +12,38 @@ import javax.xml.transform.stream.StreamResult
 import javax.xml.parsers.DocumentBuilderFactory
 import java.sql.SQLException
 
+/**
+ * Gradle task for exporting translation files from Etendo database.
+ * 
+ * This task exports translation data for specified languages and modules from the database
+ * to XML files that can be used for localization and translation management.
+ * 
+ * <p>The task supports:</p>
+ * <ul>
+ *   <li>Multiple languages (comma-separated)</li>
+ *   <li>Multiple modules (comma-separated or "all")</li>
+ *   <li>Reduced version export (excluding help, description, and tooltip fields)</li>
+ *   <li>Reference data export</li>
+ *   <li>Contributors export</li>
+ * </ul>
+ * 
+ * <p>Required parameters:</p>
+ * <ul>
+ *   <li>{@code modules} - Comma-separated list of modules or "all"</li>
+ *   <li>{@code source.path} - Path to Etendo sources directory</li>
+ * </ul>
+ * 
+ * <p>Optional parameters:</p>
+ * <ul>
+ *   <li>{@code language} - Comma-separated list of languages (default: es_ES)</li>
+ *   <li>{@code client} - Client ID (default: 0)</li>
+ *   <li>{@code reducedVersion} - Whether to exclude help/description fields (default: false)</li>
+ *   <li>{@code coreModuleOutput} - Name for core module output directory (default: core)</li>
+ * </ul>
+ * 
+ * @author Etendo Software
+ * @since 1.0
+ */
 class ExportTranslationsTask extends DefaultTask {
 
     @Input
@@ -32,6 +64,21 @@ class ExportTranslationsTask extends DefaultTask {
                      'OPTIONAL: language (comma-separated), coreModuleOutput (name for core module output)'
     }
 
+    /**
+     * Main task action that orchestrates the translation export process.
+     * 
+     * <p>This method:</p>
+     * <ol>
+     *   <li>Reads and validates input parameters from Gradle properties</li>
+     *   <li>Parses language and module lists</li>
+     *   <li>Establishes database connection</li>
+     *   <li>Exports translations for each specified language</li>
+     *   <li>Handles cleanup and error reporting</li>
+     * </ol>
+     * 
+     * @throws IllegalArgumentException if required parameters are missing or invalid
+     * @throws IllegalStateException if database connection cannot be established
+     */
     @TaskAction
     void export() {
         // Read project properties if available
@@ -105,8 +152,38 @@ class ExportTranslationsTask extends DefaultTask {
 
     // --- The following methods are adapted from the in-script implementation ---
 
+    }
+
+    /**
+     * Exports translation data for a specific language from the database.
+     * 
+     * <p>This method handles the complete export process for a single language:</p>
+     * <ol>
+     *   <li>Checks if the language is initialized, initializes if necessary</li>
+     *   <li>Retrieves all translation tables from the database</li>
+     *   <li>Exports module translations for each table</li>
+     *   <li>Exports reference data translations</li>
+     *   <li>Exports contributors information</li>
+     * </ol>
+     * 
+     * @param connection the database connection to use
+     * @param exportDirectory the base directory where exported files will be saved
+     * @param language the language code to export (e.g., "es_ES", "fr_FR")
+     * @param clientId the client ID to filter data by
+     * @param isReducedVersion whether to exclude help, description, and tooltip fields
+     * @param moduleList list of modules to export, or ["all"] for all modules
+     */
     void exportTranslations(java.sql.Connection connection, String exportDirectory, String language, String clientId, boolean isReducedVersion, List<String> moduleList) {
         project.logger.lifecycle("Exporting translations for language: ${language}, client: ${clientId}, modules: ${moduleList}")
+
+        // Check if language is initialized, initialize if necessary
+        if (!isLanguageInitialized(connection, language)) {
+            project.logger.lifecycle("Language ${language} is not initialized. Initializing...")
+            initializeLanguage(connection, language)
+        } else {
+            project.logger.lifecycle("Language ${language} is already initialized.")
+        }
+
         def trlModulesTables = getTrlModulesTables(connection)
         project.logger.lifecycle("Found ${trlModulesTables.size()} translation tables to process")
         
@@ -119,6 +196,15 @@ class ExportTranslationsTask extends DefaultTask {
         exportContributors(connection, exportDirectory, language)
     }
 
+    /**
+     * Retrieves all translation tables (_TRL suffix) that should be processed for export.
+     * 
+     * <p>This method queries the database to find all tables ending with '_TRL'
+     * that have corresponding base tables with AD_Module_ID columns or related parent tables.</p>
+     * 
+     * @param connection the database connection to use
+     * @return a list of translation table names (uppercase)
+     */
     List<String> getTrlModulesTables(java.sql.Connection connection) {
         def tables = []
         def sql = """
@@ -161,6 +247,20 @@ class ExportTranslationsTask extends DefaultTask {
         return tables
     }
 
+    /**
+     * Exports translation data for all modules and their associated tables.
+     * 
+     * <p>This method iterates through all modules and exports translation data
+     * for tables that have the AD_Module_ID column, filtering by the specified module list.</p>
+     * 
+     * @param connection the database connection to use
+     * @param rootDirectory the root directory for exported files
+     * @param clientId the client ID to filter data by
+     * @param language the target language code
+     * @param trlTable the translation table name
+     * @param isReducedVersion whether to exclude help/description fields
+     * @param moduleList list of modules to export, or ["all"] for all modules
+     */
     void exportModuleTranslations(java.sql.Connection connection, String rootDirectory, String clientId, String language, String trlTable, boolean isReducedVersion, List<String> moduleList) {
         def modules = getModules(connection)
         for (def module : modules) {
@@ -204,6 +304,12 @@ class ExportTranslationsTask extends DefaultTask {
         }
     }
 
+    /**
+     * Retrieves all modules from the AD_MODULE table.
+     * 
+     * @param connection the database connection to use
+     * @return a list of maps containing moduleId and javaPackage for each module
+     */
     List getModules(java.sql.Connection connection) {
         def modules = []
         def sql = "select ad_module_id AS moduleId, JAVAPACKAGE AS javaPackage from ad_module"
@@ -216,6 +322,13 @@ class ExportTranslationsTask extends DefaultTask {
         return modules
     }
 
+    /**
+     * Retrieves the base language for a specific module.
+     * 
+     * @param connection the database connection to use
+     * @param moduleId the module ID to get the language for
+     * @return the language code for the module, defaults to "en_US" if not set
+     */
     String getModuleLanguage(java.sql.Connection connection, String moduleId) {
         def sql = 'SELECT AD_LANGUAGE AS language FROM AD_MODULE WHERE AD_MODULE_ID = ?'
         java.sql.PreparedStatement stmt = connection.prepareStatement(sql)
@@ -227,6 +340,33 @@ class ExportTranslationsTask extends DefaultTask {
         return moduleLanguage
     }
 
+    /**
+     * Exports translation data for a specific table and module to an XML file.
+     * 
+     * <p>This method creates an XML file containing translation data for the specified table.
+     * The XML structure includes:</p>
+     * <ul>
+     *   <li>Language and table metadata</li>
+     *   <li>Row elements for each translated record</li>
+     *   <li>Value elements for each translatable column</li>
+     *   <li>Original values and translation status indicators</li>
+     * </ul>
+     * 
+     * <p>The method handles both regular translation tables (_TRL suffix) and reference data tables.</p>
+     * 
+     * @param connection the database connection to use
+     * @param language the target language code
+     * @param exportReferenceData whether this is a reference data export
+     * @param exportAll whether to export all records regardless of dataset restrictions
+     * @param table the base table name (without _TRL suffix)
+     * @param tableID the primary key column name for the table
+     * @param rootDirectory the root directory for exported files
+     * @param moduleId the module ID being exported
+     * @param moduleLanguage the base language of the module
+     * @param javaPackage the Java package name of the module
+     * @param isTrl whether this is a translation table (_TRL)
+     * @param isReducedVersion whether to exclude help/description fields
+     */
     void exportTableForModule(java.sql.Connection connection, String language, boolean exportReferenceData,
                               boolean exportAll, String table, String tableID, String rootDirectory,
                               String moduleId, String moduleLanguage, String javaPackage, boolean isTrl,
@@ -406,6 +546,18 @@ class ExportTranslationsTask extends DefaultTask {
         }
     }
 
+    /**
+     * Retrieves the list of translatable columns for a given table.
+     * 
+     * <p>This method queries the AD_Column table to find all text columns
+     * (reference IDs 10 and 14) that are active and translatable.
+     * In reduced version mode, it excludes help, description, and tooltip columns.</p>
+     * 
+     * @param connection the database connection to use
+     * @param tableName the base table name (without _TRL suffix)
+     * @param isReducedVersion whether to exclude help/description fields
+     * @return a list of maps containing columnName for each translatable column
+     */
     List getTrlColumns(java.sql.Connection connection, String tableName, boolean isReducedVersion) {
         def columns = []
         String trlTableName = tableName + '_TRL'
@@ -441,6 +593,16 @@ class ExportTranslationsTask extends DefaultTask {
         return columns
     }
 
+    /**
+     * Checks if a table has an IsCentrallyMaintained column.
+     * 
+     * <p>This is used to determine whether to filter out centrally maintained records
+     * during export, as these are typically not translated.</p>
+     * 
+     * @param connection the database connection to use
+     * @param tableName the table name to check
+     * @return true if the table has IsCentrallyMaintained column, false otherwise
+     */
     boolean hasCentrallyMaintainedColumn(java.sql.Connection connection, String tableName) {
         def sql = """
             select count(*) as count
@@ -459,6 +621,14 @@ class ExportTranslationsTask extends DefaultTask {
         return hasCentrallyMaintained
     }
 
+    /**
+     * Checks if a specific column exists in a given table.
+     * 
+     * @param connection the database connection to use
+     * @param tableName the table name to check
+     * @param columnName the column name to check for
+     * @return true if the column exists and is active, false otherwise
+     */
     boolean columnExistsInTable(java.sql.Connection connection, String tableName, String columnName) {
         def sql = """
             select count(*) as count
@@ -478,6 +648,12 @@ class ExportTranslationsTask extends DefaultTask {
         return exists
     }
 
+    /**
+     * Retrieves the current system version from the AD_SYSTEM_INFO table.
+     * 
+     * @param connection the database connection to use
+     * @return the system version string, defaults to "1.0" if not found
+     */
     String getSystemVersion(java.sql.Connection connection) {
         def sql = 'SELECT OB_VERSION FROM AD_SYSTEM_INFO'
         java.sql.PreparedStatement stmt = connection.prepareStatement(sql)
@@ -488,6 +664,18 @@ class ExportTranslationsTask extends DefaultTask {
         return version
     }
 
+    /**
+     * Exports reference data translations for all applicable tables and modules.
+     * 
+     * <p>This method processes all tables that are marked as reference data
+     * in the dataset configuration and exports their translations.</p>
+     * 
+     * @param connection the database connection to use
+     * @param rootDirectory the root directory for exported files
+     * @param language the target language code
+     * @param isReducedVersion whether to exclude help/description fields
+     * @param moduleList list of modules to export, or ["all"] for all modules
+     */
     void exportReferenceDataTranslations(java.sql.Connection connection, String rootDirectory, String language, boolean isReducedVersion, List<String> moduleList) {
         try {
             def referenceDataTables = getReferenceDataTables(connection)
@@ -524,6 +712,15 @@ class ExportTranslationsTask extends DefaultTask {
         }
     }
 
+    /**
+     * Retrieves all tables that are configured as reference data for export.
+     * 
+     * <p>This method queries the dataset configuration to find all tables
+     * that have export allowed and have corresponding translation tables.</p>
+     * 
+     * @param connection the database connection to use
+     * @return a list of maps containing table metadata (moduleId, tableName, etc.)
+     */
     List getReferenceDataTables(java.sql.Connection connection) {
         def tables = []
         def sql = """
@@ -556,6 +753,16 @@ class ExportTranslationsTask extends DefaultTask {
         return tables
     }
 
+    /**
+     * Exports contributors information for a specific language.
+     * 
+     * <p>This method creates an XML file containing information about
+     * who contributed translations for the specified language.</p>
+     * 
+     * @param connection the database connection to use
+     * @param exportDirectory the directory where the contributors file will be saved
+     * @param language the language code to get contributors for
+     */
     void exportContributors(java.sql.Connection connection, String exportDirectory, String language) {
         try {
             def contributorsText = getContributors(connection, language)
@@ -585,6 +792,13 @@ class ExportTranslationsTask extends DefaultTask {
         }
     }
 
+    /**
+     * Retrieves the contributors information for a specific language.
+     * 
+     * @param connection the database connection to use
+     * @param language the language code to get contributors for
+     * @return the contributors text, or null if not found
+     */
     String getContributors(java.sql.Connection connection, String language) {
         def sql = 'select TranslatedBy from ad_language where ad_language = ?'
         java.sql.PreparedStatement stmt = connection.prepareStatement(sql)
@@ -596,4 +810,157 @@ class ExportTranslationsTask extends DefaultTask {
         return contributors
     }
 
+    /**
+     * Checks if a language has been initialized in the system.
+     * 
+     * <p>A language is considered initialized if there are translation records
+     * in the AD_ELEMENT_TRL table for that language.</p>
+     * 
+     * @param connection the database connection to use
+     * @param language the language code to check
+     * @return true if the language is initialized, false otherwise
+     */
+    boolean isLanguageInitialized(java.sql.Connection connection, String language) {
+        def sql = 'SELECT COUNT(*) as count FROM AD_ELEMENT_TRL WHERE AD_LANGUAGE = ?'
+        java.sql.PreparedStatement stmt = connection.prepareStatement(sql)
+        stmt.setString(1, language)
+        java.sql.ResultSet rs = stmt.executeQuery()
+        boolean initialized = false
+        if (rs.next()) initialized = rs.getInt('count') > 0
+        rs.close(); stmt.close()
+        return initialized
+    }
+
+    /**
+     * Initializes a language in the Etendo system if it hasn't been initialized yet.
+     * 
+     * <p>This method performs the following steps:</p>
+     * <ol>
+     *   <li>Retrieves the language ID from the AD_LANGUAGE table</li>
+     *   <li>Updates the language to be marked as a system language</li>
+     *   <li>Generates a UUID for the process instance</li>
+     *   <li>Creates a process instance record</li>
+     *   <li>Executes the AD_LANGUAGE_CREATE stored procedure</li>
+     * </ol>
+     * 
+     * @param connection the database connection to use
+     * @param language the language code to initialize (e.g., "es_ES")
+     * @throws IllegalStateException if the language is not found in AD_LANGUAGE table
+     */
+    void initializeLanguage(java.sql.Connection connection, String language) {
+        project.logger.lifecycle("Initializing language: ${language}")
+
+        // Step 1: Get language ID
+        String languageId = getLanguageId(connection, language)
+        if (!languageId) {
+            throw new IllegalStateException("Language ${language} not found in AD_LANGUAGE table")
+        }
+        project.logger.lifecycle("Found language ID: ${languageId}")
+
+        // Step 2: Update to set as system language
+        updateSystemLanguage(connection, languageId)
+
+        // Step 3: Get UUID for p_instance
+        String uuid = getUUID(connection)
+        project.logger.lifecycle("Generated UUID for p_instance: ${uuid}")
+
+        // Step 4: Create p_instance record
+        createPInstance(connection, uuid, languageId)
+
+        // Step 5: Execute ad_language_create
+        executeLanguageCreate(connection, languageId)
+
+        project.logger.lifecycle("Language ${language} initialized successfully")
+    }
+
+    /**
+     * Retrieves the internal language ID for a given language code.
+     * 
+     * @param connection the database connection to use
+     * @param language the language code (e.g., "es_ES")
+     * @return the language ID from AD_LANGUAGE table, or null if not found
+     */
+    String getLanguageId(java.sql.Connection connection, String language) {
+        def sql = 'SELECT AD_LANGUAGE_ID FROM AD_LANGUAGE WHERE AD_LANGUAGE = ?'
+        java.sql.PreparedStatement stmt = connection.prepareStatement(sql)
+        stmt.setString(1, language)
+        java.sql.ResultSet rs = stmt.executeQuery()
+        String languageId = null
+        if (rs.next()) languageId = rs.getString('AD_LANGUAGE_ID')
+        rs.close(); stmt.close()
+        return languageId
+    }
+
+    /**
+     * Updates a language to be marked as a system language.
+     * 
+     * @param connection the database connection to use
+     * @param languageId the internal language ID to update
+     */
+    void updateSystemLanguage(java.sql.Connection connection, String languageId) {
+        def sql = "UPDATE AD_LANGUAGE SET ISSYSTEMLANGUAGE = 'Y' WHERE AD_LANGUAGE_ID = ?"
+        java.sql.PreparedStatement stmt = connection.prepareStatement(sql)
+        stmt.setString(1, languageId)
+        int rowsAffected = stmt.executeUpdate()
+        stmt.close()
+        project.logger.lifecycle("Updated ${rowsAffected} rows to set language as system language")
+    }
+
+    /**
+     * Generates a new UUID using the database's GET_UUID() function.
+     * 
+     * @param connection the database connection to use
+     * @return a new UUID string
+     */
+    String getUUID(java.sql.Connection connection) {
+        def sql = 'SELECT GET_UUID()'
+        java.sql.PreparedStatement stmt = connection.prepareStatement(sql)
+        java.sql.ResultSet rs = stmt.executeQuery()
+        String uuid = null
+        if (rs.next()) uuid = rs.getString(1)
+        rs.close(); stmt.close()
+        return uuid
+    }
+
+    /**
+     * Creates a process instance record in AD_PINSTANCE table.
+     * 
+     * <p>This record is required for executing the AD_LANGUAGE_CREATE procedure.</p>
+     * 
+     * @param connection the database connection to use
+     * @param uuid the UUID to use as the process instance ID
+     * @param languageId the language ID to associate with the process instance
+     */
+    void createPInstance(java.sql.Connection connection, String uuid, String languageId) {
+        def sql = """
+            INSERT INTO AD_PINSTANCE
+            (AD_PINSTANCE_ID, AD_PROCESS_ID, RECORD_ID, ISPROCESSING, CREATED, AD_USER_ID, UPDATED, RESULT, ERRORMsg, AD_CLIENT_ID, AD_ORG_ID, CREATEDBY, UPDATEDBY, ISACTIVE)
+            VALUES (?, '179', ?, 'N', NOW(), '100', NOW(), 1, NULL, '0', '0', '100', '100', 'Y')
+        """
+        java.sql.PreparedStatement stmt = connection.prepareStatement(sql)
+        stmt.setString(1, uuid)
+        stmt.setString(2, languageId)
+        int rowsAffected = stmt.executeUpdate()
+        stmt.close()
+        project.logger.lifecycle("Created p_instance record with ID: ${uuid}")
+    }
+
+    /**
+     * Executes the AD_LANGUAGE_CREATE stored procedure to initialize the language.
+     * 
+     * @param connection the database connection to use
+     * @param languageId the language ID to initialize
+     */
+    void executeLanguageCreate(java.sql.Connection connection, String languageId) {
+        def sql = 'SELECT AD_LANGUAGE_CREATE(?)'
+        java.sql.PreparedStatement stmt = connection.prepareStatement(sql)
+        stmt.setString(1, languageId)
+        java.sql.ResultSet rs = stmt.executeQuery()
+        if (rs.next()) {
+            project.logger.lifecycle("Executed AD_LANGUAGE_CREATE for language ID: ${languageId}, result: ${rs.getString(1)}")
+        }
+        rs.close(); stmt.close()
+    }
+
 }
+
