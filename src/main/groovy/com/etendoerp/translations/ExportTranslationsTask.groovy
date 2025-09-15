@@ -152,8 +152,6 @@ class ExportTranslationsTask extends DefaultTask {
 
     // --- The following methods are adapted from the in-script implementation ---
 
-    }
-
     /**
      * Exports translation data for a specific language from the database.
      * 
@@ -963,4 +961,3 @@ class ExportTranslationsTask extends DefaultTask {
     }
 
 }
-
