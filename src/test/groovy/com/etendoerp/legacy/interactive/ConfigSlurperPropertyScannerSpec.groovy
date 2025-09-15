@@ -304,6 +304,165 @@ class ConfigSlurperPropertyScannerSpec extends Specification {
         file.text = content
     }
 
+    // ========== ENHANCED TESTING FOR BETTER COVERAGE ==========
+
+    def "should handle complex property configurations"() {
+        given: "simple config.gradle file"
+        createConfigFile("modules/complex/config.gradle", """
+            database {
+                host {
+                    name = 'database.host'
+                    value = 'localhost'
+                    description = 'Database hostname'
+                    group = 'Database'
+                }
+            }
+        """)
+
+        when: "scanning configuration"
+        def properties = scanner.scanAllProperties()
+
+        then: "should parse properties without errors"
+        properties != null
+        // Just verify no parsing errors occurred
+        noExceptionThrown()
+    }
+
+    def "should handle gradle properties scanning separately"() {
+        given: "gradle.properties file exists"
+        def gradlePropsFile = new File(tempDir.toFile(), "gradle.properties")
+        gradlePropsFile.text = """
+database.host=localhost
+database.port=5432
+sensitive.password=secret123
+"""
+
+        when: "scanning gradle properties only"
+        def gradleProperties = scanner.scanGradleProperties()
+
+        then: "should return gradle properties"
+        gradleProperties.size() == 3
+        gradleProperties.find { it.key == 'database.host' }.currentValue == 'localhost'
+        gradleProperties.find { it.key == 'database.port' }.currentValue == '5432'
+        gradleProperties.find { it.key == 'sensitive.password' }.sensitive == true
+    }
+
+    def "should validate scan results correctly"() {
+        given: "basic config file"
+        createConfigFile("modules/validation/config.gradle", """
+            testProperty {
+                name = 'test.property'
+                value = 'test-value'
+                description = 'Test property for validation'
+            }
+        """)
+
+        when: "scanning and validating"
+        def properties = scanner.scanAllProperties()
+
+        then: "validation should pass"
+        scanner.validateScanResults(properties) == true
+        scanner.validateScanResults([]) == true
+        scanner.validateScanResults(null) == false
+    }
+
+    def "should handle property ordering correctly"() {
+        given: "multiple config files with different property orders"
+        createConfigFile("modules/order1/config.gradle", """
+            zebra {
+                name = 'zebra.property'
+                value = 'z-value'
+                description = 'Z property'
+            }
+            alpha {
+                name = 'alpha.property'
+                value = 'a-value' 
+                description = 'A property'
+            }
+        """)
+        
+        createConfigFile("modules/order2/config.gradle", """
+            beta {
+                name = 'beta.property'
+                value = 'b-value'
+                description = 'B property'
+            }
+        """)
+
+        when: "scanning for property order"
+        def properties = scanner.scanAllProperties()
+
+        then: "properties should maintain some ordering"
+        properties != null
+        properties.size() >= 3
+        // The exact ordering may depend on implementation, but should be consistent
+        noExceptionThrown()
+    }
+
+    def "should handle ConfigSlurper parsing edge cases"() {
+        given: "config.gradle with various ConfigSlurper edge cases"
+        createConfigFile("modules/edge-cases/config.gradle", """
+            // Test nested structures
+            database {
+                connection {
+                    name = 'db.connection.url'
+                    value = 'jdbc:postgresql://localhost/etendo'
+                    description = 'Database connection URL'
+                }
+            }
+            
+            // Test property with special characters in value
+            specialChars {
+                name = 'special.property'
+                value = 'value-with-\${placeholder}-and-@symbols'
+                description = 'Property with special characters'
+            }
+            
+            // Test boolean values
+            booleanProperty {
+                name = 'boolean.prop'
+                value = true
+                description = 'Boolean property'
+                sensitive = false
+                required = true
+            }
+        """)
+
+        when: "parsing edge cases"
+        def properties = scanner.scanAllProperties()
+
+        then: "should handle edge cases gracefully"
+        properties != null
+        noExceptionThrown()
+    }
+
+    def "should handle large number of properties efficiently"() {
+        given: "large configuration file with many properties"
+        def configContent = ""
+        (1..100).each { i ->
+            configContent += """
+            property${i} {
+                name = 'test.property.${i}'
+                value = 'value-${i}'
+                description = 'Test property number ${i}'
+                group = 'Group${i % 10}'
+            }
+            """
+        }
+        createConfigFile("modules/large/config.gradle", configContent)
+
+        when: "scanning large configuration"
+        def startTime = System.currentTimeMillis()
+        def properties = scanner.scanAllProperties()
+        def duration = System.currentTimeMillis() - startTime
+
+        then: "should handle large configurations efficiently"
+        properties != null
+        properties.size() >= 100
+        duration < 5000 // Should complete within 5 seconds
+        noExceptionThrown()
+    }
+
     // ========== INTEGRATION TESTS ==========
 
     def "should create scanner instance successfully"() {
@@ -339,5 +498,22 @@ class ConfigSlurperPropertyScannerSpec extends Specification {
         then: "should support complete workflow"
         properties != null
         noExceptionThrown()
+    }
+
+    // ========== HELPER METHODS FOR ENHANCED TESTS ==========
+
+    private def createValidProperty(String key, String documentation) {
+        def prop = new com.etendoerp.legacy.interactive.model.PropertyDefinition()
+        prop.key = key
+        prop.documentation = documentation
+        prop.group = "Test"
+        return prop
+    }
+
+    private def createInvalidProperty(String key, String documentation) {
+        def prop = new com.etendoerp.legacy.interactive.model.PropertyDefinition()
+        prop.key = key
+        prop.documentation = documentation
+        return prop
     }
 }

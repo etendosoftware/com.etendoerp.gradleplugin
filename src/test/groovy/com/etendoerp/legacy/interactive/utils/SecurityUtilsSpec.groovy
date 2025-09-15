@@ -256,4 +256,126 @@ class SecurityUtilsSpec extends Specification {
         SecurityUtils.isSensitive("jwt.secret")
         SecurityUtils.isSensitive("ssl.keystore.password")
     }
+
+    // ========== ENHANCED TESTING FOR BETTER COVERAGE ==========
+
+    def "should detect credential properties correctly"() {
+        expect: "Credential detection works for various patterns"
+        SecurityUtils.isCredentialProperty("database.user")
+        SecurityUtils.isCredentialProperty("system.username") 
+        SecurityUtils.isCredentialProperty("oauth.login")
+        SecurityUtils.isCredentialProperty("service.account")
+        SecurityUtils.isCredentialProperty("admin.password") // Also sensitive
+        SecurityUtils.isCredentialProperty("api.token") // Also sensitive
+        
+        !SecurityUtils.isCredentialProperty("database.host")
+        !SecurityUtils.isCredentialProperty("app.name")
+        !SecurityUtils.isCredentialProperty("server.port")
+    }
+
+    def "should handle mixed sensitivity checks"() {
+        given: "property with explicit and implicit sensitivity"
+        def explicitSensitive = new PropertyDefinition()
+        explicitSensitive.sensitive = true
+        
+        def notExplicitSensitive = new PropertyDefinition()
+        notExplicitSensitive.sensitive = false
+
+        expect: "Explicit sensitivity takes precedence"
+        SecurityUtils.isSensitive("normal.property", explicitSensitive) == true
+        SecurityUtils.isSensitive("password.field", notExplicitSensitive) == true // Pattern still wins
+        SecurityUtils.isSensitive("normal.property", notExplicitSensitive) == false
+    }
+
+    def "should handle edge cases in display safe values"() {
+        expect: "Edge cases in display safe values"
+        SecurityUtils.getDisplaySafeValue("test", null) == ""
+        SecurityUtils.getDisplaySafeValue("test", "") == ""
+        SecurityUtils.getDisplaySafeValue("password", null) == ""
+        SecurityUtils.getDisplaySafeValue("password", "") == ""
+        SecurityUtils.getDisplaySafeValue(null, "value") == "value" // Non-sensitive due to null key
+    }
+
+    def "should handle edge cases in safe logging values"() {
+        expect: "Edge cases in safe logging values"
+        SecurityUtils.getSafeLoggingValue("test", null) == "[EMPTY]"
+        SecurityUtils.getSafeLoggingValue("test", "") == "[EMPTY]"
+        SecurityUtils.getSafeLoggingValue("password", null) == "[SENSITIVE VALUE MASKED]"
+        SecurityUtils.getSafeLoggingValue("password", "") == "[SENSITIVE VALUE MASKED]"
+        SecurityUtils.getSafeLoggingValue(null, "value") == "value" // Non-sensitive due to null key
+    }
+
+    def "should handle very long property names"() {
+        given: "very long property names"
+        def longNormalName = "very.long.property.name.that.goes.on.and.on.without.sensitive.words"
+        def longSensitiveName = "very.long.property.name.that.contains.password.in.the.middle.somewhere"
+
+        expect: "Long names are handled correctly"
+        !SecurityUtils.isSensitive(longNormalName)
+        SecurityUtils.isSensitive(longSensitiveName)
+    }
+
+    def "should handle property names with numbers and special chars"() {
+        expect: "Property names with numbers and special characters"
+        SecurityUtils.isSensitive("oauth2.secret")
+        SecurityUtils.isSensitive("app-v2.password")
+        SecurityUtils.isSensitive("service_1.token")
+        !SecurityUtils.isSensitive("port_8080.setting")
+        !SecurityUtils.isSensitive("version-2.1.name")
+    }
+
+    def "should handle masking with different lengths"() {
+        expect: "Masking with various length parameters"
+        SecurityUtils.maskValue("password", 0) == ""
+        SecurityUtils.maskValue("password", 1) == "*"
+        SecurityUtils.maskValue("password", 4) == "****"
+        SecurityUtils.maskValue("password", 20) == "********" // Limited by actual length
+        SecurityUtils.maskValue("a", 10) == "*" // Limited by actual length
+    }
+
+    def "should handle regex patterns correctly"() {
+        expect: "Regex patterns work as expected"
+        // Test that patterns work for partial matches
+        SecurityUtils.isSensitive("mypassword")
+        SecurityUtils.isSensitive("passwordfield")
+        SecurityUtils.isSensitive("secretvalue")
+        SecurityUtils.isSensitive("tokendata")
+        SecurityUtils.isSensitive("keystore")
+        SecurityUtils.isSensitive("credentials")
+        SecurityUtils.isSensitive("authdata")
+        SecurityUtils.isSensitive("privateinfo")
+        SecurityUtils.isSensitive("securedata")
+        SecurityUtils.isSensitive("userpass")
+        SecurityUtils.isSensitive("systempwd")
+    }
+
+    def "should reject adding new patterns"() {
+        when: "trying to add new sensitive pattern"
+        SecurityUtils.addSensitivePattern("newpattern.*")
+
+        then: "should throw UnsupportedOperationException"
+        thrown(UnsupportedOperationException)
+    }
+
+    def "should handle PropertyDefinition without sensitive field set"() {
+        given: "PropertyDefinition without explicit sensitive field"
+        def prop = new PropertyDefinition()
+        // sensitive field is not set (defaults to false)
+
+        expect: "Should fall back to pattern matching"
+        SecurityUtils.isSensitive("password.field", prop) == true
+        SecurityUtils.isSensitive("normal.field", prop) == false
+    }
+
+    def "should handle complex property names"() {
+        expect: "Complex nested property names"
+        SecurityUtils.isSensitive("app.database.connection.password")
+        SecurityUtils.isSensitive("security.oauth.client.secret")
+        SecurityUtils.isSensitive("services.external.api.token")
+        SecurityUtils.isSensitive("infrastructure.ssl.private.key")
+        
+        !SecurityUtils.isSensitive("app.database.connection.timeout")
+        !SecurityUtils.isSensitive("security.client.enabled") // Avoid 'auth' pattern
+        !SecurityUtils.isSensitive("services.external.api.endpoint")
+    }
 }
