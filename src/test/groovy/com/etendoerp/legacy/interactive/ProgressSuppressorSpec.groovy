@@ -10,7 +10,8 @@ import java.nio.file.Path
 /**
  * Unit tests for ProgressSuppressor utility class.
  * Tests progress suppression functionality and system property management.
- * 
+ * Additional tests added to improve coverage
+ *
  * @author Etendo Interactive Setup Team
  * @since 2.0.4
  */
@@ -25,21 +26,73 @@ class ProgressSuppressorSpec extends Specification {
 
     def setup() {
         project = ProjectBuilder.builder()
-            .withProjectDir(tempDir.toFile())
-            .build()
-        
+                .withProjectDir(tempDir.toFile())
+                .build()
+
         progressSuppressor = new ProgressSuppressor(project)
-        
-        // Store original system properties to restore after tests
-        storeOriginalSystemProperties()
     }
+
+    // ========== ADDITIONAL TEST CASES FOR IMPROVED COVERAGE ==========
+
+    def "should handle null project gracefully"() {
+        when: "creating suppressor with null project"
+        new ProgressSuppressor(null)
+
+        then: "should not throw exception"
+        noExceptionThrown()
+    }
+
+    def "should suppress progress output when enabled"() {
+        when: "enabling progress suppression"
+        progressSuppressor.suppressProgress()
+
+        then: "should set system properties correctly"
+        System.getProperty("org.gradle.console.verbose") == "false"
+        System.getProperty("org.gradle.internal.progress.disable") == "true"
+    }
+
+    def "should restore progress output when disabled"() {
+        given: "progress suppression is enabled"
+        progressSuppressor.suppressProgress()
+
+        when: "disabling progress suppression"
+        progressSuppressor.restoreProgress()
+
+        then: "should restore properties"
+        noExceptionThrown()
+    }
+
 
     def cleanup() {
         // Restore original system properties after each test
         restoreOriginalSystemProperties()
     }
 
-    // ========== PROGRESS SUPPRESSION TESTS ==========
+/**
+ * Stores original system properties before tests
+ */
+    private void storeOriginalSystemProperties() {
+        originalSystemProperties["org.gradle.console.verbose"] = System.getProperty("org.gradle.console.verbose")
+        originalSystemProperties["org.gradle.internal.progress.disable"] = System.getProperty("org.gradle.internal.progress.disable")
+        originalSystemProperties["org.gradle.daemon.performance.enable-monitoring"] = System.getProperty("org.gradle.daemon.performance.enable-monitoring")
+        originalSystemProperties["org.gradle.logging.console"] = System.getProperty("org.gradle.logging.console")
+        originalSystemProperties["org.gradle.logging.level"] = System.getProperty("org.gradle.logging.level")
+    }
+
+/**
+ * Restores original system properties after tests
+ */
+    private void restoreOriginalSystemProperties() {
+        originalSystemProperties.each { key, value ->
+            if (value == null) {
+                System.clearProperty(key)
+            } else {
+                System.setProperty(key, value)
+            }
+        }
+    }
+
+// ========== PROGRESS SUPPRESSION TESTS ==========
 
     def "suppressProgress should set console output to plain"() {
         when:
@@ -74,7 +127,7 @@ class ProgressSuppressorSpec extends Specification {
         // Properties should be changed
         System.getProperty("org.gradle.console.verbose") == "false"
         System.getProperty("org.gradle.internal.progress.disable") == "true"
-        
+
         // Original values should be stored (we can't directly test the private field,
         // but we can test the restore functionality)
         when:
@@ -134,7 +187,7 @@ class ProgressSuppressorSpec extends Specification {
         then:
         // Should not throw exception even if internal APIs are not available
         noExceptionThrown()
-        
+
         // Basic functionality should still work
         project.gradle.startParameter.consoleOutput == ConsoleOutput.Plain
         System.getProperty("org.gradle.console.verbose") == "false"
@@ -164,8 +217,8 @@ class ProgressSuppressorSpec extends Specification {
     def "constructor should accept project parameter"() {
         given:
         def anotherProject = ProjectBuilder.builder()
-            .withProjectDir(tempDir.toFile())
-            .build()
+                .withProjectDir(tempDir.toFile())
+                .build()
 
         when:
         def suppressor = new ProgressSuppressor(anotherProject)
@@ -191,7 +244,7 @@ class ProgressSuppressorSpec extends Specification {
         System.getProperty("test.property") == "original"
     }
 
-    // ========== ERROR HANDLING TESTS ==========
+// ========== ERROR HANDLING TESTS ==========
 
     def "suppressProgress should handle exception in internal API gracefully"() {
         when:
@@ -216,7 +269,7 @@ class ProgressSuppressorSpec extends Specification {
         noExceptionThrown()
     }
 
-    // ========== INTEGRATION TESTS ==========
+// ========== INTEGRATION TESTS ==========
 
     def "complete suppress and restore workflow should work correctly"() {
         given:
@@ -243,30 +296,6 @@ class ProgressSuppressorSpec extends Specification {
         System.getProperty("org.gradle.logging.level") != "lifecycle" || System.getProperty("org.gradle.logging.level") == null
     }
 
-    // ========== HELPER METHODS ==========
+// ========== HELPER METHODS ==========
 
-    private void storeOriginalSystemProperties() {
-        def propertiesToStore = [
-            "org.gradle.console.verbose",
-            "org.gradle.internal.progress.disable",
-            "org.gradle.daemon.performance.enable-monitoring",
-            "org.gradle.logging.console",
-            "org.gradle.logging.level"
-        ]
-        
-        propertiesToStore.each { prop ->
-            originalSystemProperties[prop] = System.getProperty(prop)
-        }
-    }
-
-    private void restoreOriginalSystemProperties() {
-        originalSystemProperties.each { prop, value ->
-            if (value != null) {
-                System.setProperty(prop, value)
-            } else {
-                System.clearProperty(prop)
-            }
-        }
-        originalSystemProperties.clear()
-    }
 }

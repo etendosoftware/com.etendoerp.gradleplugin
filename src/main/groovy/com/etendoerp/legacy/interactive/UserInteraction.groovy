@@ -37,8 +37,8 @@ import org.gradle.api.Project
 class UserInteraction {
     
     private final Project project
-    private final Scanner scanner
-    private final Console console
+    private Scanner scanner
+    private Console console
     private InteractiveSetupManager setupManager  // Reference for executing process properties
     private List<PropertyDefinition> allProperties  // Reference to all properties for updating after process execution
     
@@ -63,6 +63,22 @@ class UserInteraction {
     }
     
     /**
+     * Sets the scanner for testing purposes.
+     * Package-private method to allow test injection.
+     */
+    void setScanner(Scanner scanner) {
+        this.scanner = scanner
+    }
+    
+    /**
+     * Sets the console for testing purposes.
+     * Package-private method to allow test injection.
+     */
+    void setConsole(Console console) {
+        this.console = console
+    }
+    
+    /**
      * Shows the main configuration menu and handles user selection.
      * Manages persistent state of configured properties throughout the session.
      * 
@@ -73,7 +89,7 @@ class UserInteraction {
         if (!properties) {
             return [:]
         }
-        
+
         def groupedProperties = groupPropertiesByCategory(properties)
         def availableGroups = groupedProperties.keySet().sort { a, b ->
             if (a == "General") return -1
