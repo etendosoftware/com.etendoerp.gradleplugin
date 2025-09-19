@@ -199,6 +199,9 @@ class ConfigSlurperPropertyScanner {
         if (!(groupConfig instanceof ConfigObject)) {
             return
         }
+        // Skip invalid empty group keys that print as '[:]'
+        if (groupKey == null) return
+        if (groupKey.toString().trim() == '[:]') return
         
         // Check if this is a root-level property (has description, value, etc. directly)
         if (groupConfig.containsKey('description') || groupConfig.containsKey('value')) {
@@ -240,17 +243,76 @@ class ConfigSlurperPropertyScanner {
      * @return PropertyDefinition object or null if invalid
      */
     private PropertyDefinition createPropertyDefinitionFromRootLevel(String propertyKey, ConfigObject propertyConfig, String moduleName, int orderIndex) {
-        // Check if custom name is specified, otherwise use the property key directly
-        def gradleKey = propertyConfig.name?.toString() ?: propertyKey
+        // Determine gradle key: prefer custom name if it's a real value, otherwise fallback
+    def gradleKey = propertyKey
+        def rawName = propertyConfig.name
+        if (rawName != null) {
+            if (rawName instanceof ConfigObject || rawName instanceof Map) {
+                if (!rawName.isEmpty()) {
+                    gradleKey = rawName.toString()
+                }
+            } else {
+                gradleKey = rawName.toString()
+            }
+        }
+        // Guard against weird toString() cases like '[:]' - fallback to propertyKey
+        if (gradleKey == null || gradleKey.toString().trim().isEmpty() || gradleKey.toString().trim() == '[:]') {
+            gradleKey = propertyKey ?: mapToGradlePropertyKey(groupKey, propertyKey)
+        }
         
         // Extract metadata from the configuration
-        def description = propertyConfig.description?.toString() ?: ""
-        def defaultValue = propertyConfig.value?.toString() ?: ""
-        def helpText = propertyConfig.help?.toString() ?: ""
+        def description = ""
+        def rawDescription = propertyConfig.description
+        if (rawDescription == null) {
+            description = ""
+        } else if (rawDescription instanceof ConfigObject || rawDescription instanceof Map) {
+            description = rawDescription.isEmpty() ? "" : rawDescription.toString()
+        } else {
+            description = rawDescription.toString()
+        }
+        def defaultValue = ""
+        def rawValue = propertyConfig.value
+        if (rawValue == null) {
+            defaultValue = ""
+        } else if (rawValue instanceof ConfigObject || rawValue instanceof Map) {
+            defaultValue = rawValue.isEmpty() ? "" : rawValue.toString()
+        } else {
+            defaultValue = rawValue.toString()
+        }
+        def helpText = ""
+
+        def rawHelp = propertyConfig.help
+        if (rawHelp == null) {
+            helpText = defaultValue ?: ""
+        } else if (rawHelp instanceof ConfigObject || rawHelp instanceof Map) {
+            if (rawHelp.isEmpty()) {
+                helpText = defaultValue ?: ""
+            } else {
+                helpText = rawHelp.toString()
+            }
+        } else {
+            helpText = rawHelp.toString()
+        }
         def sensitive = propertyConfig.sensitive instanceof Boolean ? propertyConfig.sensitive : false
         def required = propertyConfig.required instanceof Boolean ? propertyConfig.required : false
         def process = propertyConfig.process instanceof Boolean ? propertyConfig.process : false
-        def group = propertyConfig.group?.toString() ?: "General"
+    def group = "General"
+        def rawGroup = propertyConfig.group
+        if (rawGroup == null) {
+            group = "General"
+        } else if (rawGroup instanceof ConfigObject || rawGroup instanceof Map) {
+            if (rawGroup.isEmpty()) {
+                group = "General"
+            } else {
+                group = rawGroup.toString()
+            }
+        } else {
+            group = rawGroup.toString()
+        }
+        // Normalize group if it ended up as '[:]'
+        if (group == null || group.toString().trim() == '[:]') {
+            group = "General"
+        }
         
         project.logger.debug("Creating root-level property: ${gradleKey} (group: ${group}, sensitive: ${sensitive}, required: ${required}, process: ${process}, order: ${orderIndex})")
         
@@ -278,17 +340,75 @@ class ConfigSlurperPropertyScanner {
      * @return PropertyDefinition object or null if invalid
      */
     private PropertyDefinition createPropertyDefinition(String groupKey, String propertyKey, ConfigObject propertyConfig, String moduleName, int orderIndex) {
-        // Check if custom name is specified, otherwise use default mapping
-        def gradleKey = propertyConfig.name?.toString() ?: mapToGradlePropertyKey(groupKey, propertyKey)
+        // Determine gradle key: prefer custom name if it's a real value, otherwise use mapping
+    def gradleKey = mapToGradlePropertyKey(groupKey, propertyKey)
+        def rawName = propertyConfig.name
+        if (rawName != null) {
+            if (rawName instanceof ConfigObject || rawName instanceof Map) {
+                if (!rawName.isEmpty()) {
+                    gradleKey = rawName.toString()
+                }
+            } else {
+                gradleKey = rawName.toString()
+            }
+        }
+        // Guard against weird toString() cases like '[:]' - fallback to mapping
+        if (gradleKey == null || gradleKey.toString().trim().isEmpty() || gradleKey.toString().trim() == '[:]') {
+            gradleKey = mapToGradlePropertyKey(groupKey, propertyKey)
+        }
         
         // Extract metadata from the configuration
-        def description = propertyConfig.description?.toString() ?: ""
-        def defaultValue = propertyConfig.value?.toString() ?: ""
-        def helpText = propertyConfig.help?.toString() ?: ""
+        def description = ""
+        def rawDescription = propertyConfig.description
+        if (rawDescription == null) {
+            description = ""
+        } else if (rawDescription instanceof ConfigObject || rawDescription instanceof Map) {
+            description = rawDescription.isEmpty() ? "" : rawDescription.toString()
+        } else {
+            description = rawDescription.toString()
+        }
+        def defaultValue = ""
+        def rawValue = propertyConfig.value
+        if (rawValue == null) {
+            defaultValue = ""
+        } else if (rawValue instanceof ConfigObject || rawValue instanceof Map) {
+            defaultValue = rawValue.isEmpty() ? "" : rawValue.toString()
+        } else {
+            defaultValue = rawValue.toString()
+        }
+        def helpText = ""
+
+        def rawHelp = propertyConfig.help
+        if (rawHelp == null) {
+            helpText = defaultValue ?: ""
+        } else if (rawHelp instanceof ConfigObject || rawHelp instanceof Map) {
+            if (rawHelp.isEmpty()) {
+                helpText = defaultValue ?: ""
+            } else {
+                helpText = rawHelp.toString()
+            }
+        } else {
+            helpText = rawHelp.toString()
+        }
         def sensitive = propertyConfig.sensitive instanceof Boolean ? propertyConfig.sensitive : false
         def required = propertyConfig.required instanceof Boolean ? propertyConfig.required : false
         def process = propertyConfig.process instanceof Boolean ? propertyConfig.process : false
-        def group = propertyConfig.group?.toString() ?: capitalizeFirst(groupKey)
+    def group = capitalizeFirst(groupKey)
+        def rawGroup = propertyConfig.group
+        if (rawGroup == null) {
+            group = capitalizeFirst(groupKey)
+        } else if (rawGroup instanceof ConfigObject || rawGroup instanceof Map) {
+            if (rawGroup.isEmpty()) {
+                group = capitalizeFirst(groupKey)
+            } else {
+                group = rawGroup.toString()
+            }
+        } else {
+            group = rawGroup.toString()
+        }
+        if (group == null || group.toString().trim() == '[:]') {
+            group = capitalizeFirst(groupKey)
+        }
         
         project.logger.debug("Creating property: ${gradleKey} (group: ${group}, sensitive: ${sensitive}, required: ${required}, process: ${process}, order: ${orderIndex})")
         

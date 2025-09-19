@@ -30,6 +30,7 @@ class InteractiveSetupManager {
     private final UserInteraction ui
     private final ConfigWriter writer
     private final ProgressSuppressor progressSuppressor
+    private List<PropertyDefinition> allPropertiesCache = []
 
     /**
      * Creates a new InteractiveSetupManager with enhanced ConfigSlurper support.
@@ -143,6 +144,9 @@ class InteractiveSetupManager {
             project.logger.lifecycle("Scanning for configuration properties...")
             List<PropertyDefinition> properties = scanner.scanAllProperties()
 
+            // Cache the scanned properties for use during process executions
+            this.allPropertiesCache = properties
+
             if (properties.isEmpty()) {
                 project.logger.lifecycle("No configurable properties found. Setup complete.")
                 return
@@ -187,7 +191,9 @@ class InteractiveSetupManager {
             project.logger.lifecycle("")
             project.logger.lifecycle("Writing configuration to gradle.properties...")
 
-            writer.writeProperties(finalProperties)
+            // Filter out properties whose value equals their default value
+            def filteredFinal = filterOutDefaults(finalProperties, properties)
+            writer.writeProperties(filteredFinal)
 
             project.logger.lifecycle("✅ Configuration completed successfully!")
             project.logger.lifecycle("Your settings have been saved to gradle.properties")
@@ -357,20 +363,24 @@ class InteractiveSetupManager {
 
             // Execute the task using Gradle's internal API
             def results = executeGradleTaskInternal(taskName, tempFile, processProperty)
-            if (results != null) {
-                configuredProperties.putAll(results)
-                // Write the configured properties to gradle.properties if any were configured
-                if (!configuredProperties.isEmpty()) {
-                    writer.writeProperties(configuredProperties)
-                    project.logger.debug("Wrote ${configuredProperties.size()} properties to gradle.properties (internal)")
+                if (results != null) {
+                    configuredProperties.putAll(results)
+                    // Filter out defaults before writing
+                    def toWrite = filterOutDefaults(configuredProperties, this.allPropertiesCache)
+                    if (!toWrite.isEmpty()) {
+                        writer.writeProperties(toWrite)
+                        project.logger.debug("Wrote ${toWrite.size()} properties to gradle.properties (internal)")
+                    }
+                    return configuredProperties
                 }
-                return configuredProperties
-            }
 
             // Write the configured properties to gradle.properties if any were configured
             if (!configuredProperties.isEmpty()) {
-                writer.writeProperties(configuredProperties)
-                project.logger.debug("Wrote ${configuredProperties.size()} properties to gradle.properties")
+                def toWrite = filterOutDefaults(configuredProperties, this.allPropertiesCache)
+                if (!toWrite.isEmpty()) {
+                    writer.writeProperties(toWrite)
+                    project.logger.debug("Wrote ${toWrite.size()} properties to gradle.properties")
+                }
             }
 
         } catch (Exception e) {
@@ -701,6 +711,35 @@ class InteractiveSetupManager {
                         project.file('modules').listFiles()?.count { it.isDirectory() } : 0,
                 timestamp          : new Date()
         ]
+    }
+
+    /**
+     * Removes properties from the provided map whose value equals the configured default.
+     * Uses the provided list of PropertyDefinition to determine defaultValue.
+     */
+    private Map<String, String> filterOutDefaults(Map<String, String> properties, List<PropertyDefinition> definitions) {
+        if (!properties || properties.isEmpty()) return [:]
+        if (!definitions) return properties
+
+        def defsMap = definitions.collectEntries { [(it.key): it.defaultValue ?: ""] }
+        def result = [:]
+
+        properties.each { k, v ->
+            def defaultVal = defsMap.containsKey(k) ? (defsMap[k] ?: "") : null
+            if (defaultVal == null) {
+                // No known default - keep the property
+                result[k] = v
+            } else {
+                // If provided value equals default, skip it
+                if (v != defaultVal) {
+                    result[k] = v
+                } else {
+                    project.logger.debug("Skipping write for ${k} because value equals default (${v})")
+                }
+            }
+        }
+
+        return result
     }
 
     /**

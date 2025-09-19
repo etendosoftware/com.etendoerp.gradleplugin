@@ -16,10 +16,8 @@ import org.gradle.api.Project
  * - Managing user confirmation workflows with persistent state
  * - Preserving user input across menu interactions and confirmation cycles
  * 
- * The class supports three main configuration modes:
- * 1. Default configuration (shows summary and requires confirmation)
- * 2. Group configuration (configure specific groups or all)
- * 3. Exit without saving
+ * The class supports configuration primarily via groups and exit without saving.
+ * Group configuration allows configuring specific groups interactively.
  * 
  * Key behavioral improvements:
  * - Default configuration now displays a complete summary before confirmation
@@ -41,6 +39,7 @@ class UserInteraction {
     private Console console
     private InteractiveSetupManager setupManager  // Reference for executing process properties
     private List<PropertyDefinition> allProperties  // Reference to all properties for updating after process execution
+    private Set<String> transientSkipProperties = []
     
     /**
      * Creates a new UserInteraction handler.
@@ -91,6 +90,10 @@ class UserInteraction {
         }
 
         def groupedProperties = groupPropertiesByCategory(properties)
+        // Remove any invalid group keys that may appear as '[:]'
+        if (groupedProperties.containsKey('[:]')) {
+            groupedProperties.remove('[:]')
+        }
         def availableGroups = groupedProperties.keySet().sort { a, b ->
             if (a == "General") return -1
             if (b == "General") return 1
@@ -158,6 +161,8 @@ class UserInteraction {
         if (!properties) {
             return [:]
         }
+        // Initialize the transient skip set for this collection run
+        this.transientSkipProperties = new HashSet<>()
         
         // Store reference to all properties for use in process property updates
         this.allProperties = properties
@@ -171,6 +176,11 @@ class UserInteraction {
             displayGroupHeader(group, props.size())
             
             props.each { prop ->
+                // If this property was set by a process earlier in this run, skip prompting
+                if (this.transientSkipProperties && this.transientSkipProperties.contains(prop.key)) {
+                    println "   ℹ️  Skipping ${prop.key} - value provided by an executed process"
+                    return
+                }
                 try {
                     String value = promptForProperty(prop, sessionValues)
                     if (value != null) {
@@ -293,11 +303,11 @@ class UserInteraction {
 
         
         while (true) {
-            print "\n🔄 Execute this process? (y/N): "
+            print "\n🔄 Execute this process? (Y/n): "
             System.out.flush()
             String input = scanner.nextLine().trim().toLowerCase()
             
-            if (input == 'y' || input == 'yes') {
+            if (input == 'y' || input == 'yes' || input.isEmpty()) {
                 // Execute the process property
                 if (setupManager) {
                     try {
@@ -315,6 +325,13 @@ class UserInteraction {
                             if (allProperties) {
                                 setupManager.updatePropertiesAfterProcessExecution(allProperties, processResults)
                                 println "🔄 Updated current values - these will be shown in subsequent property questions."
+                            }
+                            // Add all configured keys from the process to transient skip set for this run
+                            if (processResults && !processResults.isEmpty()) {
+                                processResults.keySet().each { k ->
+                                    if (this.transientSkipProperties == null) this.transientSkipProperties = new HashSet<>()
+                                    this.transientSkipProperties.add(k.toString())
+                                }
                             }
                             
                             // For process properties, we return a special marker to indicate execution
@@ -336,11 +353,9 @@ class UserInteraction {
                 // Skip execution
                 println "⏭️  Skipping process execution"
                 return currentValue ?: ""
-            } else if (input.isEmpty()) {
-                // Keep current value
-                return currentValue ?: ""
             } else {
-                println "❌ Please respond 'Y' to execute, 'N' to skip, or Enter to keep current value."
+                // Any other input is invalid
+                println "❌ Please respond 'Y' to execute, 'N' to skip, or press Enter to accept the default (Yes)."
             }
         }
     }
@@ -442,14 +457,12 @@ class UserInteraction {
         println "\n🎛️  Interactive Setup - Main Menu"
         println "=" * 60
         println ""
-        println "📋 Choose configuration option:"
-        println ""
-        println "1️⃣  Default configuration (use current/default values)"
-        println "2️⃣  Group configuration (you can configure multiple groups):"
-        println "   📦 a. all - Configure all groups"
+    println "📋 Choose configuration option:"
+    println ""
+    println "🔹 Group configuration (configure one or more groups):"
         
-        // Show available groups with letters (max 25 groups to prevent index out of bounds)
-        def letters = ['b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+        // Show available groups with letters (max 26 groups to prevent index out of bounds)
+        def letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
         def maxGroupsToShow = Math.min(availableGroups.size(), letters.size())
         
         availableGroups.eachWithIndex { group, index ->
@@ -457,11 +470,11 @@ class UserInteraction {
                 println "   📋 ${letters[index]}. ${group}"
             } else {
                 // Show remaining groups with numbers if we exceed letter capacity
-                println "   📋 ${index + 2}. ${group} (use number ${index + 2})"
+                println "   📋 ${index + 1}. ${group} (use number ${index + 1})"
             }
         }
         
-        println "3️⃣  Exit without saving"
+    println "Type 'exit' to exit without saving"
         println ""
     }
     
@@ -481,34 +494,14 @@ class UserInteraction {
         input = input.toLowerCase().trim()
         
         switch (input) {
-            case '1':
-                // Default configuration - prepare default values for all properties
-                println "✅ Preparing default configuration..."
-                def defaultProperties = [:]
-                properties.each { prop ->
-                    def defaultValue = prop.getDisplayValue()
-                    if (defaultValue && !defaultValue.trim().isEmpty()) {
-                        defaultProperties[prop.key] = defaultValue
-                    }
-                }
-                return defaultProperties
-                
-            case '2':
-                // Group configuration - show all groups
-                return collectUserInput(properties, configuredProperties)
-                
-            case '3':
+            case 'exit':
                 // Exit without saving
                 println "🚪 Exiting without saving changes..."
                 return null
                 
-            case 'a':
-                // Configure all groups
-                return collectUserInput(properties, configuredProperties)
-                
             default:
                 // Check if it's a specific group letter
-                def letters = ['b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+                def letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
                 def letterIndex = letters.indexOf(input)
                 
                 if (letterIndex >= 0 && letterIndex < availableGroups.size()) {
@@ -526,7 +519,7 @@ class UserInteraction {
                     // Check if it's a numeric input for groups beyond letter capacity
                     try {
                         def numericInput = Integer.parseInt(input)
-                        def groupIndex = numericInput - 2 // Adjust for 0-based index (options 1,2 are taken)
+                        def groupIndex = numericInput - 1 // Adjust for 0-based index (numbers now map directly to groups)
                         
                         if (groupIndex >= 0 && groupIndex < availableGroups.size()) {
                             def selectedGroup = availableGroups[groupIndex]
@@ -540,11 +533,11 @@ class UserInteraction {
                                 return ['__CONTINUE_MENU__': true] // Continue menu loop
                             }
                         } else {
-                            println "❌ Invalid option: '${input}'. Please select a valid number (1-3), letter (a-z), or number for specific groups."
+                            println "❌ Invalid option: '${input}'. Please enter a letter (a-z), a group number, or type 'exit' to leave."
                             return ['__CONTINUE_MENU__': true] // Continue menu loop
                         }
                     } catch (NumberFormatException e) {
-                        println "❌ Invalid option: '${input}'. Please select a valid number (1-3) or letter (a-z)."
+                        println "❌ Invalid option: '${input}'. Please enter a letter (a-z), a group number, or type 'exit' to leave."
                         return ['__CONTINUE_MENU__': true] // Continue menu loop
                     }
                 }
@@ -569,12 +562,18 @@ class UserInteraction {
         if (this.allProperties == null) {
             this.allProperties = properties
         }
+    // Initialize transient skip set for this group collection (fresh for each entry)
+    this.transientSkipProperties = new HashSet<>()
         
         def result = [:]
         
         displayGroupHeader(groupName, properties.size())
         
         properties.each { prop ->
+            if (this.transientSkipProperties && this.transientSkipProperties.contains(prop.key)) {
+                println "   ℹ️  Skipping ${prop.key} - value provided by an executed process"
+                return
+            }
             try {
                 String value = promptForProperty(prop, sessionValues)
                 if (value != null) {
@@ -640,6 +639,11 @@ class UserInteraction {
             }
         }
         
+        // Remove invalid group keys that can appear as '[:]'
+        if (grouped.containsKey('[:]')) {
+            grouped.remove('[:]')
+        }
+
         // Sort groups, with "General" first, then alphabetically
         return grouped.sort { a, b ->
             if (a.key == "General") return -1

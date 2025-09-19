@@ -237,7 +237,7 @@ class UserInteractionSpec extends Specification {
         def configuredProperties = [:]
         
         when: "handling menu selection for exit option"
-        def result = userInteraction.handleMenuSelection("3", properties, groupedProperties, availableGroups, configuredProperties)
+        def result = userInteraction.handleMenuSelection("exit", properties, groupedProperties, availableGroups, configuredProperties)
         
         then: "should return null"
         result == null
@@ -439,7 +439,7 @@ class UserInteractionSpec extends Specification {
 
         and: "mock scanner that returns exit option"
         def mockScanner = GroovyMock(Scanner)
-        mockScanner.nextLine() >> "3"  // Exit option
+        mockScanner.nextLine() >> "exit"  // Exit option
         userInteraction.setScanner(mockScanner)
 
         when: "showing main menu"
@@ -449,48 +449,9 @@ class UserInteractionSpec extends Specification {
         result == null
     }
 
-    def "should return default configuration when user selects option 1"() {
-        given: "properties with default values"
-        def properties = [
-            createRegularProperty("database.host", "localhost", "Database hostname"),
-            createRegularProperty("app.name", "etendo", "Application name")
-        ]
 
-        and: "mock scanner for default config and confirmation"
-        def mockScanner = GroovyMock(Scanner)
-        mockScanner.nextLine() >>> ["1", "y"]  // Option 1 (default), then confirm
-        userInteraction.setScanner(mockScanner)
 
-        when: "showing main menu"
-        def result = userInteraction.showMainMenu(properties)
 
-        then: "should return default configuration"
-        result != null
-        result.size() == 2
-        result["database.host"] == "localhost"
-        result["app.name"] == "etendo"
-    }
-
-    def "should handle group configuration when user selects option 2"() {
-        given: "properties in different groups"
-        def properties = [
-            createRegularProperty("database.host", "localhost", "Database hostname", "Database"),
-            createRegularProperty("app.name", "etendo", "Application name", "General")
-        ]
-
-        and: "mock scanner for group config and confirmation"
-        def mockScanner = GroovyMock(Scanner)
-        // Option 2 (group config), then provide inputs for properties, then confirm
-        mockScanner.nextLine() >>> ["2", "", "", "y"]  
-        userInteraction.setScanner(mockScanner)
-
-        when: "showing main menu"
-        def result = userInteraction.showMainMenu(properties)
-
-        then: "should return configuration"
-        result != null
-        result instanceof Map
-    }
 
     def "should handle specific group selection by letter"() {
         given: "properties in different groups"
@@ -513,26 +474,7 @@ class UserInteractionSpec extends Specification {
         result instanceof Map
     }
 
-    def "should handle 'all groups' option when user selects 'a'"() {
-        given: "properties in different groups"
-        def properties = [
-            createRegularProperty("database.host", "localhost", "Database hostname", "Database"),
-            createRegularProperty("app.name", "etendo", "Application name", "General")
-        ]
 
-        and: "mock scanner for all groups option"
-        def mockScanner = GroovyMock(Scanner)
-        // All groups option, then provide inputs for properties, then confirm
-        mockScanner.nextLine() >>> ["a", "", "", "y"]  
-        userInteraction.setScanner(mockScanner)
-
-        when: "showing main menu"
-        def result = userInteraction.showMainMenu(properties)
-
-        then: "should return configuration for all groups"
-        result != null
-        result instanceof Map
-    }
 
     def "should continue menu loop when user provides invalid input"() {
         given: "properties list"
@@ -542,7 +484,7 @@ class UserInteractionSpec extends Specification {
 
         and: "mock scanner with invalid input then exit"
         def mockScanner = GroovyMock(Scanner)
-        mockScanner.nextLine() >>> ["invalid", "3"]  // Invalid input, then exit
+        mockScanner.nextLine() >>> ["invalid", "exit"]  // Invalid input, then exit
         userInteraction.setScanner(mockScanner)
 
         when: "showing main menu"
@@ -574,23 +516,7 @@ class UserInteractionSpec extends Specification {
         // Should contain properties from both groups
     }
 
-    def "should return to menu when user cancels confirmation"() {
-        given: "properties list"
-        def properties = [
-            createRegularProperty("database.host", "localhost", "Database hostname")
-        ]
 
-        and: "mock scanner that configures then cancels confirmation"
-        def mockScanner = GroovyMock(Scanner)
-        mockScanner.nextLine() >>> ["1", "n", "3"]  // Default config, cancel confirmation, then exit
-        userInteraction.setScanner(mockScanner)
-
-        when: "showing main menu"
-        def result = userInteraction.showMainMenu(properties)
-
-        then: "should return null after cancellation"
-        result == null
-    }
 
     def "should handle numeric group selection for groups beyond letters"() {
         given: "many properties in different groups to exceed letter capacity"
@@ -621,7 +547,7 @@ class UserInteractionSpec extends Specification {
 
         and: "mock scanner trying to select non-existent group"
         def mockScanner = GroovyMock(Scanner)
-        mockScanner.nextLine() >>> ["z", "3"]  // Try to select non-existent group z, then exit
+        mockScanner.nextLine() >>> ["z", "exit"]  // Try to select non-existent group z, then exit
         userInteraction.setScanner(mockScanner)
 
         when: "showing main menu"
@@ -639,7 +565,7 @@ class UserInteractionSpec extends Specification {
 
         and: "mock scanner with uppercase input"
         def mockScanner = GroovyMock(Scanner)
-        mockScanner.nextLine() >>> ["EXIT", "3"]  // Uppercase invalid input, then proper exit
+        mockScanner.nextLine() >>> ["EXIT", "exit"]  // Uppercase invalid input, then proper exit
         userInteraction.setScanner(mockScanner)
 
         when: "showing main menu"
@@ -657,7 +583,7 @@ class UserInteractionSpec extends Specification {
 
         and: "mock scanner with whitespace input"
         def mockScanner = GroovyMock(Scanner)
-        mockScanner.nextLine() >>> ["  3  ", "3"]  // Whitespace around exit option, then exit
+        mockScanner.nextLine() >>> ["  exit  ", "exit"]  // Whitespace around exit option, then exit
         userInteraction.setScanner(mockScanner)
 
         when: "showing main menu"
@@ -677,7 +603,7 @@ class UserInteractionSpec extends Specification {
 
         and: "mock scanner for exit"
         def mockScanner = GroovyMock(Scanner)
-        mockScanner.nextLine() >> "3"
+        mockScanner.nextLine() >> "exit"
         userInteraction.setScanner(mockScanner)
 
         when: "showing main menu"
@@ -687,25 +613,7 @@ class UserInteractionSpec extends Specification {
         result == null  // Just testing that it doesn't crash with General group
     }
 
-    def "should handle single property configuration"() {
-        given: "single property"
-        def properties = [
-            createRegularProperty("single.prop", "value", "Single property")
-        ]
 
-        and: "mock scanner for default config and confirmation"
-        def mockScanner = GroovyMock(Scanner)
-        mockScanner.nextLine() >>> ["1", "y"]
-        userInteraction.setScanner(mockScanner)
-
-        when: "showing main menu"
-        def result = userInteraction.showMainMenu(properties)
-
-        then: "should handle single property correctly"
-        result != null
-        result.size() == 1
-        result["single.prop"] == "value"
-    }
 
     def "should handle null properties list"() {
         given: "null properties list"
