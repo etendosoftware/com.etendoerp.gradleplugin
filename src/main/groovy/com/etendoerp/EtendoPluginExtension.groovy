@@ -2,14 +2,12 @@ package com.etendoerp
 
 import com.etendoerp.core.CoreMetadata
 import com.etendoerp.legacy.ant.ConsistencyVerification
+import com.etendoerp.legacy.utils.AnsiColor
 
 class EtendoPluginExtension {
     String coreVersion = '[22.1.0,)' // default core version
     String coreGroup = CoreMetadata.DEFAULT_ETENDO_CORE_GROUP
     String coreName = CoreMetadata.DEFAULT_ETENDO_CORE_NAME
-
-    public static final String COLOR_YELLOW = "\u001B[33m"
-    public static final String COLOR_RESET = "\u001B[0m"
 
     boolean loadCompilationDependencies = true
     boolean loadTestDependencies = false
@@ -131,11 +129,11 @@ class EtendoPluginExtension {
     static String forceResolutionMessage() {
         String message = ""
         message += "------------------------------------------------------------------------\n"
-        message += COLOR_YELLOW + "WARNING: Forcing resolution may lead to unstable builds, compatibility issues, \n"
+        message += AnsiColor.YELLOW + "WARNING: Forcing resolution may lead to unstable builds, compatibility issues, \n"
         message += "         or unexpected behavior. \n"
         message += "Use this option if you know what you are doing and understand the risks involved.\n"
         message += "This option sometimes is needed on major version upgrades, if is your case is \n"
-        message += "mandatory to remove it when the upgrade is done.\n" + COLOR_RESET
+        message += "mandatory to remove it when the upgrade is done.\n" + AnsiColor.RESET
         message += "------------------------------------------------------------------------\n"
         message += "etendo {\n"
         message += "    forceResolution = true \n"
