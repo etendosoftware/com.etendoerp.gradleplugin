@@ -296,6 +296,7 @@ class ConfigSlurperPropertyScanner {
         def sensitive = propertyConfig.sensitive instanceof Boolean ? propertyConfig.sensitive : false
         def required = propertyConfig.required instanceof Boolean ? propertyConfig.required : false
         def process = propertyConfig.process instanceof Boolean ? propertyConfig.process : false
+        def notSetWhenDefault = propertyConfig.notSetWhenDefault instanceof Boolean ? propertyConfig.notSetWhenDefault : false
     def group = "General"
         def rawGroup = propertyConfig.group
         if (rawGroup == null) {
@@ -314,7 +315,7 @@ class ConfigSlurperPropertyScanner {
             group = "General"
         }
         
-        project.logger.debug("Creating root-level property: ${gradleKey} (group: ${group}, sensitive: ${sensitive}, required: ${required}, process: ${process}, order: ${orderIndex})")
+        project.logger.debug("Creating root-level property: ${gradleKey} (group: ${group}, sensitive: ${sensitive}, required: ${required}, process: ${process}, notSetWhenDefault: ${notSetWhenDefault}, order: ${orderIndex})")
         
         return new PropertyDefinition(
             key: gradleKey,
@@ -326,6 +327,7 @@ class ConfigSlurperPropertyScanner {
             sensitive: sensitive,
             required: required,
             process: process,
+            notSetWhenDefault: notSetWhenDefault,
             source: "config.gradle (${moduleName})",
             order: orderIndex
         )
@@ -393,6 +395,7 @@ class ConfigSlurperPropertyScanner {
         def sensitive = propertyConfig.sensitive instanceof Boolean ? propertyConfig.sensitive : false
         def required = propertyConfig.required instanceof Boolean ? propertyConfig.required : false
         def process = propertyConfig.process instanceof Boolean ? propertyConfig.process : false
+        def notSetWhenDefault = propertyConfig.notSetWhenDefault instanceof Boolean ? propertyConfig.notSetWhenDefault : false
     def group = capitalizeFirst(groupKey)
         def rawGroup = propertyConfig.group
         if (rawGroup == null) {
@@ -410,7 +413,7 @@ class ConfigSlurperPropertyScanner {
             group = capitalizeFirst(groupKey)
         }
         
-        project.logger.debug("Creating property: ${gradleKey} (group: ${group}, sensitive: ${sensitive}, required: ${required}, process: ${process}, order: ${orderIndex})")
+        project.logger.debug("Creating property: ${gradleKey} (group: ${group}, sensitive: ${sensitive}, required: ${required}, process: ${process}, notSetWhenDefault: ${notSetWhenDefault}, order: ${orderIndex})")
         
         return new PropertyDefinition(
             key: gradleKey,
@@ -422,6 +425,7 @@ class ConfigSlurperPropertyScanner {
             sensitive: sensitive,
             required: required,
             process: process,
+            notSetWhenDefault: notSetWhenDefault,
             source: "config.gradle (${moduleName})",
             order: orderIndex
         )

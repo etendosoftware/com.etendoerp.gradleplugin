@@ -38,6 +38,9 @@ class PropertyDefinition {
     /** Whether this property is a process property that executes a Gradle task */
     boolean process = false
     
+    /** Whether this property should NOT be set when its value equals the default value */
+    boolean notSetWhenDefault = false
+    
     /** Source of this property definition (for debugging and tracking) */
     String source
     
@@ -118,6 +121,8 @@ class PropertyDefinition {
                 "group='${group}', " +
                 "sensitive=${sensitive}, " +
                 "required=${required}, " +
+                "process=${process}, " +
+                "notSetWhenDefault=${notSetWhenDefault}, " +
                 "hasValue=${hasValue()}, " +
                 "source='${source}'" +
                 "}"

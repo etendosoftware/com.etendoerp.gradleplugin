@@ -721,20 +721,27 @@ class InteractiveSetupManager {
         if (!properties || properties.isEmpty()) return [:]
         if (!definitions) return properties
 
-        def defsMap = definitions.collectEntries { [(it.key): it.defaultValue ?: ""] }
+        def defsMap = definitions.collectEntries { [(it.key): it] }
         def result = [:]
 
         properties.each { k, v ->
-            def defaultVal = defsMap.containsKey(k) ? (defsMap[k] ?: "") : null
-            if (defaultVal == null) {
-                // No known default - keep the property
+            def propertyDef = defsMap.containsKey(k) ? defsMap[k] : null
+            def defaultVal = propertyDef?.defaultValue ?: ""
+            
+            if (propertyDef == null) {
+                // No known definition - keep the property
                 result[k] = v
             } else {
-                // If provided value equals default, skip it
-                if (v != defaultVal) {
+                // Check if we should filter based on notSetWhenDefault flag
+                if (propertyDef.notSetWhenDefault && v == defaultVal) {
+                    // Property should NOT be set when value equals default
+                    project.logger.debug("Skipping write for ${k} because notSetWhenDefault=true and value equals default (${v})")
+                } else if (!propertyDef.notSetWhenDefault) {
+                    // Always set the property regardless of whether it equals default
                     result[k] = v
                 } else {
-                    project.logger.debug("Skipping write for ${k} because value equals default (${v})")
+                    // notSetWhenDefault=true but value is different from default - set it
+                    result[k] = v
                 }
             }
         }
