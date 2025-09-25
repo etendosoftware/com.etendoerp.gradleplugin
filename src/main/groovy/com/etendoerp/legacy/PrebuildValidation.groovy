@@ -34,9 +34,13 @@ class PrebuildValidation {
                 def supportJars = true
                 if (matcher) {
                     matcher.each { match ->
-                        def cslp = new ConfigSlurper().parse(match.toString())
-                        if (cslp.containsKey("etendo") && cslp.get("etendo").containsKey("supportJars")) {
-                            supportJars = cslp.get("etendo").get("supportJars")
+                        {
+                            def text = match instanceof CharSequence ? match.toString() : match?.toString()
+                            def script = new GroovyShell().parse(text)
+                            def cslp = new ConfigSlurper().parse(script)
+                            if (cslp.containsKey("etendo") && cslp.get("etendo").containsKey("supportJars")) {
+                                supportJars = cslp.get("etendo").get("supportJars")
+                            }
                         }
                     }
                 }
