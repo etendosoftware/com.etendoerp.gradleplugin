@@ -13,6 +13,8 @@ import com.etendoerp.legacy.ant.AntLoader
 import com.etendoerp.modules.ModulesConfigurationLoader
 import com.etendoerp.modules.uninstall.UninstallModuleLoader
 import com.etendoerp.publication.PublicationLoader
+import com.etendoerp.translations.TranslationsLoader
+import com.etendoerp.translations.TranslateAILoader
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaBasePlugin
@@ -56,5 +58,7 @@ class EtendoPlugin implements Plugin<Project> {
         ExternalTasksLoader.load(project)
         CopilotLoader.load(project)
         DependencyManagerLoader.load(project)
+        TranslationsLoader.load(project)
+        TranslateAILoader.load(project)
     }
 }
