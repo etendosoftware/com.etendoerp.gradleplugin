@@ -27,7 +27,11 @@ class DepsUtil {
                 return false
             }
             def exists = databaseConnection.executeSelectQuery("SELECT COUNT(*) AS count FROM user_tables WHERE table_name = 'ETDEP_DEPENDENCY'")
-            if(exists == null || exists.size() == 0) {
+            if (exists == null || exists.size() == 0) {
+                return false
+            }
+            def existsReg = databaseConnection.executeSelectQuery("SELECT to_regclass('public.etdep_dependency')")
+            if (existsReg == null || existsReg.size() == 0 || existsReg.get(0).get("to_regclass") == null) {
                 return false
             }
             // Execute a select query to fetch dependencies from the database

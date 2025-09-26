@@ -1,10 +1,11 @@
 package com.etendoerp.legacy.dependencies
 
 import com.etendoerp.EtendoPluginExtension
+import com.etendoerp.connections.DatabaseConnection
 import com.etendoerp.core.CoreMetadata
-import com.etendoerp.dependencies.DependencyArtifact
 import com.etendoerp.legacy.dependencies.container.ArtifactDependency
 import com.etendoerp.legacy.dependencies.container.DependencyType
+import com.etendoerp.legacy.utils.AnsiColor
 import com.etendoerp.modules.ModulesConfigurationUtils
 import com.etendoerp.publication.PublicationUtils
 import groovy.io.FileType
@@ -13,8 +14,8 @@ import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.ModuleVersionIdentifier
 import org.gradle.api.artifacts.result.DependencyResult
 import org.gradle.api.artifacts.result.ResolutionResult
-import org.gradle.api.artifacts.result.ResolvedDependencyResult
 import org.gradle.api.artifacts.result.ResolvedComponentResult
+import org.gradle.api.artifacts.result.ResolvedDependencyResult
 import org.gradle.api.internal.artifacts.DefaultProjectComponentIdentifier
 import org.gradle.api.internal.artifacts.ivyservice.resolveengine.result.ComponentSelectionReasonInternal
 import org.gradle.api.internal.artifacts.result.DefaultResolvedDependencyResult
@@ -22,20 +23,19 @@ import org.gradle.api.internal.artifacts.result.DefaultUnresolvedDependencyResul
 import org.gradle.api.logging.LogLevel
 import org.gradle.internal.component.external.model.DefaultModuleComponentSelector
 import org.gradle.internal.component.local.model.DefaultProjectComponentSelector
-import com.etendoerp.connections.DatabaseConnection
 
 /**
  * Class containing helper methods to perform resolution version conflicts.
  */
 class ResolutionUtils {
 
-    final static String SOURCE_MODULES_CONTAINER  = "sourcesModulesContainer"
+    final static String SOURCE_MODULES_CONTAINER = "sourcesModulesContainer"
     final static String SOURCE_MODULES_RESOLUTION = "sourceModulesResolution"
 
     final static String RESOLUTION_REPORT_TASK = "resolutionReportTask"
 
     final static String CORE_CONFLICTS_ERROR_MESSAGE = "Cannot have a conflict with the core dependency "
-    final static String CONFLICT_WARNING_MESSAGE     = "Found a conflict resolution with:"
+    final static String CONFLICT_WARNING_MESSAGE = "Found a conflict resolution with:"
 
     static List<String> CORE_DEPENDENCIES = [
             "${CoreMetadata.CLASSIC_ETENDO_CORE_GROUP}:${CoreMetadata.CLASSIC_ETENDO_CORE_NAME}",
@@ -54,7 +54,7 @@ class ResolutionUtils {
      * @param obtainSelectedArtifacts Flag used to obtain only the 'selected' artifacts resolved by gradle if true, otherwise obtains the requested by the user.
      */
     static Map<String, List<ArtifactDependency>> dependenciesResolutionConflict(Project project, Configuration configuration, boolean filterCoreDependency, boolean obtainSelectedArtifacts,
-                                                                                LogLevel logLevel=LogLevel.INFO, List<String> modulesToReport=[], List<String> modulesToNotReport=[]) {
+                                                                                LogLevel logLevel = LogLevel.INFO, List<String> modulesToReport = [], List<String> modulesToNotReport = []) {
         def extension = project.extensions.findByType(EtendoPluginExtension)
 
         def forceParameter = project.findProperty("force")
@@ -95,7 +95,7 @@ class ResolutionUtils {
      * @param modulesToNotReport
      */
     static void handleResolutionConflict(Project project, Configuration configuration, ComponentSelectionReasonInternal reason, ModuleVersionIdentifier module, boolean force,
-                                         List<String> modulesToReport=[], List<String> modulesToNotReport=[]) {
+                                         List<String> modulesToReport = [], List<String> modulesToNotReport = []) {
 
         def isCoreDependency = isCoreDependency(module.toString())
         def group = module.group
@@ -147,7 +147,8 @@ class ResolutionUtils {
 
         def groupedMatches = [:].withDefault { [] }
 
-        def stack = [[root, [root]]]  // Each entry in the stack is a tuple of [ResolvedComponentResult, List<ResolvedComponentResult>]
+        def stack = [[root, [root]]]
+        // Each entry in the stack is a tuple of [ResolvedComponentResult, List<ResolvedComponentResult>]
         def visited = [] as Set  // Prevent cycles
 
         while (!stack.isEmpty()) {
@@ -196,7 +197,7 @@ class ResolutionUtils {
                     reason = "No specific reason provided"
                 } else {
                     if (reason.contains("between versions")) {
-                        def ( _ , conflictedVersions) = reason.split('between versions ')
+                        def (_, conflictedVersions) = reason.split('between versions ')
                         if (conflictedVersions.contains(' and ')) {
                             // Split the conflicted versions if they are separated by 'and'
                             def (version1, version2) = conflictedVersions.split(' and ')
@@ -210,7 +211,7 @@ class ResolutionUtils {
                 project.logger.info("")
                 project.logger.info("Requested by dependency: ${requested}")
                 project.logger.info("Resolved: ${selectedDisplayName}")
-                project.logger.info("Reason: " + EtendoPluginExtension.COLOR_YELLOW + "${reason}" + EtendoPluginExtension.COLOR_RESET)
+                project.logger.info("Reason: " + AnsiColor.YELLOW + "${reason}" + AnsiColor.RESET)
                 project.logger.info("Involved paths:")
 
                 matches.each { match ->
@@ -289,17 +290,17 @@ class ResolutionUtils {
      * @param artifactConflicts Map used to add to the ArtifactDependency the 'hasConflict' flag.
      * @return
      */
-    static Map<String, List<ArtifactDependency>> getIncomingDependencies(Project project, Configuration configuration, boolean filterCoreDependency, boolean obtainSelectedArtifacts, LogLevel logLevel, Map < String, Boolean > artifactConflicts = null) {
+    static Map<String, List<ArtifactDependency>> getIncomingDependencies(Project project, Configuration configuration, boolean filterCoreDependency, boolean obtainSelectedArtifacts, LogLevel logLevel, Map<String, Boolean> artifactConflicts = null) {
         Map<String, List<ArtifactDependency>> incomingDependencies = [:]
         configuration.incoming.each {
-            for (DependencyResult dependency: it.resolutionResult.allDependencies) {
-                if (dependency instanceof  DefaultUnresolvedDependencyResult) {
+            for (DependencyResult dependency : it.resolutionResult.allDependencies) {
+                if (dependency instanceof DefaultUnresolvedDependencyResult) {
                     DefaultUnresolvedDependencyResult unresolved = dependency as DefaultUnresolvedDependencyResult
                     project.logger.log(logLevel, "********************* ERROR *********************")
-                    project.logger.log(logLevel,"The requested dependency '${unresolved.requested.displayName}' could not be resolved.")
-                    project.logger.log(logLevel,"Attempted reason: ${unresolved.attemptedReason}")
-                    project.logger.log(logLevel,"Failure: ${unresolved.failure}")
-                    project.logger.log(logLevel,"*************************************************")
+                    project.logger.log(logLevel, "The requested dependency '${unresolved.requested.displayName}' could not be resolved.")
+                    project.logger.log(logLevel, "Attempted reason: ${unresolved.attemptedReason}")
+                    project.logger.log(logLevel, "Failure: ${unresolved.failure}")
+                    project.logger.log(logLevel, "*************************************************")
                     continue
                 }
 
@@ -385,7 +386,7 @@ class ResolutionUtils {
     static Configuration loadSourceModulesDependenciesResolution(Project project) {
         def extension = project.extensions.findByType(EtendoPluginExtension)
 
-        String configName = SOURCE_MODULES_RESOLUTION + UUID.randomUUID().toString().replace("-","")
+        String configName = SOURCE_MODULES_RESOLUTION + UUID.randomUUID().toString().replace("-", "")
         def sourcesModulesResolution = project.configurations.create(configName)
 
         if (extension.ignoreSourceModulesResolution) {
@@ -410,7 +411,7 @@ class ResolutionUtils {
 
         // Creates a configuration container
         if (!sourcesModulesContainer) {
-            String configName = SOURCE_MODULES_CONTAINER + UUID.randomUUID().toString().replace("-","")
+            String configName = SOURCE_MODULES_CONTAINER + UUID.randomUUID().toString().replace("-", "")
             sourcesModulesContainer = project.configurations.create(configName)
         }
 
@@ -484,7 +485,7 @@ class ResolutionUtils {
     }
 
     static Map<String, List<ArtifactDependency>> performResolutionConflicts(Project project, Configuration configToPerformResolution, boolean filterCoreDependency,
-                                                                            boolean obtainSelectedArtifacts, boolean removeSourceModules=true) {
+                                                                            boolean obtainSelectedArtifacts, boolean removeSourceModules = true) {
         def coreResolutionDependencies = performCoreResolutionConflicts(project, configToPerformResolution, removeSourceModules)
 
         ArtifactDependency coreArtifactDependency = null
@@ -499,7 +500,7 @@ class ResolutionUtils {
 
             // Update the CORE version
             if (coreArtifactDependency != null && !coreArtifactDependency.hasConflicts) {
-                configToPerformResolution.resolutionStrategy.eachDependency({details ->
+                configToPerformResolution.resolutionStrategy.eachDependency({ details ->
                     if ("${details.requested.group}:${details.requested.name}" == currentCoreDependency) {
                         details.useVersion(coreArtifactDependency.version)
                         details.because("CORE resolution strategy.")

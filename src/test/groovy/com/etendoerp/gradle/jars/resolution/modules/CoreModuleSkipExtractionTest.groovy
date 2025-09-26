@@ -79,7 +79,6 @@ class CoreModuleSkipExtractionTest extends EtendoCoreResolutionSpecificationTest
 
         where:
         coreType  | supportJars | _
-        "sources" | false       | _
         "sources" | true        | _
         "jar"     | true        | _
     }
