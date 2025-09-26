@@ -16,10 +16,17 @@ class DatabaseConnection {
         this.project = project
     }
 
-    boolean loadDatabaseConnection() {
+    boolean loadDatabaseConnection(){
+        return loadDatabaseConnection(false)
+    }
+    boolean loadSystemDatabaseConnection(){
+        return loadDatabaseConnection(true)
+    }
+
+    boolean loadDatabaseConnection(boolean adminConnection){
         // Load the database properties
         DatabaseProperties databaseProperties = new DatabaseProperties(project)
-        if (!databaseProperties.loadDatabaseProperties()) {
+        if (!databaseProperties.loadDatabaseProperties(adminConnection)) {
             project.logger.info("The database properties could not be loaded.")
             return false
         }

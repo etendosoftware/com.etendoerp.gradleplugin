@@ -35,7 +35,12 @@ import com.etendoerp.gradle.tests.configuration.SetupOmitCredentialsTest;
 import com.etendoerp.gradle.tests.configuration.SetupTest;
 import com.etendoerp.gradle.tests.installation.ExpandCustomModuleTest;
 import com.etendoerp.gradle.tests.installation.ExpandTest;
-import com.etendoerp.legacy.interactive.*;
+import com.etendoerp.legacy.interactive.ConfigSlurperPropertyScannerSpec;
+import com.etendoerp.legacy.interactive.ConfigWriterSpec;
+
+import com.etendoerp.legacy.interactive.InteractiveSetupManagerSpec;
+import com.etendoerp.legacy.interactive.PropertyDefinitionSpec;
+import com.etendoerp.legacy.interactive.UserInteractionSpec;
 import com.etendoerp.legacy.interactive.utils.SecurityUtilsSpec;
 import org.junit.platform.suite.api.SelectClasses;
 import org.junit.platform.suite.api.Suite;

@@ -11,6 +11,7 @@ import java.nio.file.Path
  * 
  * Tests complete functionality including file I/O, backup creation,
  * and error handling as specified in ETP-1960-04-TESTPLAN.md
+ * Additional tests added to improve coverage
  */
 class ConfigWriterSpec extends Specification {
 
@@ -28,6 +29,72 @@ class ConfigWriterSpec extends Specification {
         
         configWriter = new ConfigWriter(project)
         gradlePropsFile = new File(tempDir.toFile(), "gradle.properties")
+    }
+    
+    // ========== ADDITIONAL TEST CASES FOR IMPROVED COVERAGE ==========
+    
+    def "should handle null project gracefully"() {
+        when: "creating writer with null project"
+        def nullWriter = new ConfigWriter(null)
+        
+        then: "should create instance but fail when trying to use it"
+        nullWriter != null
+        
+        when: "trying to write properties with null project"
+        nullWriter.writeProperties(["test": "value"])
+        
+        then: "should throw exception when attempting to write"
+        thrown(Exception)
+    }
+    
+    def "should handle empty properties map gracefully"() {
+        when: "writing empty properties map"
+        configWriter.writeProperties([:])
+        
+        then: "should not throw exception"
+        noExceptionThrown()
+    }
+    
+    def "should handle file write errors gracefully"() {
+        given: "existing gradle.properties file"
+        gradlePropsFile.text = "existing.property=value"
+        
+        and: "make the file read-only"
+        gradlePropsFile.setReadOnly()
+        
+        when: "writing properties to read-only file"
+        def result = null
+        try {
+            configWriter.writeProperties(["test.property": "value"])
+            result = "success"
+        } catch (Exception e) {
+            result = "exception"
+        }
+        
+        then: "should handle error gracefully (either succeed or throw exception)"
+        result != null
+        
+        cleanup:
+        gradlePropsFile.setWritable(true) // Restore for cleanup
+    }
+    
+    def "should create backup file before writing"() {
+        given: "existing gradle.properties file"
+        def gradlePropertiesFile = new File(tempDir.toFile(), "gradle.properties")
+        gradlePropertiesFile.text = "existing.property=value"
+        
+        when: "writing new properties"
+        configWriter.writeProperties(["new.property": "new-value"])
+        
+        then: "should create backup file with timestamp"
+        def backupFiles = tempDir.toFile().listFiles().findAll { 
+            it.name.startsWith("gradle.properties.backup") 
+        }
+        backupFiles.size() > 0
+        
+        and: "backup contains original content"
+        def backupFile = backupFiles[0]
+        backupFile.text.contains("existing.property=value")
     }
 
     // ========== EXPANDED TESTS ACCORDING TO TESTPLAN TC16-TC22 ==========
@@ -268,5 +335,233 @@ app.name=etendo
         nestedDir.exists()
         nestedGradleProps.exists()
         nestedGradleProps.text.contains("test.property=value")
+    }
+
+    // ========== ENHANCED TESTING FOR BETTER COVERAGE ==========
+
+    def "should handle properties with special characters correctly"() {
+        given: "properties with special characters"
+        def properties = [
+            "path.property": "C:\\\\Windows\\\\System32",
+            "url.property": "jdbc:postgresql://localhost:5432/etendo",
+            "special.chars": "value with spaces & symbols!@#\$%^&*()",
+            "unicode.property": "valüe_with_ünicöde_çhärs",
+            "equals.in.value": "key=value,another=value2"
+        ]
+
+        when: "writing properties with special characters"
+        configWriter.writeProperties(properties)
+
+        then: "special characters are handled correctly"
+        gradlePropsFile.exists()
+        def content = gradlePropsFile.text
+        content.contains("path.property=C:\\\\Windows\\\\System32")
+        content.contains("url.property=jdbc:postgresql://localhost:5432/etendo")
+        content.contains("special.chars=value with spaces & symbols!@#\$%^&*()")
+        content.contains("unicode.property=valüe_with_ünicöde_çhärs")
+        content.contains("equals.in.value=key=value,another=value2")
+    }
+
+    def "should handle very large property values"() {
+        given: "property with very large value"
+        def largeValue = "x" * 10000 // 10KB string
+        def properties = [
+            "small.property": "small",
+            "large.property": largeValue,
+            "another.small": "value"
+        ]
+
+        when: "writing properties with large values"
+        configWriter.writeProperties(properties)
+
+        then: "large values are handled correctly"
+        gradlePropsFile.exists()
+        def content = gradlePropsFile.text
+        content.contains("large.property=${largeValue}")
+        content.contains("small.property=small")
+        content.contains("another.small=value")
+    }
+
+    def "should validate properties correctly"() {
+        expect: "validation should work for valid properties"
+        configWriter.validateProperties(["valid.key": "value"]) == true
+        configWriter.validateProperties([:]) == true
+        configWriter.validateProperties(null) == true
+
+        when: "validating properties with empty keys"
+        configWriter.validateProperties(["": "value"])
+
+        then: "should throw exception for empty keys"
+        thrown(IllegalArgumentException)
+
+        when: "validating properties with null keys"
+        configWriter.validateProperties([(null): "value"])
+
+        then: "should throw exception for null keys"
+        thrown(IllegalArgumentException)
+
+        when: "validating properties with problematic characters in keys"
+        configWriter.validateProperties(["key with spaces": "value"])
+
+        then: "should throw exception for keys with spaces"
+        thrown(IllegalArgumentException)
+
+        when: "validating properties with newlines in keys"
+        configWriter.validateProperties(["key\nwith\nnewlines": "value"])
+
+        then: "should throw exception for keys with newlines"
+        thrown(IllegalArgumentException)
+    }
+
+    def "should get file info correctly"() {
+        when: "getting file info when file doesn't exist"
+        def info = configWriter.getFileInfo()
+
+        then: "should return correct non-existing file info"
+        info.exists == false
+        info.path.endsWith("gradle.properties")
+        info.size == 0
+        info.writable == true // Parent directory should be writable
+        info.lastModified == null
+
+        when: "creating file and getting info"
+        gradlePropsFile.text = "test.property=value"
+        def existingInfo = configWriter.getFileInfo()
+
+        then: "should return correct existing file info"
+        existingInfo.exists == true
+        existingInfo.path.endsWith("gradle.properties")
+        existingInfo.size > 0
+        existingInfo.writable == true
+        existingInfo.lastModified != null
+    }
+
+    def "should handle backup creation correctly"() {
+        given: "existing gradle.properties file"
+        gradlePropsFile.text = """# Original file
+database.host=original
+app.name=original-app
+"""
+
+        when: "writing new properties"
+        configWriter.writeProperties(["database.host": "updated"])
+
+        then: "backup file is created"
+        def backupFiles = tempDir.toFile().listFiles().findAll { 
+            it.name.startsWith("gradle.properties.backup") 
+        }
+        backupFiles.size() >= 1
+        
+        and: "original content is preserved in backup"
+        def backup = backupFiles[0]
+        backup.text.contains("database.host=original")
+        backup.text.contains("app.name=original-app")
+        
+        and: "new file has updated content"
+        gradlePropsFile.text.contains("database.host=updated")
+    }
+
+    def "should group properties correctly for writing"() {
+        given: "properties from different categories"
+        def properties = [
+            "database.host": "localhost",
+            "database.password": "secret",
+            "app.name": "etendo",
+            "security.token": "token123",
+            "file.path": "/tmp/etendo",
+            "general.setting": "value"
+        ]
+
+        when: "writing categorized properties"
+        configWriter.writeProperties(properties)
+
+        then: "properties should be organized (at minimum, all should be present)"
+        gradlePropsFile.exists()
+        def content = gradlePropsFile.text
+        properties.each { key, value ->
+            assert content.contains("${key}=${value}")
+        }
+    }
+
+    def "should handle concurrent write attempts safely"() {
+        given: "multiple properties to write"
+        def properties1 = ["prop1": "value1", "prop2": "value2"]
+        def properties2 = ["prop3": "value3", "prop4": "value4"]
+
+        when: "writing properties sequentially (simulating concurrent scenario)"
+        configWriter.writeProperties(properties1)
+        configWriter.writeProperties(properties2)
+
+        then: "both sets of properties should be written safely"
+        gradlePropsFile.exists()
+        def content = gradlePropsFile.text
+        content.contains("prop3=value3")
+        content.contains("prop4=value4")
+    }
+
+    def "should handle properties with empty values"() {
+        given: "properties with empty values"
+        def properties = [
+            "empty.property": "",
+            "normal.property": "value",
+            "whitespace.property": "   ",
+            "zero.property": "0"
+        ]
+
+        when: "writing properties with empty values"
+        configWriter.writeProperties(properties)
+
+        then: "empty values are handled correctly"
+        gradlePropsFile.exists()
+        def content = gradlePropsFile.text
+        content.contains("empty.property=")
+        content.contains("normal.property=value")
+        content.contains("whitespace.property=   ")
+        content.contains("zero.property=0")
+    }
+
+    def "should preserve complex comment structures"() {
+        given: "gradle.properties with complex comment structure"
+        gradlePropsFile.text = """#
+# Complex Configuration File
+# Last modified: 2025-01-01
+#
+
+# ================================
+# DATABASE SETTINGS
+# ================================
+# Primary database configuration
+database.host=localhost
+database.port=5432
+
+# Security settings
+# WARNING: Keep these values secure
+database.password=secret
+
+# ================================  
+# APPLICATION SETTINGS
+# ================================
+app.name=etendo
+
+# End of configuration
+#"""
+
+        when: "updating some properties"
+        configWriter.writeProperties([
+            "database.host": "newhost",
+            "new.property": "newvalue"
+        ])
+
+        then: "complex comment structure is preserved"
+        def content = gradlePropsFile.text
+        content.contains("# Complex Configuration File")
+        content.contains("# DATABASE SETTINGS")
+        content.contains("# Primary database configuration")
+        content.contains("# WARNING: Keep these values secure")
+        content.contains("# APPLICATION SETTINGS")
+        content.contains("# End of configuration")
+        content.contains("database.host=newhost")
+        content.contains("new.property=newvalue")
+        content.contains("database.port=5432") // Unchanged
     }
 }

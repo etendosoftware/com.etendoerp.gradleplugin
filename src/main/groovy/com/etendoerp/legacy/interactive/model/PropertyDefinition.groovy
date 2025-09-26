@@ -23,6 +23,9 @@ class PropertyDefinition {
     /** Documentation/help text for this property */
     String documentation
     
+    /** Optional additional help text for this property */
+    String help
+    
     /** Group/category for organizing properties in the UI */
     String group
     
@@ -32,8 +35,17 @@ class PropertyDefinition {
     /** Whether this property is required for the application to function */
     boolean required = false
     
+    /** Whether this property is a process property that executes a Gradle task */
+    boolean process = false
+    
+    /** Whether this property should NOT be set when its value equals the default value */
+    boolean notSetWhenDefault = false
+    
     /** Source of this property definition (for debugging and tracking) */
     String source
+    
+    /** Order index for preserving definition order */
+    int order = 0
     
     /**
      * Gets the value to display to the user (current or default).
@@ -60,6 +72,11 @@ class PropertyDefinition {
         // Add documentation if available
         if (documentation && !documentation.trim().isEmpty()) {
             prompt += "  │  ${documentation}\n"
+        }
+        
+        // Add help text if available
+        if (help && !help.trim().isEmpty()) {
+            prompt += "  │  💡 ${help}\n"
         }
         
         // Add current/default value if available
@@ -104,6 +121,8 @@ class PropertyDefinition {
                 "group='${group}', " +
                 "sensitive=${sensitive}, " +
                 "required=${required}, " +
+                "process=${process}, " +
+                "notSetWhenDefault=${notSetWhenDefault}, " +
                 "hasValue=${hasValue()}, " +
                 "source='${source}'" +
                 "}"

@@ -169,9 +169,12 @@ class ConfigSlurperPropertyScanner {
             def configSlurper = new ConfigSlurper()
             def config = configSlurper.parse(configFile.text)
             
-            // Process each configuration group
-            config.each { groupKey, groupConfig ->
-                processConfigGroup(groupKey.toString(), groupConfig, properties, moduleName)
+            // Process each configuration group - preserve order by using keySet()
+            def groupKeys = config.keySet().toList()
+            def orderIndex = 0
+            groupKeys.each { groupKey ->
+                def groupConfig = config[groupKey]
+                processConfigGroup(groupKey.toString(), groupConfig, properties, moduleName, orderIndex++)
             }
             
         } catch (Exception e) {
@@ -190,17 +193,21 @@ class ConfigSlurperPropertyScanner {
      * @param groupConfig The configuration object for this group
      * @param properties The list to add properties to
      * @param moduleName The module name for context
+     * @param orderIndex Counter for preserving order of properties
      */
-    private void processConfigGroup(String groupKey, Object groupConfig, List<PropertyDefinition> properties, String moduleName) {
+    private void processConfigGroup(String groupKey, Object groupConfig, List<PropertyDefinition> properties, String moduleName, int orderIndex = 0) {
         if (!(groupConfig instanceof ConfigObject)) {
             return
         }
+        // Skip invalid empty group keys that print as '[:]'
+        if (groupKey == null) return
+        if (groupKey.toString().trim() == '[:]') return
         
         // Check if this is a root-level property (has description, value, etc. directly)
         if (groupConfig.containsKey('description') || groupConfig.containsKey('value')) {
             // This is a root-level property, not a group
             try {
-                def property = createPropertyDefinitionFromRootLevel(groupKey, groupConfig, moduleName)
+                def property = createPropertyDefinitionFromRootLevel(groupKey, groupConfig, moduleName, orderIndex)
                 if (property) {
                     properties.add(property)
                 }
@@ -208,11 +215,13 @@ class ConfigSlurperPropertyScanner {
                 project.logger.warn("Failed to process root-level property ${groupKey}: ${e.message}")
             }
         } else {
-            // This is a group with nested properties
-            groupConfig.each { propertyKey, propertyConfig ->
+            // This is a group with nested properties - preserve order by using keySet() and indexing
+            def keysList = groupConfig.keySet().toList()
+            keysList.eachWithIndex { propertyKey, index ->
+                def propertyConfig = groupConfig[propertyKey]
                 if (propertyConfig instanceof ConfigObject) {
                     try {
-                        def property = createPropertyDefinition(groupKey, propertyKey.toString(), propertyConfig, moduleName)
+                        def property = createPropertyDefinition(groupKey, propertyKey.toString(), propertyConfig, moduleName, orderIndex + index)
                         if (property) {
                             properties.add(property)
                         }
@@ -226,72 +235,201 @@ class ConfigSlurperPropertyScanner {
     
     /**
      * Creates a PropertyDefinition from a root-level ConfigSlurper property configuration.
-     * 
+     *
      * @param propertyKey The property key (this is also the gradle.properties key)
      * @param propertyConfig The configuration object containing metadata
      * @param moduleName The module name for context
+     * @param orderIndex The order index for preserving definition order
      * @return PropertyDefinition object or null if invalid
      */
-    private PropertyDefinition createPropertyDefinitionFromRootLevel(String propertyKey, ConfigObject propertyConfig, String moduleName) {
-        // Check if custom name is specified, otherwise use the property key directly
-        def gradleKey = propertyConfig.name?.toString() ?: propertyKey
+    private PropertyDefinition createPropertyDefinitionFromRootLevel(String propertyKey, ConfigObject propertyConfig, String moduleName, int orderIndex) {
+        // Determine gradle key: prefer custom name if it's a real value, otherwise fallback
+    def gradleKey = propertyKey
+        def rawName = propertyConfig.name
+        if (rawName != null) {
+            if (rawName instanceof ConfigObject || rawName instanceof Map) {
+                if (!rawName.isEmpty()) {
+                    gradleKey = rawName.toString()
+                }
+            } else {
+                gradleKey = rawName.toString()
+            }
+        }
+        // Guard against weird toString() cases like '[:]' - fallback to propertyKey
+        if (gradleKey == null || gradleKey.toString().trim().isEmpty() || gradleKey.toString().trim() == '[:]') {
+            gradleKey = propertyKey ?: mapToGradlePropertyKey(groupKey, propertyKey)
+        }
         
         // Extract metadata from the configuration
-        def description = propertyConfig.description?.toString() ?: ""
-        def defaultValue = propertyConfig.value?.toString() ?: ""
+        def description = ""
+        def rawDescription = propertyConfig.description
+        if (rawDescription == null) {
+            description = ""
+        } else if (rawDescription instanceof ConfigObject || rawDescription instanceof Map) {
+            description = rawDescription.isEmpty() ? "" : rawDescription.toString()
+        } else {
+            description = rawDescription.toString()
+        }
+        def defaultValue = ""
+        def rawValue = propertyConfig.value
+        if (rawValue == null) {
+            defaultValue = ""
+        } else if (rawValue instanceof ConfigObject || rawValue instanceof Map) {
+            defaultValue = rawValue.isEmpty() ? "" : rawValue.toString()
+        } else {
+            defaultValue = rawValue.toString()
+        }
+        def helpText = ""
+
+        def rawHelp = propertyConfig.help
+        if (rawHelp == null) {
+            helpText = defaultValue ?: ""
+        } else if (rawHelp instanceof ConfigObject || rawHelp instanceof Map) {
+            if (rawHelp.isEmpty()) {
+                helpText = defaultValue ?: ""
+            } else {
+                helpText = rawHelp.toString()
+            }
+        } else {
+            helpText = rawHelp.toString()
+        }
         def sensitive = propertyConfig.sensitive instanceof Boolean ? propertyConfig.sensitive : false
         def required = propertyConfig.required instanceof Boolean ? propertyConfig.required : false
-        def group = propertyConfig.group?.toString() ?: "General"
+        def process = propertyConfig.process instanceof Boolean ? propertyConfig.process : false
+        def notSetWhenDefault = propertyConfig.notSetWhenDefault instanceof Boolean ? propertyConfig.notSetWhenDefault : false
+    def group = "General"
+        def rawGroup = propertyConfig.group
+        if (rawGroup == null) {
+            group = "General"
+        } else if (rawGroup instanceof ConfigObject || rawGroup instanceof Map) {
+            if (rawGroup.isEmpty()) {
+                group = "General"
+            } else {
+                group = rawGroup.toString()
+            }
+        } else {
+            group = rawGroup.toString()
+        }
+        // Normalize group if it ended up as '[:]'
+        if (group == null || group.toString().trim() == '[:]') {
+            group = "General"
+        }
         
-        project.logger.debug("Creating root-level property: ${gradleKey} (group: ${group}, sensitive: ${sensitive}, required: ${required})")
+        project.logger.debug("Creating root-level property: ${gradleKey} (group: ${group}, sensitive: ${sensitive}, required: ${required}, process: ${process}, notSetWhenDefault: ${notSetWhenDefault}, order: ${orderIndex})")
         
         return new PropertyDefinition(
             key: gradleKey,
             currentValue: null, // Will be filled from gradle.properties during unification
             defaultValue: defaultValue,
             documentation: description,
+            help: helpText,
             group: group,
             sensitive: sensitive,
             required: required,
-            source: "config.gradle (${moduleName})"
+            process: process,
+            notSetWhenDefault: notSetWhenDefault,
+            source: "config.gradle (${moduleName})",
+            order: orderIndex
         )
-    }
-    
-    /**
+    }    /**
      * Creates a PropertyDefinition from a ConfigSlurper property configuration.
-     * 
+     *
      * @param groupKey The group this property belongs to
      * @param propertyKey The property key
      * @param propertyConfig The configuration object containing metadata
      * @param moduleName The module name for context
+     * @param orderIndex The order index for preserving definition order
      * @return PropertyDefinition object or null if invalid
      */
-    private PropertyDefinition createPropertyDefinition(String groupKey, String propertyKey, ConfigObject propertyConfig, String moduleName) {
-        // Check if custom name is specified, otherwise use default mapping
-        def gradleKey = propertyConfig.name?.toString() ?: mapToGradlePropertyKey(groupKey, propertyKey)
+    private PropertyDefinition createPropertyDefinition(String groupKey, String propertyKey, ConfigObject propertyConfig, String moduleName, int orderIndex) {
+        // Determine gradle key: prefer custom name if it's a real value, otherwise use mapping
+    def gradleKey = mapToGradlePropertyKey(groupKey, propertyKey)
+        def rawName = propertyConfig.name
+        if (rawName != null) {
+            if (rawName instanceof ConfigObject || rawName instanceof Map) {
+                if (!rawName.isEmpty()) {
+                    gradleKey = rawName.toString()
+                }
+            } else {
+                gradleKey = rawName.toString()
+            }
+        }
+        // Guard against weird toString() cases like '[:]' - fallback to mapping
+        if (gradleKey == null || gradleKey.toString().trim().isEmpty() || gradleKey.toString().trim() == '[:]') {
+            gradleKey = mapToGradlePropertyKey(groupKey, propertyKey)
+        }
         
         // Extract metadata from the configuration
-        def description = propertyConfig.description?.toString() ?: ""
-        def defaultValue = propertyConfig.value?.toString() ?: ""
+        def description = ""
+        def rawDescription = propertyConfig.description
+        if (rawDescription == null) {
+            description = ""
+        } else if (rawDescription instanceof ConfigObject || rawDescription instanceof Map) {
+            description = rawDescription.isEmpty() ? "" : rawDescription.toString()
+        } else {
+            description = rawDescription.toString()
+        }
+        def defaultValue = ""
+        def rawValue = propertyConfig.value
+        if (rawValue == null) {
+            defaultValue = ""
+        } else if (rawValue instanceof ConfigObject || rawValue instanceof Map) {
+            defaultValue = rawValue.isEmpty() ? "" : rawValue.toString()
+        } else {
+            defaultValue = rawValue.toString()
+        }
+        def helpText = ""
+
+        def rawHelp = propertyConfig.help
+        if (rawHelp == null) {
+            helpText = defaultValue ?: ""
+        } else if (rawHelp instanceof ConfigObject || rawHelp instanceof Map) {
+            if (rawHelp.isEmpty()) {
+                helpText = defaultValue ?: ""
+            } else {
+                helpText = rawHelp.toString()
+            }
+        } else {
+            helpText = rawHelp.toString()
+        }
         def sensitive = propertyConfig.sensitive instanceof Boolean ? propertyConfig.sensitive : false
         def required = propertyConfig.required instanceof Boolean ? propertyConfig.required : false
-        def group = propertyConfig.group?.toString() ?: capitalizeFirst(groupKey)
+        def process = propertyConfig.process instanceof Boolean ? propertyConfig.process : false
+        def notSetWhenDefault = propertyConfig.notSetWhenDefault instanceof Boolean ? propertyConfig.notSetWhenDefault : false
+    def group = capitalizeFirst(groupKey)
+        def rawGroup = propertyConfig.group
+        if (rawGroup == null) {
+            group = capitalizeFirst(groupKey)
+        } else if (rawGroup instanceof ConfigObject || rawGroup instanceof Map) {
+            if (rawGroup.isEmpty()) {
+                group = capitalizeFirst(groupKey)
+            } else {
+                group = rawGroup.toString()
+            }
+        } else {
+            group = rawGroup.toString()
+        }
+        if (group == null || group.toString().trim() == '[:]') {
+            group = capitalizeFirst(groupKey)
+        }
         
-        project.logger.debug("Creating property: ${gradleKey} (group: ${group}, sensitive: ${sensitive}, required: ${required})")
+        project.logger.debug("Creating property: ${gradleKey} (group: ${group}, sensitive: ${sensitive}, required: ${required}, process: ${process}, notSetWhenDefault: ${notSetWhenDefault}, order: ${orderIndex})")
         
         return new PropertyDefinition(
             key: gradleKey,
             currentValue: null, // Will be filled from gradle.properties during unification
             defaultValue: defaultValue,
             documentation: description,
+            help: helpText,
             group: group,
             sensitive: sensitive,
             required: required,
-            source: "config.gradle (${moduleName})"
+            process: process,
+            notSetWhenDefault: notSetWhenDefault,
+            source: "config.gradle (${moduleName})",
+            order: orderIndex
         )
-    }
-    
-    /**
+    }    /**
      * Maps structured property keys to gradle.properties format.
      * 
      * This method is used as fallback when no custom 'name' is specified
