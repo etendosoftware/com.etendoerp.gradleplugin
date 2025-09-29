@@ -171,8 +171,6 @@ class ConfigWriter {
                 result.add("")
             }
             
-            result.add("# Properties added by Interactive Setup")
-            
             unprocessedProperties.sort().each { key ->
                 def value = newProperties[key]
                 result.add("${key}=${value}")
