@@ -50,7 +50,7 @@ pipeline {
         ACCESS_TOKEN    = credentials('access_token_github')
         PLUGIN_URL      = " https://github.com/etendosoftware/com.etendoerp.gradleplugin.git"
 
-        JAVA_HOME        = "/usr/lib/jvm/jdk-17.0.13"
+        JAVA_HOME        = '/usr/lib/jvm/java-17-openjdk-amd64'
         POSTGRES_VERSION = '16'
 
         SUCCESS = 'SUCCESS'
@@ -200,8 +200,8 @@ pipeline {
                 container('compiler') {
                     script {
                         withCredentials([sshUserPrivateKey(credentialsId: 'my-credentials', keyFileVariable: 'keyfile')]) {
+                            def suiteName = "EtendoPluginSOSTests"
                             try {
-                                def suiteName = "EtendoPluginSOSTests"
                                 env.DESCRIPTION = "Running ${suiteName}"
                                 echo "--------------- ${env.DESCRIPTION} ---------------"
                                 updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
@@ -252,8 +252,8 @@ pipeline {
                 container('compiler') {
                     script {
                         withCredentials([sshUserPrivateKey(credentialsId: 'my-credentials', keyFileVariable: 'keyfile')]) {
+                            def suiteName = "EtendoPluginPreReleaseTestsPart1"
                             try {
-                                def suiteName = "EtendoPluginPreReleaseTestsPart1"
                                 env.DESCRIPTION = "Running ${suiteName}"
                                 echo "--------------- ${env.DESCRIPTION} ---------------"
                                 updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
@@ -304,8 +304,8 @@ pipeline {
                 container('compiler') {
                     script {
                         withCredentials([sshUserPrivateKey(credentialsId: 'my-credentials', keyFileVariable: 'keyfile')]) {
+                            def suiteName = "EtendoPluginPreReleaseTestsPart2"
                             try {
-                                def suiteName = "EtendoPluginPreReleaseTestsPart2"
                                 env.DESCRIPTION = "Running ${suiteName}"
                                 echo "--------------- ${env.DESCRIPTION} ---------------"
                                 updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)

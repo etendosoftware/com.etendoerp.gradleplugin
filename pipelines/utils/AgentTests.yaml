@@ -17,7 +17,7 @@ spec:
         type: ''
   containers:
     - name: compiler
-      image: etendo/compiler_jenkins:1.0.7-jdk.17.0.13
+      image: etendo/compiler_jenkins:1.0.7
       ports:
         - name: ssh
           containerPort: 22
