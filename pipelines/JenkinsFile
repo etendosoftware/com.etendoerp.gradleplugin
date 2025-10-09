@@ -201,13 +201,11 @@ pipeline {
                     script {
                         withCredentials([sshUserPrivateKey(credentialsId: 'my-credentials', keyFileVariable: 'keyfile')]) {
                             try {
+                                def suiteName = "EtendoPluginSOSTests"
+                                env.DESCRIPTION = "Running ${suiteName}"
+                                echo "--------------- ${env.DESCRIPTION} ---------------"
+                                updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
                                 dir(REPOSITORY_NAME) {
-                                    def suiteName = "EtendoPluginSOSTests"
-                                    env.DESCRIPTION = "Running ${suiteName}"
-                                    echo "--------------- ${env.DESCRIPTION} ---------------"
-                                    
-                                    updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
-
                                     sh "./gradlew test --tests \"com.etendoerp.gradle.tests.${suiteName}\" --info"
                                     sh "mv build/jacoco/test.exec build/jacoco/test1.exec"
                                     echo "--------------- ${suiteName} Successful ---------------"
@@ -255,13 +253,11 @@ pipeline {
                     script {
                         withCredentials([sshUserPrivateKey(credentialsId: 'my-credentials', keyFileVariable: 'keyfile')]) {
                             try {
+                                def suiteName = "EtendoPluginPreReleaseTestsPart1"
+                                env.DESCRIPTION = "Running ${suiteName}"
+                                echo "--------------- ${env.DESCRIPTION} ---------------"
+                                updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
                                 dir(REPOSITORY_NAME) {
-                                    def suiteName = "EtendoPluginPreReleaseTestsPart1"
-                                    env.DESCRIPTION = "Running ${suiteName}"
-                                    echo "--------------- ${env.DESCRIPTION} ---------------"
-                                    
-                                    updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
-
                                     sh "./gradlew test --tests \"com.etendoerp.gradle.tests.${suiteName}\" --info"
                                     sh "mv build/jacoco/test.exec build/jacoco/test2.exec"
                                     echo "--------------- ${suiteName} Successful ---------------"
@@ -309,13 +305,11 @@ pipeline {
                     script {
                         withCredentials([sshUserPrivateKey(credentialsId: 'my-credentials', keyFileVariable: 'keyfile')]) {
                             try {
+                                def suiteName = "EtendoPluginPreReleaseTestsPart2"
+                                env.DESCRIPTION = "Running ${suiteName}"
+                                echo "--------------- ${env.DESCRIPTION} ---------------"
+                                updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
                                 dir(REPOSITORY_NAME) {
-                                    def suiteName = "EtendoPluginPreReleaseTestsPart2"
-                                    env.DESCRIPTION = "Running ${suiteName}"
-                                    echo "--------------- ${env.DESCRIPTION} ---------------"
-                                    
-                                    updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
-
                                     sh "./gradlew test --tests \"com.etendoerp.gradle.tests.${suiteName}\" --info"
                                     sh "mv build/jacoco/test.exec build/jacoco/test3.exec"
                                     echo "--------------- ${suiteName} Successful ---------------"

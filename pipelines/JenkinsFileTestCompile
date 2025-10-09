@@ -30,6 +30,7 @@ pipeline {
     SUCCESS         = "SUCCESS"
     FAILED          = "FAILED"
     UNSTABLE        = "UNSTABLE"
+    ABORTED         = "ABORTED"
 
     ETENDO_DIR      = "etendo_base"
     REPOSITORY_NAME = "com.etendoerp.gradleplugin"
