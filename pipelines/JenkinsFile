@@ -56,6 +56,7 @@ pipeline {
         SUCCESS = 'SUCCESS'
         FAILED = 'FAILED'
         UNSTABLE = 'UNSTABLE'
+        ABORTED = 'ABORTED'
 
         COMMIT_INPROGRESS_STATUS = 'pending'
         COMMIT_SUCCESS_STATUS    = 'success'
