@@ -187,28 +187,29 @@ pipeline {
               sed -i "s/\\(id 'com.etendoerp.gradleplugin[^']*'\\) version '\\([^']*\\)'/\\1 \\/\\/ version '\\2'/" "\${ETENDO_DIR}/build.gradle"
               """
 
+              def dependenciesBlock = "\nimplementation(\"com.etendoerp.platform:etendo-core:[25.1.0,26.1.0)\")\n"
               if (env.ADD_BUNDLES == TRUE) {
                 echo "---------------- Add Bundles dependencies ----------------"
                 def dependencies = env.DEPENDENCIES_FOR_BASE.split(',')
-                
-                def dependenciesBlock = dependencies.collect {
+
+                dependenciesBlock += dependencies.collect {
                     "moduleDeps(\"com.etendoerp:$it:[3.0.0,4.0.0)@zip\") {transitive=true}"
                 }.join('\n')
-
-                def buildGradleContent = """
-                dependencies {
-                    ${dependenciesBlock}
-                }
-                """              
-
-                sh """
-                cd ${ETENDO_DIR}
-                echo '${buildGradleContent}' >> build.gradle
-                cat build.gradle
-                """
               } else {
                 echo "---------------- Skipping Adding Bundles ----------------"
               }
+              
+              def buildGradleContent = """
+              dependencies {
+                  ${dependenciesBlock}
+              }
+              """              
+
+              sh """
+              cd ${ETENDO_DIR}
+              echo '${buildGradleContent}' >> build.gradle
+              cat build.gradle
+              """
               
               echo "---------------- Build & Compile ----------------"
               sh """
@@ -306,8 +307,6 @@ pipeline {
                 def dependenciesBlock = dependencies.collect {
                     "moduleDeps(\"com.etendoerp:$it:[3.0.0,4.0.0)@zip\") {transitive=true}"
                 }.join('\n')
-
-                dependenciesBlock += "\nimplementation(\"com.etendoerp.platform:etendo-core:[25.1.0,26.1.0)\")"
 
                 def buildGradleContent = """
                 dependencies {
