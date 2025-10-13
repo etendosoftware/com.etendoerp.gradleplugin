@@ -385,7 +385,7 @@ pipeline {
         }
         if (env.BUILD_IN_SOURCE_STATUS == FAILED) {
           if (statusMessage != "") {
-            statusMessage += "and Source."
+            statusMessage += " and Source."
           } else {
             statusMessage += "Error in building the environment in Source."
           }
