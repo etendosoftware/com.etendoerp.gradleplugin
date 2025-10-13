@@ -91,7 +91,7 @@ pipeline {
             if (onlyTestCompileJenkinsfile) {
               echo "⏭️ Only pipeline/JenkinsFile related files were changed. Skipping pipeline execution."
               env.DESCRIPTION = "Pipeline Skipped - Only JenkinsFileTestCompile files changed"
-              updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+              updateCommitStatus(REPOSITORY_NAME, COMMIT_SUCCESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
               
               echo "✅ Pipeline execution aborted successfully. Commit marked as success."
               currentBuild.result = ABORTED
