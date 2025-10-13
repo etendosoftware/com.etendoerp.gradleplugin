@@ -475,7 +475,7 @@ pipeline {
                             echo "-------------------------- Comparing Coverage with ${branchCompare} Branch --------------------------"
 
                             def rootDir = pwd()
-                            def sonarUtils = load "${rootDir}/pipelines/utils/functions/sonarUtils.groovy"
+                            def sonarUtils = load "${rootDir}/pipelines/utils/sonarUtils.groovy"
 
                             // Only check commit on PR branches
                             def checkCommitCurrent = GIT_BRANCH.startsWith('feature/') || GIT_BRANCH.startsWith('hotfix/') || GIT_BRANCH.startsWith('epic/') || GIT_BRANCH.startsWith('prerelease/')
