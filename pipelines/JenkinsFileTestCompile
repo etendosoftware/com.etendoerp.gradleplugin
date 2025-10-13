@@ -124,21 +124,17 @@ pipeline {
 
               echo "-------------------------- Selecting the Correct Branch for Etendo Base Cloning --------------------------"
               env.BASE_BRANCH = env.MAIN_BRANCH
-              if (env.GIT_BRANCH.contains("-Y") || env.GIT_BRANCH.startsWith("release/")) {
-                env.BASE_BRANCH = env.BACKPORT_BRANCH
-              }
-              def branchCompare = env.MAIN_BRANCH
               if (env.GIT_BRANCH.contains("-Y")) {
-                  echo "The branch ${GIT_BRANCH} contains a -Y suffix."
-                  def yearCommitBranch = (GIT_BRANCH =~ /-Y(\d{2})/)?.find() ? (GIT_BRANCH =~ /-Y(\d{2})/)[0][1] : null
-                  def yearBackportBranch = (env.BACKPORT_BRANCH =~ /release\/(\d{2})\./)?.find() ? (env.BACKPORT_BRANCH =~ /release\/(\d{2})\./)[0][1] : null
-                  if (yearCommitBranch && yearBackportBranch) {
-                      if (yearCommitBranch == yearBackportBranch) {
-                          env.BASE_BRANCH = env.BACKPORT_BRANCH
-                      }
-                  } else {
-                      echo "Could not extract the year from GIT_BRANCH or env.BACKPORT_BRANCH."
+                echo "The branch ${GIT_BRANCH} contains a -Y suffix."
+                def yearCommitBranch = (GIT_BRANCH =~ /-Y(\d{2})/)?.find() ? (GIT_BRANCH =~ /-Y(\d{2})/)[0][1] : null
+                def yearBackportBranch = (env.BACKPORT_BRANCH =~ /release\/(\d{2})\./)?.find() ? (env.BACKPORT_BRANCH =~ /release\/(\d{2})\./)[0][1] : null
+                if (yearCommitBranch && yearBackportBranch) {
+                  if (yearCommitBranch == yearBackportBranch) {
+                    env.BASE_BRANCH = env.BACKPORT_BRANCH
                   }
+                } else {
+                  echo "Could not extract the year from GIT_BRANCH or env.BACKPORT_BRANCH."
+                }
               }
               echo "-------------------------- etendo_base branch name: ${env.BASE_BRANCH} --------------------------"
 
@@ -198,8 +194,6 @@ pipeline {
                 def dependenciesBlock = dependencies.collect {
                     "moduleDeps(\"com.etendoerp:$it:[3.0.0,4.0.0)@zip\") {transitive=true}"
                 }.join('\n')
-
-                dependenciesBlock += "\nimplementation(\"com.etendoerp.platform:etendo-core:[25.1.0,26.1.0)\")"
 
                 def buildGradleContent = """
                 dependencies {
@@ -328,13 +322,7 @@ pipeline {
                 """
               } else {
                 echo "---------------- Skipping Adding Bundles ----------------"
-              }      
-
-              sh """
-              cd ${ETENDO_DIR}
-              echo '${buildGradleContent}' >> build.gradle
-              cat build.gradle
-              """
+              }
               
               echo "---------------- Build & Compile ----------------"
               sh """
