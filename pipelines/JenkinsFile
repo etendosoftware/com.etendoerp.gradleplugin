@@ -418,7 +418,7 @@ pipeline {
 
                                 echo "---------------------- Getting SonarQube Report URL ----------------------"
                                 def branchName = URLEncoder.encode(GIT_BRANCH, 'UTF-8')
-                                def projectUrl = "${SONAR_SERVER}dashboard?id=${env.PROJECT_KEY}&branch=${branchName}"
+                                def projectUrl = "${SONAR_SERVER}/dashboard?id=${env.PROJECT_KEY}&branch=${branchName}"
                                 env.PROJECT_URL = "${projectUrl}"
                                 echo "Sonar Project URL: ${PROJECT_URL}"
 
@@ -449,7 +449,6 @@ pipeline {
                         env.DESCRIPTION = "Comparing Coverage Results"
                         echo "--------------- ${env.DESCRIPTION} ---------------"
                         updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
-                        sh "./utils/repo-update-scripts/build-update-github.sh ${REPOSITORY_NAME} ${COMMIT_INPROGRESS_STATUS} \"Comparing Coverage Results\" ${ACCESS_TOKEN} ${GIT_COMMIT} ${BUILD_URL} \"${CONTEXT_BUILD}\""
                         echo "SonarQube Project Key: ${env.PROJECT_KEY}"
                         def branchCurrent = URLEncoder.encode(GIT_BRANCH, 'UTF-8')
                         def projectUrl = "${SONAR_SERVER}/dashboard?id=${env.PROJECT_KEY}&branch=${branchCurrent}"
