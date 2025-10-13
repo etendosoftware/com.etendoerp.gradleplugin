@@ -561,7 +561,6 @@ pipeline {
             }
         }
         unstable {
-
             script {
                 updateCommitStatus(REPOSITORY_NAME, COMMIT_FAILED_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
                 def mailSubject = ""

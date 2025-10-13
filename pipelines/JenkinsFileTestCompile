@@ -338,35 +338,6 @@ pipeline {
         updateCommitStatus(REPOSITORY_NAME, COMMIT_SUCCESS_STATUS, "Compilation Environment Successful", ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
       }
     }
-    fixed {
-      mail to: EMAIL_ADDRESS,
-      subject: "✅ FIXED - ${currentBuild.fullDisplayName}",
-       mimeType: "text/html",
-      body: """
-        <html>
-          <head>
-              <style>
-                  body { font-family: 'Arial', sans-serif; }
-                  .header { font-size: 16px; font-weight: bold; color: #333; }
-              </style>
-          </head>
-          <body>
-            <p><em>${new Date()}</em></p>
-            <p>__________________________________________________________</p>
-
-            <h2 class="header">✅ ERRORS FIXED ✅ ✅</h2>
-
-            ${env.COMMIT_INFO_TEMPLATE}
-
-            <p>The problems found in the previous run/s have been fixed!  💪<br>Check out the output in the following link:
-            ${env.BUILD_URL}</p>
-
-            <p class="footer"><em>Best regards,<br>#EtendoBot 🤖</em></p>
-            <p>__________________________________________________________</p>
-          </body>
-        </html>
-      """
-    }
     failure {
       mail to: EMAIL_ADDRESS,
       subject: "🚫 ERROR IN ${currentBuild.fullDisplayName}",
