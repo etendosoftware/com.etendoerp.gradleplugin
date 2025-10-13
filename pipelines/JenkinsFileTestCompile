@@ -87,7 +87,7 @@ pipeline {
             def onlyTestCompileJenkinsfile = filesList.every { it == "pipelines/JenkinsFile" || it == "pipelines/utils/AgentTests.yaml" } && filesList.size() > 0 && filesList.size() <= 2
 
             if (onlyTestCompileJenkinsfile) {
-                echo "⏭️ Only pipeline/JenkinsFile related files were changed. Skipping pipeline execution."
+              echo "⏭️ Only pipeline/JenkinsFile related files were changed. Skipping pipeline execution."
               env.DESCRIPTION = "Pipeline Skipped - Only JenkinsFileTestCompile files changed"
               updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
               
@@ -109,14 +109,14 @@ pipeline {
     }
   }
     stage ('Build Enviroment with Etendo Classic in JAR format') {
+      when {
+        expression { currentBuild.result == SUCCESS }
+      }
       steps {
         container('compiler') {
           script {
             try {
               echo "---------------- Build JAR Environment ----------------"
-
-              echo "---------------- Print Environment ----------------"
-              sh "printenv"
               def rootDir = pwd()
               def infoCommit = load "${rootDir}/pipelines/utils/infoCommits.groovy"
 
