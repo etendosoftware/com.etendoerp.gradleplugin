@@ -51,6 +51,8 @@ pipeline {
 
     TRUE  = 'true'
     FALSE = 'false'
+
+    ADD_BUNDLES = 'true'
   }
 
   agent {
@@ -108,7 +110,7 @@ pipeline {
       }
     }
   }
-    stage ('Build Enviroment with Etendo Classic in JAR format') {
+    stage ('Build Environment with Etendo Classic in JAR format') { // MARK: Build Environment with Etendo Classic in JAR format
       when {
         expression { currentBuild.result == SUCCESS }
       }
@@ -125,6 +127,20 @@ pipeline {
               if (env.GIT_BRANCH.contains("-Y") || env.GIT_BRANCH.startsWith("release/")) {
                 env.BASE_BRANCH = env.BACKPORT_BRANCH
               }
+              def branchCompare = env.MAIN_BRANCH
+              if (env.GIT_BRANCH.contains("-Y")) {
+                  echo "The branch ${GIT_BRANCH} contains a -Y suffix."
+                  def yearCommitBranch = (GIT_BRANCH =~ /-Y(\d{2})/)?.find() ? (GIT_BRANCH =~ /-Y(\d{2})/)[0][1] : null
+                  def yearBackportBranch = (env.BACKPORT_BRANCH =~ /release\/(\d{2})\./)?.find() ? (env.BACKPORT_BRANCH =~ /release\/(\d{2})\./)[0][1] : null
+                  if (yearCommitBranch && yearBackportBranch) {
+                      if (yearCommitBranch == yearBackportBranch) {
+                          env.BASE_BRANCH = env.BACKPORT_BRANCH
+                      }
+                  } else {
+                      echo "Could not extract the year from GIT_BRANCH or env.BACKPORT_BRANCH."
+                  }
+              }
+              echo "-------------------------- etendo_base branch name: ${env.BASE_BRANCH} --------------------------"
 
               def description = "Compiling Environment in JAR"
               updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, description, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
@@ -175,26 +191,30 @@ pipeline {
               sed -i "s/\\(id 'com.etendoerp.gradleplugin[^']*'\\) version '\\([^']*\\)'/\\1 \\/\\/ version '\\2'/" "\${ETENDO_DIR}/build.gradle"
               """
 
-              echo "---------------- Add dependencies ----------------"
-              def dependencies = env.DEPENDENCIES_FOR_BASE.split(',')
-              
-              def dependenciesBlock = dependencies.collect {
-                  "moduleDeps(\"com.etendoerp:$it:[3.0.0,4.0.0)@zip\") {transitive=true}"
-              }.join('\n')
+              if (env.ADD_BUNDLES == TRUE) {
+                echo "---------------- Add Bundles dependencies ----------------"
+                def dependencies = env.DEPENDENCIES_FOR_BASE.split(',')
+                
+                def dependenciesBlock = dependencies.collect {
+                    "moduleDeps(\"com.etendoerp:$it:[3.0.0,4.0.0)@zip\") {transitive=true}"
+                }.join('\n')
 
-              dependenciesBlock += "\nimplementation(\"com.etendoerp.platform:etendo-core:[25.1.0,26.1.0)\")"
+                dependenciesBlock += "\nimplementation(\"com.etendoerp.platform:etendo-core:[25.1.0,26.1.0)\")"
 
-              def buildGradleContent = """
-              dependencies {
-                  ${dependenciesBlock}
+                def buildGradleContent = """
+                dependencies {
+                    ${dependenciesBlock}
+                }
+                """              
+
+                sh """
+                cd ${ETENDO_DIR}
+                echo '${buildGradleContent}' >> build.gradle
+                cat build.gradle
+                """
+              } else {
+                echo "---------------- Skipping Adding Bundles ----------------"
               }
-              """              
-
-              sh """
-              cd ${ETENDO_DIR}
-              echo '${buildGradleContent}' >> build.gradle
-              cat build.gradle
-              """
               
               echo "---------------- Build & Compile ----------------"
               sh """
@@ -221,14 +241,18 @@ pipeline {
               def description = "Compiling Environment in JAR Failed"
               updateCommitStatus(REPOSITORY_NAME, COMMIT_FAILED_STATUS, description, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
               echo "Exception occurred: " + e.toString()
-              currentBuild.result = FAILED
-              error('Build Failed in Etendo JAR Environment')
+              currentBuild.result = UNSTABLE
+              env.BUILD_IN_JAR_STATUS = FAILED
+              unstable('Build Failed in Etendo JAR Environment')
             }
           }
         }
       }
     }
-    stage ('Build Enviroment with Etendo Classic in Source format') {
+    stage ('Build Environment with Etendo Classic in Source format') { // MARK: Build Environment with Etendo Classic in Source format
+      when {
+        expression { currentBuild.result == SUCCESS || currentBuild.result == UNSTABLE }
+      }
       steps {
         container('compiler') {
           script {
@@ -281,18 +305,30 @@ pipeline {
               sed -i "s/\\(id 'com.etendoerp.gradleplugin[^']*'\\) version '\\([^']*\\)'/\\1 \\/\\/ version '\\2'/" "\${ETENDO_DIR}/build.gradle"
               """
 
-              echo "---------------- Add dependencies ----------------"
-              def dependencies = env.DEPENDENCIES_FOR_BASE.split(',')
+              if (env.ADD_BUNDLES == TRUE) {
+                echo "---------------- Add Bundles dependencies ----------------"
+                def dependencies = env.DEPENDENCIES_FOR_BASE.split(',')
+                
+                def dependenciesBlock = dependencies.collect {
+                    "moduleDeps(\"com.etendoerp:$it:[3.0.0,4.0.0)@zip\") {transitive=true}"
+                }.join('\n')
 
-              def dependenciesBlock = dependencies.collect {
-                  "moduleDeps(\"com.etendoerp:$it:[3.0.0,4.0.0)@zip\") {transitive=true}"
-              }.join('\n')
+                dependenciesBlock += "\nimplementation(\"com.etendoerp.platform:etendo-core:[25.1.0,26.1.0)\")"
 
-              def buildGradleContent = """
-              dependencies {
-                  ${dependenciesBlock}
-              }
-              """              
+                def buildGradleContent = """
+                dependencies {
+                    ${dependenciesBlock}
+                }
+                """              
+
+                sh """
+                cd ${ETENDO_DIR}
+                echo '${buildGradleContent}' >> build.gradle
+                cat build.gradle
+                """
+              } else {
+                echo "---------------- Skipping Adding Bundles ----------------"
+              }      
 
               sh """
               cd ${ETENDO_DIR}
@@ -321,8 +357,9 @@ pipeline {
               description = "Compiling Environment in Source Failed"
               updateCommitStatus(REPOSITORY_NAME, COMMIT_FAILED_STATUS, description, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
               echo "Exception occurred: " + e.toString()
-              currentBuild.result = FAILED
-              error('Build Failed in Etendo Source Environment')
+              currentBuild.result = UNSTABLE
+              env.BUILD_IN_SOURCE_STATUS = FAILED
+              unstable('Build Failed in Etendo Source Environment')
             }
           }
         }
@@ -338,9 +375,26 @@ pipeline {
         updateCommitStatus(REPOSITORY_NAME, COMMIT_SUCCESS_STATUS, "Compilation Environment Successful", ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
       }
     }
-    failure {
+    unstable {
+      script {
+        echo "---------------- UNSTABLE ----------------"
+        env.DESCRIPTION = "Build Environments Unstable"
+        def statusMessage = ""
+        if (env.BUILD_IN_JAR_STATUS == FAILED) {
+          statusMessage += "Error in building the environment in JAR"
+        }
+        if (env.BUILD_IN_SOURCE_STATUS == FAILED) {
+          if (statusMessage != "") {
+            statusMessage += "and Source."
+          } else {
+            statusMessage += "Error in building the environment in Source."
+          }
+          env.ERROR_MESSAGE = "❌ <strong>${statusMessage}</strong><br>"
+        }
+        updateCommitStatus(REPOSITORY_NAME, COMMIT_FAILED_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+      }
       mail to: EMAIL_ADDRESS,
-      subject: "🚫 ERROR IN ${currentBuild.fullDisplayName}",
+      subject: "⚠️ ${env.DESCRIPTION} - ${currentBuild.fullDisplayName}",
       mimeType: "text/html",
       body:  """
         <html>
@@ -354,7 +408,9 @@ pipeline {
             <p><em>${new Date()}</em></p>
             <p>__________________________________________________________</p>
 
-            <h2 class="header">🚫 COMPILATION FAILED 🚫</h2>
+            <h2 class="header">⚠️ ${env.DESCRIPTION}</h2>
+
+            <p>${env.ERROR_MESSAGE ?: ""}</p>
 
             ${env.COMMIT_INFO_TEMPLATE}
 
