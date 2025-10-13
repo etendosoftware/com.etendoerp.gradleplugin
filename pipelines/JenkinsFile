@@ -342,7 +342,7 @@ pipeline {
         }
         stage('Generate Coverage Report') { // MARK: Generate Coverage Report
             when {
-                expression { env.STATUS_TEST == SUCCESS }
+                expression { currentBuild.result == SUCCESS && env.STATUS_TEST == SUCCESS }
             }
             steps {
                 container("compiler") {
@@ -439,81 +439,83 @@ pipeline {
         stage('Compare Coverage Results') { // MARK: - Compare Coverage Results
             when {
                 expression {
-                currentBuild.result == SUCCESS && env.STATUS_TEST == SUCCESS && env.JACOCO_REPORT_EXISTS == TRUE &&
-                !(env.GIT_BRANCH == env.MAIN_BRANCH || env.GIT_BRANCH.startsWith("release/"))
+                    currentBuild.result == SUCCESS && env.STATUS_TEST == SUCCESS && env.JACOCO_REPORT_EXISTS == TRUE &&
+                    !(env.GIT_BRANCH == env.MAIN_BRANCH || env.GIT_BRANCH.startsWith("release/"))
                 }
             }
             steps {
-                script {
-                    try {
-                        env.DESCRIPTION = "Comparing Coverage Results"
-                        echo "--------------- ${env.DESCRIPTION} ---------------"
-                        updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
-                        echo "SonarQube Project Key: ${env.PROJECT_KEY}"
-                        def branchCurrent = URLEncoder.encode(GIT_BRANCH, 'UTF-8')
-                        def projectUrl = "${SONAR_SERVER}/dashboard?id=${env.PROJECT_KEY}&branch=${branchCurrent}"
-                        env.PROJECT_URL = "${projectUrl}"
-                        echo "Sonar Project URL: ${PROJECT_URL}"
-                        def branchCompare = env.MAIN_BRANCH
-                        env.COMPARE_COVERAGE_STATUS = SUCCESS
-                        if (env.GIT_BRANCH.contains("-Y")) {
-                            def yearCommitBranch = (GIT_BRANCH =~ /-Y(\d{2})/)?.find() ? (GIT_BRANCH =~ /-Y(\d{2})/)[0][1] : null
-                            def yearBackportBranch = (BACKPORT_BRANCH =~ /release\/(\d{2})\./)?.find() ? (BACKPORT_BRANCH =~ /release\/(\d{2})\./)[0][1] : null
-                            if (yearCommitBranch && yearBackportBranch) {
-                                if (yearCommitBranch == yearBackportBranch) {
-                                    echo "The year of GIT_BRANCH (${yearCommitBranch}) and the year of BACKPORT_BRANCH (${yearBackportBranch}) match."
-                                    echo "This means the branch is a backport branch."
-                                    branchCompare = env.BACKPORT_BRANCH
+                container("compiler") {
+                    script {
+                        try {
+                            env.DESCRIPTION = "Comparing Coverage Results"
+                            echo "--------------- ${env.DESCRIPTION} ---------------"
+                            updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+                            echo "SonarQube Project Key: ${env.PROJECT_KEY}"
+                            def branchCurrent = URLEncoder.encode(GIT_BRANCH, 'UTF-8')
+                            def projectUrl = "${SONAR_SERVER}/dashboard?id=${env.PROJECT_KEY}&branch=${branchCurrent}"
+                            env.PROJECT_URL = "${projectUrl}"
+                            echo "Sonar Project URL: ${PROJECT_URL}"
+                            def branchCompare = env.MAIN_BRANCH
+                            env.COMPARE_COVERAGE_STATUS = SUCCESS
+                            if (env.GIT_BRANCH.contains("-Y")) {
+                                def yearCommitBranch = (GIT_BRANCH =~ /-Y(\d{2})/)?.find() ? (GIT_BRANCH =~ /-Y(\d{2})/)[0][1] : null
+                                def yearBackportBranch = (env.BACKPORT_BRANCH =~ /release\/(\d{2})\./)?.find() ? (env.BACKPORT_BRANCH =~ /release\/(\d{2})\./)[0][1] : null
+                                if (yearCommitBranch && yearBackportBranch) {
+                                    if (yearCommitBranch == yearBackportBranch) {
+                                        echo "The year of GIT_BRANCH (${yearCommitBranch}) and the year of BACKPORT_BRANCH (${yearBackportBranch}) match."
+                                        echo "This means the branch is a backport branch."
+                                        branchCompare = env.env.BACKPORT_BRANCH
+                                    } else {
+                                        echo "The year of GIT_BRANCH (${yearCommitBranch}) and the year of BACKPORT_BRANCH (${yearBackportBranch}) do NOT match."
+                                    }
                                 } else {
-                                    echo "The year of GIT_BRANCH (${yearCommitBranch}) and the year of BACKPORT_BRANCH (${yearBackportBranch}) do NOT match."
+                                    echo "Could not extract the year from GIT_BRANCH or env.BACKPORT_BRANCH."
                                 }
-                            } else {
-                                echo "Could not extract the year from GIT_BRANCH or BACKPORT_BRANCH."
                             }
-                        }
-                        echo "-------------------------- Comparing Coverage with ${branchCompare} Branch --------------------------"
+                            echo "-------------------------- Comparing Coverage with ${branchCompare} Branch --------------------------"
 
-                        def rootDir = pwd()
-                        def sonarUtils = load "${rootDir}/pipelines/utils/functions/sonarUtils.groovy"
+                            def rootDir = pwd()
+                            def sonarUtils = load "${rootDir}/pipelines/utils/functions/sonarUtils.groovy"
 
-                        // Only check commit on PR branches
-                        def checkCommitCurrent = GIT_BRANCH.startsWith('feature/') || GIT_BRANCH.startsWith('hotfix/') || GIT_BRANCH.startsWith('epic/') || GIT_BRANCH.startsWith('prerelease/')
-                        echo "Check commit for current branch (${GIT_BRANCH}): ${checkCommitCurrent}"
-                        def coverageCurrent = sonarUtils.getCoverageWithRetry(
-                            GIT_BRANCH,
-                            checkCommitCurrent,
-                            env.PROJECT_KEY,
-                            SONAR_TOKEN,
-                            SONAR_SERVER,
-                            env.GIT_COMMIT
-                        )
-                        def coverageOriginBranch = sonarUtils.getCoverageWithRetry(
-                            branchCompare,
-                            false,
-                            env.PROJECT_KEY,
-                            SONAR_TOKEN,
-                            SONAR_SERVER,
-                            null
-                        )
+                            // Only check commit on PR branches
+                            def checkCommitCurrent = GIT_BRANCH.startsWith('feature/') || GIT_BRANCH.startsWith('hotfix/') || GIT_BRANCH.startsWith('epic/') || GIT_BRANCH.startsWith('prerelease/')
+                            echo "Check commit for current branch (${GIT_BRANCH}): ${checkCommitCurrent}"
+                            def coverageCurrent = sonarUtils.getCoverageWithRetry(
+                                GIT_BRANCH,
+                                checkCommitCurrent,
+                                env.PROJECT_KEY,
+                                SONAR_TOKEN,
+                                SONAR_SERVER,
+                                env.GIT_COMMIT
+                            )
+                            def coverageOriginBranch = sonarUtils.getCoverageWithRetry(
+                                branchCompare,
+                                false,
+                                env.PROJECT_KEY,
+                                SONAR_TOKEN,
+                                SONAR_SERVER,
+                                null
+                            )
 
-                        echo "Current branch (${env.GIT_BRANCH}) coverage: ${coverageCurrent}%"
-                        echo "${branchCompare} branch coverage: ${coverageOriginBranch}%"
-                        if (coverageCurrent < coverageOriginBranch) {
-                            env.ERROR_MESSAGE = "Coverage (${coverageCurrent}%) is lower than ${branchCompare} branch (${coverageOriginBranch}%)"
+                            echo "Current branch (${env.GIT_BRANCH}) coverage: ${coverageCurrent}%"
+                            echo "${branchCompare} branch coverage: ${coverageOriginBranch}%"
+                            if (coverageCurrent < coverageOriginBranch) {
+                                env.ERROR_MESSAGE = "Coverage (${coverageCurrent}%) is lower than ${branchCompare} branch (${coverageOriginBranch}%)"
+                                echo "-------------------------- ${env.ERROR_MESSAGE} --------------------------"
+                                currentBuild.result = UNSTABLE
+                                env.COMPARE_COVERAGE_STATUS = FAILED
+                                unstable(env.ERROR_MESSAGE)
+                            } else {
+                                echo "-------------------------- Coverage is OK --------------------------"
+                                currentBuild.result = SUCCESS
+                            }
+                        } catch (Exception e) {
+                            echo "Exception occurred: " + e.toString()
+                            env.ERROR_MESSAGE = "Comparing Coverage Results Failed"
                             echo "-------------------------- ${env.ERROR_MESSAGE} --------------------------"
                             currentBuild.result = UNSTABLE
-                            env.COMPARE_COVERAGE_STATUS = FAILED
-                            unstable(env.ERROR_MESSAGE)
-                        } else {
-                            echo "-------------------------- Coverage is OK --------------------------"
-                            currentBuild.result = SUCCESS
+                            error(env.ERROR_MESSAGE)
                         }
-                    } catch (Exception e) {
-                        echo "Exception occurred: " + e.toString()
-                        env.ERROR_MESSAGE = "Comparing Coverage Results Failed"
-                        echo "-------------------------- ${env.ERROR_MESSAGE} --------------------------"
-                        currentBuild.result = UNSTABLE
-                        error(env.ERROR_MESSAGE)
                     }
                 }
             }
