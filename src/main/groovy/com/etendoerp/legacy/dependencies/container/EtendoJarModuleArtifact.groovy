@@ -10,7 +10,6 @@ import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ResolvedArtifact
 import org.gradle.api.file.FileTree
-import org.gradle.internal.impldep.org.junit.platform.commons.util.ModuleUtils
 
 class EtendoJarModuleArtifact extends ArtifactDependency{
 

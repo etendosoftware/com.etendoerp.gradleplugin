@@ -40,8 +40,11 @@ class ModulesConfigurationUtils {
     }
 
     static void configureMainProject(Project mainProject, Map<String, Project> subprojectNamesMap) {
-        DefaultConfiguration defaultCopy = mainProject.configurations.default.copyRecursive() as DefaultConfiguration
-        mainProject.configurations.add(defaultCopy)
+        Configuration defaultCopy = mainProject.configurations.create("defaultCopy") {
+            canBeResolved = true
+            canBeConsumed = false
+            extendsFrom(mainProject.configurations.findByName("runtimeClasspath") ?: mainProject.configurations.findByName("implementation"))
+        }
 
         configurePomContainer(mainProject, mainProject, subprojectNamesMap)
     }
