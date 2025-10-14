@@ -86,7 +86,7 @@ pipeline {
                 script {
                     try {
                         echo "---------------------- Setting up Environment Variables ----------------------"
-                        env.STATUS_TEST = SUCCESS // Overall status of the tests
+                        env.TEST_STATUS = SUCCESS // Overall status of the tests
                         env.JACOCO_REPORT_EXISTS = FALSE // Flag to indicate if Jacoco report exists
                         env.FAILED_SUITES = "" // List to collect failed test suites
                         
@@ -108,7 +108,7 @@ pipeline {
                         if (onlyTestCompileJenkinsfile) {
                             echo "⏭️ Only pipeline/JenkinsFileTestCompile related files were changed. Skipping pipeline execution."
                             env.DESCRIPTION = "Pipeline Skipped - Only JenkinsFileTestCompile files changed"
-                            updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+                            updateCommitStatus(REPOSITORY_NAME, COMMIT_SUCCESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
                             
                             echo "✅ Pipeline execution aborted successfully. Commit marked as success."
                             currentBuild.result = ABORTED
@@ -184,7 +184,7 @@ pipeline {
                                 env.DESCRIPTION = "Build Environment Failed"
                                 echo "--------------- ${env.DESCRIPTION} ---------------"
                                 currentBuild.result = FAILED
-                                env.STATUS_TEST = FAILED
+                                env.TEST_STATUS = FAILED
                                 error(env.DESCRIPTION)
                             }
                         }
@@ -214,7 +214,7 @@ pipeline {
                             } catch (Exception e) {
                                 def currentFailed = env.FAILED_SUITES ?: ""
                                 env.FAILED_SUITES = currentFailed.isEmpty() ? "${suiteName}" : "${currentFailed}, ${suiteName}"
-                                env.STATUS_TEST = UNSTABLE
+                                env.TEST_STATUS = UNSTABLE
                                 echo 'Exception occurred: ' + e.toString()
                                 env.DESCRIPTION = "Failed ${suiteName}"
                                 echo "--------------- ${env.DESCRIPTION} ---------------"
@@ -266,7 +266,7 @@ pipeline {
                             } catch (Exception e) {
                                 def currentFailed = env.FAILED_SUITES ?: ""
                                 env.FAILED_SUITES = currentFailed.isEmpty() ? "${suiteName}" : "${currentFailed}, ${suiteName}"
-                                env.STATUS_TEST = UNSTABLE
+                                env.TEST_STATUS = UNSTABLE
                                 echo 'Exception occurred: ' + e.toString()
                                 env.DESCRIPTION = "Failed ${suiteName}"
                                 echo "--------------- ${env.DESCRIPTION} ---------------"
@@ -318,7 +318,7 @@ pipeline {
                             } catch (Exception e) {
                                 def currentFailed = env.FAILED_SUITES ?: ""
                                 env.FAILED_SUITES = currentFailed.isEmpty() ? "${suiteName}" : "${currentFailed}, ${suiteName}"
-                                env.STATUS_TEST = UNSTABLE
+                                env.TEST_STATUS = UNSTABLE
                                 echo 'Exception occurred: ' + e.toString()
                                 env.DESCRIPTION = "Failed ${suiteName}"
                                 echo "--------------- ${env.DESCRIPTION} ---------------"
@@ -342,7 +342,7 @@ pipeline {
         }
         stage('Generate Coverage Report') { // MARK: Generate Coverage Report
             when {
-                expression { currentBuild.result == SUCCESS && env.STATUS_TEST == SUCCESS }
+                expression { currentBuild.result == SUCCESS && env.TEST_STATUS == SUCCESS }
             }
             steps {
                 container("compiler") {
@@ -366,7 +366,7 @@ pipeline {
                             }
                         } catch (Exception e) {
                             echo 'Exception occurred: ' + e.toString()
-                            env.STATUS_TEST = UNSTABLE
+                            env.TEST_STATUS = UNSTABLE
                             env.DESCRIPTION = "Failed to Generate Coverage Report"
                             echo "--------------- ${env.DESCRIPTION} ---------------"
                             currentBuild.result = UNSTABLE
@@ -380,7 +380,7 @@ pipeline {
 
         stage('Run SonarQube Analysis') { // MARK: Run SonarQube Analysis
             when {
-                expression { currentBuild.result == SUCCESS && env.JACOCO_REPORT_EXISTS == TRUE && env.STATUS_TEST == SUCCESS }
+                expression { currentBuild.result == SUCCESS && env.JACOCO_REPORT_EXISTS == TRUE && env.TEST_STATUS == SUCCESS }
             }
             steps {
                 container("compiler") {
@@ -426,7 +426,7 @@ pipeline {
                             }
                         } catch (Exception e) {
                             echo 'Exception occurred: ' + e.toString()
-                            env.STATUS_TEST = UNSTABLE
+                            env.TEST_STATUS = UNSTABLE
                             env.DESCRIPTION = "SonarQube Analysis Failed"
                             echo "--------------- ${env.DESCRIPTION} ---------------"
                             currentBuild.result = FAILED
@@ -439,7 +439,7 @@ pipeline {
         stage('Compare Coverage Results') { // MARK: - Compare Coverage Results
             when {
                 expression {
-                    currentBuild.result == SUCCESS && env.STATUS_TEST == SUCCESS && env.JACOCO_REPORT_EXISTS == TRUE &&
+                    currentBuild.result == SUCCESS && env.TEST_STATUS == SUCCESS && env.JACOCO_REPORT_EXISTS == TRUE &&
                     !(env.GIT_BRANCH == env.MAIN_BRANCH || env.GIT_BRANCH.startsWith("release/"))
                 }
             }
@@ -523,7 +523,7 @@ pipeline {
         stage('Run Deploy Snapshot') { // MARK: Run Deploy Snapshot
             when {
                 branch 'develop'
-                expression { currentBuild.result == SUCCESS && env.STATUS_TEST == SUCCESS }
+                expression { currentBuild.result == SUCCESS && env.TEST_STATUS == SUCCESS }
             }
             steps {
                 container('compiler') {
