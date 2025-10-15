@@ -30,6 +30,7 @@ pipeline {
     SUCCESS         = "SUCCESS"
     FAILED          = "FAILED"
     UNSTABLE        = "UNSTABLE"
+    ABORTED         = "ABORTED"
 
     ETENDO_DIR      = "etendo_base"
     REPOSITORY_NAME = "com.etendoerp.gradleplugin"
@@ -47,106 +48,100 @@ pipeline {
     BASE_BRANCH_BACKPORT = "release/24.4"
     MAIN_BRANCH          = "main"
     DEVELOP_BRANCH       = "develop"
+
+    TRUE  = 'true'
+    FALSE = 'false'
+
+    ADD_BUNDLES = 'true'
   }
 
   agent {
     kubernetes {
-        inheritFrom 'jenkins-node-pg'
+        inheritFrom 'jenkins-node-compile'
         defaultContainer 'jnlp'
-        yaml """
-apiVersion: v1
-kind: Pod
-metadata:
-  name: jenkins-node-pg-0
-  namespace: jenkins2025
-  labels:
-    app.kubernetes.io/name: jenkins-node-pg
-spec:
-  volumes:
-    - name: rsa-keys
-      configMap:
-        name: rsa-keys
-        defaultMode: 384
-    - name: docker-sock
-      hostPath:
-        path: /var/run/docker.sock
-        type: ''
-  containers:
-    - name: compiler
-      image: etendo/compiler_jenkins:1.0.7-jdk.17.0.13
-      ports:
-        - name: ssh
-          containerPort: 22
-          protocol: TCP
-        - name: visualvm
-          containerPort: 8000
-          protocol: TCP
-      resources:
-        requests:
-          cpu: 1072m
-          memory: 4000Mi
-        limits:
-          cpu: 2072m
-          memory: 6500Mi
-      volumeMounts:
-        - name: rsa-keys
-          mountPath: /root/.ssh/
-        - name: docker-sock
-          mountPath: /var/run/docker.sock
-      lifecycle:
-        postStart:
-          exec:
-            command:
-              - bash
-              - '-c'
-              - >-
-                chmod a+x /var/run/docker.sock && rm
-                /etc/apt/sources.list.d/pgdg.list || echo 0 && apt update && apt
-                install -y curl
-      terminationMessagePath: /dev/termination-log
-      terminationMessagePolicy: File
-      imagePullPolicy: IfNotPresent
-    - name: postgres
-      image: postgres:14
-      workingDir: /home/jenkins
-      env:
-        - name: POSTGRES_PASSWORD
-          value: syspass
-      resources:
-        requests:
-          cpu: 1000m
-          memory: 1000Mi
-      terminationMessagePath: /dev/termination-log
-      terminationMessagePolicy: File
-      imagePullPolicy: IfNotPresent
-  restartPolicy: Always
-  terminationGracePeriodSeconds: 30
-  dnsPolicy: ClusterFirst
-  serviceAccountName: default
-  serviceAccount: default
-  securityContext: {}
-  """
+        yamlFile 'pipelines/utils/AgentTestCompile.yaml'
     }
   }
 
   stages {
-    stage ('Build Enviroment with Etendo Classic in JAR format') {
+    stage('Check Pipeline Skip Condition') { // MARK: Check Pipeline Skip Condition
+      steps {
+        script {
+          try {
+            echo "---------------------- Setting up Environment Variables ----------------------"
+            env.STATUS_TEST = SUCCESS // Overall status of the tests
+            env.JACOCO_REPORT_EXISTS = FALSE // Flag to indicate if Jacoco report exists
+            env.FAILED_SUITES = "" // List to collect failed test suites
+            
+            echo "--------------- Printenv ---------------"
+            sh 'printenv'
+
+            echo "--------------- Checking if pipeline should be skipped ---------------"
+            def changedFiles = sh(
+              script: "git diff --name-only HEAD~1 HEAD",
+              returnStdout: true
+            ).trim()
+            
+            echo "Files changed in last commit: ${changedFiles}"
+            
+            // Check if only JenkinsFileTestCompile was changed
+            def filesList = changedFiles.split('\n')
+            def onlyTestCompileJenkinsfile = filesList.every { it == "pipelines/JenkinsFile" || it == "pipelines/utils/AgentTests.yaml" } && filesList.size() > 0 && filesList.size() <= 2
+
+            if (onlyTestCompileJenkinsfile) {
+              echo "⏭️ Only pipeline/JenkinsFile related files were changed. Skipping pipeline execution."
+              env.DESCRIPTION = "Pipeline Skipped - Only JenkinsFileTestCompile files changed"
+              updateCommitStatus(REPOSITORY_NAME, COMMIT_SUCCESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+              
+              echo "✅ Pipeline execution aborted successfully. Commit marked as success."
+              currentBuild.result = ABORTED
+              return
+            } else {
+              echo "✅ Pipeline will continue - Changes detected in other files or multiple files changed."
+              currentBuild.result = SUCCESS
+            }
+        } catch (Exception e) {
+          echo "❌ Error in pipeline skip condition check: ${e.getMessage()}"            
+          env.DESCRIPTION = "Pipeline Check Failed"
+          updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+          currentBuild.result = FAILED
+          error("Failed to check pipeline skip condition: ${e.getMessage()}")
+        }
+      }
+    }
+  }
+    stage ('Build Environment with Etendo Classic in JAR format') { // MARK: Build Environment with Etendo Classic in JAR format
+      when {
+        expression { currentBuild.result == SUCCESS }
+      }
       steps {
         container('compiler') {
           script {
             try {
               echo "---------------- Build JAR Environment ----------------"
-
-              echo "---------------- Print Environment ----------------"
-              sh "printenv"
               def rootDir = pwd()
               def infoCommit = load "${rootDir}/pipelines/utils/infoCommits.groovy"
 
               echo "-------------------------- Selecting the Correct Branch for Etendo Base Cloning --------------------------"
               env.BASE_BRANCH = env.MAIN_BRANCH
-              if (env.GIT_BRANCH.contains("-Y") || env.GIT_BRANCH.startsWith("release/")) {
-                env.BASE_BRANCH = env.BACKPORT_BRANCH
+              if (env.GIT_BRANCH.contains("-Y")) {
+                echo "The branch ${GIT_BRANCH} contains a -Y suffix."
+                def yearCommitBranch = (GIT_BRANCH =~ /-Y(\d{2})/)?.find() ? (GIT_BRANCH =~ /-Y(\d{2})/)[0][1] : null
+                def yearBackportBranch = (env.BACKPORT_BRANCH =~ /release\/(\d{2})\./)?.find() ? (env.BACKPORT_BRANCH =~ /release\/(\d{2})\./)[0][1] : null
+                def yearPrereleaseBranch = (env.PRERELEASE_BRANCH =~ /prerelease\/(\d{2})\./)?.find() ? (env.PRERELEASE_BRANCH =~ /prerelease\/(\d{2})\./)[0][1] : null
+                if (yearCommitBranch && yearBackportBranch && yearPrereleaseBranch) {
+                  if (yearCommitBranch == yearBackportBranch) {
+                    env.BASE_BRANCH = env.BACKPORT_BRANCH
+                  } else if (yearCommitBranch == yearPrereleaseBranch) {
+                    env.BASE_BRANCH = env.PRERELEASE_BRANCH
+                  } else {
+                    error("The year suffix in GIT_BRANCH (${yearCommitBranch}) does not match with BACKPORT_BRANCH (${yearBackportBranch}) or PRERELEASE_BRANCH (${yearPrereleaseBranch}). Please check the branch names.")
+                  }
+                } else {
+                  echo "Could not extract the year from GIT_BRANCH, env.BACKPORT_BRANCH or env.PRERELEASE_BRANCH."
+                }
               }
+              echo "-------------------------- etendo_base branch name: ${env.BASE_BRANCH} --------------------------"
 
               def description = "Compiling Environment in JAR"
               updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, description, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
@@ -197,15 +192,18 @@ spec:
               sed -i "s/\\(id 'com.etendoerp.gradleplugin[^']*'\\) version '\\([^']*\\)'/\\1 \\/\\/ version '\\2'/" "\${ETENDO_DIR}/build.gradle"
               """
 
-              echo "---------------- Add dependencies ----------------"
-              def dependencies = env.DEPENDENCIES_FOR_BASE.split(',')
+              def dependenciesBlock = "\nimplementation(\"com.etendoerp.platform:etendo-core:[25.1.0,26.1.0)\")\n"
+              if (env.ADD_BUNDLES == TRUE) {
+                echo "---------------- Add Bundles dependencies ----------------"
+                def dependencies = env.DEPENDENCIES_FOR_BASE.split(',')
+
+                dependenciesBlock += dependencies.collect {
+                    "moduleDeps(\"com.etendoerp:$it:[3.0.0,4.0.0)@zip\") {transitive=true}"
+                }.join('\n')
+              } else {
+                echo "---------------- Skipping Adding Bundles ----------------"
+              }
               
-              def dependenciesBlock = dependencies.collect {
-                  "moduleDeps(\"com.etendoerp:$it:[3.0.0,4.0.0)@zip\") {transitive=true}"
-              }.join('\n')
-
-              dependenciesBlock += "\nimplementation(\"com.etendoerp.platform:etendo-core:[25.1.0,26.1.0)\")"
-
               def buildGradleContent = """
               dependencies {
                   ${dependenciesBlock}
@@ -243,14 +241,18 @@ spec:
               def description = "Compiling Environment in JAR Failed"
               updateCommitStatus(REPOSITORY_NAME, COMMIT_FAILED_STATUS, description, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
               echo "Exception occurred: " + e.toString()
-              currentBuild.result = FAILED
-              error('Build Failed in Etendo JAR Environment')
+              currentBuild.result = UNSTABLE
+              env.BUILD_IN_JAR_STATUS = FAILED
+              unstable('Build Failed in Etendo JAR Environment')
             }
           }
         }
       }
     }
-    stage ('Build Enviroment with Etendo Classic in Source format') {
+    stage ('Build Environment with Etendo Classic in Source format') { // MARK: Build Environment with Etendo Classic in Source format
+      when {
+        expression { currentBuild.result == SUCCESS || currentBuild.result == UNSTABLE }
+      }
       steps {
         container('compiler') {
           script {
@@ -303,24 +305,28 @@ spec:
               sed -i "s/\\(id 'com.etendoerp.gradleplugin[^']*'\\) version '\\([^']*\\)'/\\1 \\/\\/ version '\\2'/" "\${ETENDO_DIR}/build.gradle"
               """
 
-              echo "---------------- Add dependencies ----------------"
-              def dependencies = env.DEPENDENCIES_FOR_BASE.split(',')
+              if (env.ADD_BUNDLES == TRUE) {
+                echo "---------------- Add Bundles dependencies ----------------"
+                def dependencies = env.DEPENDENCIES_FOR_BASE.split(',')
+                
+                def dependenciesBlock = dependencies.collect {
+                    "moduleDeps(\"com.etendoerp:$it:[3.0.0,4.0.0)@zip\") {transitive=true}"
+                }.join('\n')
 
-              def dependenciesBlock = dependencies.collect {
-                  "moduleDeps(\"com.etendoerp:$it:[3.0.0,4.0.0)@zip\") {transitive=true}"
-              }.join('\n')
+                def buildGradleContent = """
+                dependencies {
+                    ${dependenciesBlock}
+                }
+                """              
 
-              def buildGradleContent = """
-              dependencies {
-                  ${dependenciesBlock}
+                sh """
+                cd ${ETENDO_DIR}
+                echo '${buildGradleContent}' >> build.gradle
+                cat build.gradle
+                """
+              } else {
+                echo "---------------- Skipping Adding Bundles ----------------"
               }
-              """              
-
-              sh """
-              cd ${ETENDO_DIR}
-              echo '${buildGradleContent}' >> build.gradle
-              cat build.gradle
-              """
               
               echo "---------------- Build & Compile ----------------"
               sh """
@@ -343,8 +349,9 @@ spec:
               description = "Compiling Environment in Source Failed"
               updateCommitStatus(REPOSITORY_NAME, COMMIT_FAILED_STATUS, description, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
               echo "Exception occurred: " + e.toString()
-              currentBuild.result = FAILED
-              error('Build Failed in Etendo Source Environment')
+              currentBuild.result = UNSTABLE
+              env.BUILD_IN_SOURCE_STATUS = FAILED
+              unstable('Build Failed in Etendo Source Environment')
             }
           }
         }
@@ -360,38 +367,26 @@ spec:
         updateCommitStatus(REPOSITORY_NAME, COMMIT_SUCCESS_STATUS, "Compilation Environment Successful", ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
       }
     }
-    fixed {
+    unstable {
+      script {
+        echo "---------------- UNSTABLE ----------------"
+        env.DESCRIPTION = "Build Environments Unstable"
+        def statusMessage = ""
+        if (env.BUILD_IN_JAR_STATUS == FAILED) {
+          statusMessage += "Error in building the environment in JAR"
+        }
+        if (env.BUILD_IN_SOURCE_STATUS == FAILED) {
+          if (statusMessage != "") {
+            statusMessage += " and Source."
+          } else {
+            statusMessage += "Error in building the environment in Source."
+          }
+          env.ERROR_MESSAGE = "❌ <strong>${statusMessage}</strong><br>"
+        }
+        updateCommitStatus(REPOSITORY_NAME, COMMIT_FAILED_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+      }
       mail to: EMAIL_ADDRESS,
-      subject: "✅ FIXED - ${currentBuild.fullDisplayName}",
-       mimeType: "text/html",
-      body: """
-        <html>
-          <head>
-              <style>
-                  body { font-family: 'Arial', sans-serif; }
-                  .header { font-size: 16px; font-weight: bold; color: #333; }
-              </style>
-          </head>
-          <body>
-            <p><em>${new Date()}</em></p>
-            <p>__________________________________________________________</p>
-
-            <h2 class="header">✅ ERRORS FIXED ✅ ✅</h2>
-
-            ${env.COMMIT_INFO_TEMPLATE}
-
-            <p>The problems found in the previous run/s have been fixed!  💪<br>Check out the output in the following link:
-            ${env.BUILD_URL}</p>
-
-            <p class="footer"><em>Best regards,<br>#EtendoBot 🤖</em></p>
-            <p>__________________________________________________________</p>
-          </body>
-        </html>
-      """
-    }
-    failure {
-      mail to: EMAIL_ADDRESS,
-      subject: "🚫 ERROR IN ${currentBuild.fullDisplayName}",
+      subject: "⚠️ ${env.DESCRIPTION} - ${currentBuild.fullDisplayName}",
       mimeType: "text/html",
       body:  """
         <html>
@@ -405,7 +400,9 @@ spec:
             <p><em>${new Date()}</em></p>
             <p>__________________________________________________________</p>
 
-            <h2 class="header">🚫 COMPILATION FAILED 🚫</h2>
+            <h2 class="header">⚠️ ${env.DESCRIPTION}</h2>
+
+            <p>${env.ERROR_MESSAGE ?: ""}</p>
 
             ${env.COMMIT_INFO_TEMPLATE}
 
