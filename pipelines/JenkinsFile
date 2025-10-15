@@ -241,11 +241,6 @@ pipeline {
             when {
                 allOf {
                     expression { currentBuild.result == SUCCESS || currentBuild.result == UNSTABLE }
-                    anyOf {
-                        branch 'main'
-                        branch 'develop'
-                        expression { return env.GIT_BRANCH.startsWith("release/") }
-                    }
                 }
             }
             steps {
@@ -293,11 +288,6 @@ pipeline {
             when {
                 allOf {
                     expression { currentBuild.result == SUCCESS || currentBuild.result == UNSTABLE }
-                    anyOf {
-                        branch 'main'
-                        branch 'develop'
-                        expression { return env.GIT_BRANCH.startsWith("release/") }
-                    }
                 }
             }
             steps {
