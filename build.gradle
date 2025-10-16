@@ -12,7 +12,7 @@ def PROD = "prod"
 
 final String URL_PROD = "https://maven.pkg.github.com/etendosoftware/com.etendoerp.gradleplugin"
 final String URL_DEV = "https://repo.futit.cloud/repository/maven-public-snapshots"
-final String PLUGIN_VERSION = "2.2.0"
+final String PLUGIN_VERSION = "3.0.0"
 final String PUBLICATION_TYPE = "-rc"
 
 // Default mode
@@ -79,13 +79,13 @@ dependencies {
     testImplementation gradleTestKit()
 
     // https://mvnrepository.com/artifact/org.apache.commons/commons-dbcp2
-    implementation group: 'org.apache.commons', name: 'commons-dbcp2', version: '2.9.0'
+    implementation group: 'org.apache.commons', name: 'commons-dbcp2', version: '2.13.0'
 
     // https://mvnrepository.com/artifact/org.postgresql/postgresql
-    implementation 'org.postgresql:postgresql:42.5.4'
+    implementation "org.postgresql:postgresql:42.7.8"
 
     // https://mvnrepository.com/artifact/com.oracle.database.jdbc/ojdbc8
-    implementation 'com.oracle.database.jdbc:ojdbc8:21.6.0.0.1'
+    implementation 'com.oracle.database.jdbc:ojdbc8:23.9.0.25.07'
 
     // https://mvnrepository.com/artifact/org.jdom/jdom2
     implementation("org.jdom:jdom2:2.0.5") {
@@ -96,17 +96,29 @@ dependencies {
     implementation("jaxen:jaxen:1.1.4") {
         exclude group: 'jdom', module: 'jdom'
     }
-    implementation("org.codehaus.groovy:groovy-sql:3.0.22")
-    implementation("org.codehaus.groovy:groovy-ant:3.0.22")
 
-    testImplementation 'org.codehaus.groovy:groovy-all:3.0.22'
+    // https://mvnrepository.com/artifact/org.codehaus.groovy/groovy-sql
+    implementation 'org.codehaus.groovy:groovy-sql:3.0.25'
+    // https://mvnrepository.com/artifact/org.codehaus.groovy/groovy-ant
+    implementation 'org.codehaus.groovy:groovy-ant:3.0.25'
+    // https://mvnrepository.com/artifact/org.codehaus.groovy/groovy-all
+    testImplementation 'org.codehaus.groovy:groovy-all:3.0.25'
+
+    // https://mvnrepository.com/artifact/org.spockframework/spock-bom
     testImplementation platform("org.spockframework:spock-bom:2.0-M4-groovy-3.0")
+    // https://mvnrepository.com/artifact/org.spockframework/spock-core
     testImplementation 'org.spockframework:spock-core'
+    // https://mvnrepository.com/artifact/org.spockframework/spock-junit4
     testImplementation 'org.spockframework:spock-junit4'
+    // https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
+    // https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-engine
     testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.9.2'
+    // https://mvnrepository.com/artifact/org.junit.platform/junit-platform-suite-api
     testImplementation 'org.junit.platform:junit-platform-suite-api:1.9.2'
+    // https://mvnrepository.com/artifact/org.junit.platform/junit-platform-engine
     testImplementation 'org.junit.platform:junit-platform-suite-engine:1.9.2'
+    // https://mvnrepository.com/artifact/com.athaydes/spock-reports
     testImplementation( "com.athaydes:spock-reports:2.0-groovy-3.0" ) {
         transitive = false // this avoids affecting your version of Groovy/Spock
     }
