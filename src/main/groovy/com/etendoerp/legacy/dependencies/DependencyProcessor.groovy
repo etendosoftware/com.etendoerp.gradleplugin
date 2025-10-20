@@ -319,11 +319,11 @@ class DependencyProcessor {
         dynConfig.canBeConsumed = false
 
         if (dependencies == null || dependencies.isEmpty()) {
-            project.logger.lifecycle("ℹ️ No dynamic dependencies were provided for 'etendoImplementationDynamic'.")
+            project.logger.warn("No dynamic dependencies were provided for 'etendoImplementationDynamic'.")
             return
         }
 
-        project.logger.lifecycle("📦 Applying ${dependencies.size()} dynamic dependencies to 'etendoImplementationDynamic' configuration...")
+        project.logger.debug("Applying ${dependencies.size()} dynamic dependencies to 'etendoImplementationDynamic' configuration...")
 
         for (Dependency dependency : dependencies) {
             if (dependency) {
@@ -350,11 +350,11 @@ class DependencyProcessor {
         dynConfig.canBeConsumed = false
 
         if (artifactDependency == null) {
-            project.logger.warn("⚠️ Skipped applying null artifact dependency to 'etendoImplementationDynamic'.")
+            project.logger.warn("️Skipped applying null artifact dependency to 'etendoImplementationDynamic'.")
             return
         }
 
-        project.logger.lifecycle("📦 Applying dynamic artifact dependency '${artifactDependency.displayName}' (transitive=${transitivity}) to 'etendoImplementationDynamic'...")
+        project.logger.debug("Applying dynamic artifact dependency '${artifactDependency.displayName}' (transitive=${transitivity}) to 'etendoImplementationDynamic'...")
 
         project.dependencies.add("etendoImplementationDynamic",
                 project.dependencies.create("${artifactDependency.displayName}") {
@@ -375,7 +375,7 @@ class DependencyProcessor {
      * </p>
      */
     private void linkDynamicImplementation() {
-        project.logger.lifecycle("ℹ️ Using separate configuration 'etendoImplementationDynamic' (no modification to 'implementation' hierarchy).")
+        project.logger.lifecycle("️Using separate configuration 'etendoImplementationDynamic' (no modification to 'implementation' hierarchy).")
     }
 
 }
