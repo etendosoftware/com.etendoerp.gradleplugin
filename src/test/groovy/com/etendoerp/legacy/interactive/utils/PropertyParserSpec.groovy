@@ -59,12 +59,12 @@ app.version=1.0.0
         
         def hostProp = result.find { it.key == "database.host" }
         hostProp.currentValue == "localhost"
-        hostProp.group == "General"
+        hostProp.groups == ["General"]
         !hostProp.sensitive
         
         def portProp = result.find { it.key == "database.port" }
         portProp.currentValue == "5432"
-        portProp.group == "General"
+        portProp.groups == ["General"]
         !portProp.sensitive
     }
 
@@ -210,23 +210,23 @@ another.valid=value2
         def hostProp = result.find { it.key == "database.host" }
         hostProp.currentValue == "localhost"
         hostProp.documentation == "Database hostname"
-        hostProp.group == "Database"
+        hostProp.groups == ["Database"]
         
         // database.port should have default from doc
         def portProp = result.find { it.key == "database.port" }
         portProp.defaultValue == "5432"
         portProp.documentation == "Database port"
-        portProp.group == "Database"
+        portProp.groups == ["Database"]
         
         // security.token should preserve sensitivity
         def tokenProp = result.find { it.key == "security.token" }
         tokenProp.sensitive
-        tokenProp.group == "Security"
+        tokenProp.groups == ["Security"]
         
         // app.name should be included from gradle properties
         def appProp = result.find { it.key == "app.name" }
         appProp.currentValue == "etendo"
-        appProp.group == "General"
+        appProp.groups == ["General"]
     }
 
     def "mergeProperties should preserve sensitivity from either source"() {
@@ -270,10 +270,10 @@ another.valid=value2
         result.size() == 4
         
         // Should be sorted by group first, then by key
-        result[0].group == "A-Group" && result[0].key == "a.property"
-        result[1].group == "A-Group" && result[1].key == "b.property"
-        result[2].group == "Z-Group" && result[2].key == "y.property"
-        result[3].group == "Z-Group" && result[3].key == "z.property"
+        result[0].groups == ["A-Group"] && result[0].key == "a.property"
+        result[1].groups == ["A-Group"] && result[1].key == "b.property"
+        result[2].groups == ["Z-Group"] && result[2].key == "y.property"
+        result[3].groups == ["Z-Group"] && result[3].key == "z.property"
     }
 
     def "mergeProperties should handle null and empty inputs"() {
@@ -308,7 +308,7 @@ another.valid=value2
         def prop = new PropertyDefinition()
         prop.key = key
         prop.currentValue = value
-        prop.group = group
+        prop.groups = group ? [group] : []
         prop.sensitive = sensitive
         return prop
     }
@@ -318,7 +318,7 @@ another.valid=value2
         prop.key = key
         prop.defaultValue = defaultValue
         prop.documentation = doc
-        prop.group = group
+        prop.groups = group ? [group] : []
         prop.sensitive = sensitive
         return prop
     }

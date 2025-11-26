@@ -773,10 +773,10 @@ class InteractiveSetupManagerSpec extends Specification {
         ]
 
         // Set groups for properties
-        allProperties[0].group = "Database"
-        allProperties[1].group = "Database"
-        allProperties[2].group = "Application"
-        allProperties[3].group = "Logging"
+        allProperties[0].groups = ["Database"]
+        allProperties[1].groups = ["Database"]
+        allProperties[2].groups = ["Application"]
+        allProperties[3].groups = ["Logging"]
 
         when: "logging configuration summary"
         def logMethod = InteractiveSetupManager.class.getDeclaredMethod('logConfigurationSummary', Map, List)
@@ -894,13 +894,13 @@ class InteractiveSetupManagerSpec extends Specification {
         ]
 
         // Configure different property states
-        allProperties[0].group = "Database"
-        allProperties[1].group = "Database"
+        allProperties[0].groups = ["Database"]
+        allProperties[1].groups = ["Database"]
         allProperties[1].required = true  // Required but not configured
-        allProperties[2].group = "Application"
-        allProperties[3].group = "API"
+        allProperties[2].groups = ["Application"]
+        allProperties[3].groups = ["API"]
         allProperties[3].sensitive = true
-        allProperties[4].group = "Logging"
+        allProperties[4].groups = ["Logging"]
 
         when: "logging configuration summary"
         def logMethod = InteractiveSetupManager.class.getDeclaredMethod('logConfigurationSummary', Map, List)

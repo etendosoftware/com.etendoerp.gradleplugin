@@ -279,7 +279,8 @@ class InteractiveSetupManager {
         def groupedProps = [:]
         configuredProperties.each { key, value ->
             def prop = allProperties.find { it.key == key }
-            def group = prop?.group ?: "General"
+            def propGroups = prop?.groups?.isEmpty() ? ["General"] : prop?.groups
+            def group = propGroups ? propGroups.join(", ") : "General"
             if (!groupedProps[group]) {
                 groupedProps[group] = 0
             }
@@ -300,7 +301,8 @@ class InteractiveSetupManager {
         if (unconfiguredRequired.size() > 0) {
             project.logger.warn("⚠️ Warning: ${unconfiguredRequired.size()} required properties remain unconfigured:")
             unconfiguredRequired.each { prop ->
-                project.logger.warn("  - ${prop.key} (${prop.group})")
+                def propGroups = prop?.groups?.isEmpty() ? ["General"] : prop?.groups
+                project.logger.warn("  - ${prop.key} (${propGroups.join(", ")})")
             }
         }
 

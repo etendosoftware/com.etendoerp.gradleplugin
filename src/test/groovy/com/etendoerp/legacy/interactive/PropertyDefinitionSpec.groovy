@@ -18,8 +18,8 @@ class PropertyDefinitionSpec extends Specification {
         prop.currentValue = "current"
         prop.defaultValue = "default"
         prop.documentation = "Test documentation"
-        prop.group = "Test Group"
-        prop.sensitive = false
+        prop.groups = ["Test Group"]
+        prop.sensitive = true
         prop.required = true
 
         expect:
@@ -27,8 +27,8 @@ class PropertyDefinitionSpec extends Specification {
         prop.currentValue == "current"
         prop.defaultValue == "default"
         prop.documentation == "Test documentation"
-        prop.group == "Test Group"
-        !prop.sensitive
+        prop.groups == ["Test Group"]
+        prop.sensitive
         prop.required
     }
 
@@ -159,8 +159,8 @@ class PropertyDefinitionSpec extends Specification {
         given:
         def prop = new PropertyDefinition()
         prop.key = "test.key"
-        prop.group = "Test"
-        prop.sensitive = true
+        prop.groups = ["Test"]
+        prop.sensitive = false
         prop.required = false
         prop.currentValue = "value"
 
@@ -170,7 +170,7 @@ class PropertyDefinitionSpec extends Specification {
         then:
         str.contains("test.key")
         str.contains("Test")
-        str.contains("sensitive=true")
+        str.contains("sensitive=false")
         str.contains("required=false")
         str.contains("hasValue=true")
     }
@@ -186,7 +186,7 @@ class PropertyDefinitionSpec extends Specification {
         prop.currentValue = "localhost"
         prop.defaultValue = "127.0.0.1"
         prop.documentation = "Database server host"
-        prop.group = "Database"
+        prop.groups = ["Database"]
         prop.sensitive = false
         prop.required = true
 
@@ -195,7 +195,7 @@ class PropertyDefinitionSpec extends Specification {
         prop.currentValue == "localhost"
         prop.defaultValue == "127.0.0.1"
         prop.documentation == "Database server host"
-        prop.group == "Database"
+        prop.groups == ["Database"]
         !prop.sensitive
         prop.required
     }
