@@ -46,6 +46,12 @@ class InteractiveSetupManager {
 
         // Set reference to avoid circular dependency
         this.ui.setSetupManager(this)
+        // Register project-level ext helper so tasks can call project.writeResultsForInteractiveSetup
+        try {
+            registerProjectExt(project)
+        } catch (Exception e) {
+            project.logger.debug("Failed to register project ext in InteractiveSetupManager constructor: ${e.message}")
+        }
     }
 
     /**
@@ -762,31 +768,21 @@ class InteractiveSetupManager {
      * @return boolean true if results were written successfully, false otherwise
      */
     static boolean writeResultsForInteractiveSetup(Project project, Map<String, String> results, String outputPath = null) {
+        // Delegate to the centralized writer in buildSrc2
         try {
-            // Determine output file path
-            String finalOutputPath = outputPath ?: project.findProperty('output')?.toString()
-
-            if (!finalOutputPath) {
-                project.logger.warn("No output path specified for interactive setup results")
-                return false
-            }
-
-            // Create output file
-            def outputFile = new File(finalOutputPath)
-            outputFile.parentFile?.mkdirs()
-
-            // Write JSON results
-            def json = groovy.json.JsonBuilder.newInstance(results)
-            outputFile.text = json.toPrettyString()
-
-            project.logger.debug("Interactive setup results written to: ${finalOutputPath}")
-            project.logger.debug("Results: ${results}")
-
-            return true
-
+            return InteractiveSetupWriter.writeResults(project, results, outputPath)
         } catch (Exception e) {
-            project.logger.error("Failed to write interactive setup results: ${e.message}", e)
+            project.logger.error("Failed to delegate interactive setup results: ${e.message}", e)
             return false
+        }
+    }
+
+    /**
+     * Registers a project extension closure so tasks can call project.writeResultsForInteractiveSetup(results, outputPath)
+     */
+    static void registerProjectExt(Project project) {
+        project.ext.writeResultsForInteractiveSetup = { Map results, String outputPath = null ->
+            InteractiveSetupWriter.writeResults(project, results, outputPath)
         }
     }
 }
