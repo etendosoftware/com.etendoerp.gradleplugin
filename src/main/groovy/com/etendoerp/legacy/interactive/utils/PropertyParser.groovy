@@ -105,7 +105,7 @@ class PropertyParser {
                 def existing = mergedMap[docProp.key]
                 def oldGroups = existing.groups
                 existing.groups = (existing.groups + docProp.groups).unique()
-                println "[DEBUG] Merging duplicate property '${docProp.key}': groups ${oldGroups} + ${docProp.groups} = ${existing.groups}"
+                project.logger.debug("Merging duplicate property '${docProp.key}': groups ${oldGroups} + ${docProp.groups} = ${existing.groups}")
                 
                 // Merge metadata (prefer non-empty values from docProp)
                 if (docProp.documentation && !docProp.documentation.trim().isEmpty()) {
@@ -128,7 +128,7 @@ class PropertyParser {
                     existing.source = "config.gradle (multiple files)"
                 }
             } else {
-                println "[DEBUG] Adding new property '${docProp.key}' with groups: ${docProp.groups}"
+                project.logger.debug("Adding new property '${docProp.key}' with groups: ${docProp.groups}")
                 mergedMap[docProp.key] = docProp
             }
         }
