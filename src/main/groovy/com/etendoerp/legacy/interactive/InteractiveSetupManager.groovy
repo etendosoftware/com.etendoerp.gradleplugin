@@ -787,8 +787,15 @@ class InteractiveSetupManager {
         }
 
         // Register DatabaseConnection creation closure on project.ext mirroring writer pattern
+        // NOTE: No fallbacks - either a loaded DatabaseConnection is returned or null.
         project.ext.createDatabaseConnection = { boolean systemConnection = false ->
-            DatabaseConnection.createAndLoad(project, systemConnection)
+            DatabaseConnection db = new DatabaseConnection(project)
+            boolean ok = systemConnection ? db.loadSystemDatabaseConnection() : db.loadDatabaseConnection()
+            if (!ok) {
+                project.logger.debug("DatabaseConnection could not be established via project ext helper")
+                return null
+            }
+            return db
         }
     }
 }

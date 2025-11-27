@@ -199,7 +199,7 @@ another.valid=value2
         ]
 
         when:
-        def result = PropertyParser.mergeProperties(gradleProps, docProps)
+            def result = PropertyParser.mergeProperties(project, gradleProps, docProps)
 
         then:
         // Should have 4 properties: database.host (merged), database.port (from doc), 
@@ -241,7 +241,7 @@ another.valid=value2
         ]
 
         when:
-        def result = PropertyParser.mergeProperties(gradleProps, docProps)
+        def result = PropertyParser.mergeProperties(project, gradleProps, docProps)
 
         then:
         result.size() == 2
@@ -264,7 +264,7 @@ another.valid=value2
         ]
 
         when:
-        def result = PropertyParser.mergeProperties(gradleProps, docProps)
+        def result = PropertyParser.mergeProperties(project, gradleProps, docProps)
 
         then:
         result.size() == 4
@@ -278,10 +278,10 @@ another.valid=value2
 
     def "mergeProperties should handle null and empty inputs"() {
         expect:
-        PropertyParser.mergeProperties(null, null).isEmpty()
-        PropertyParser.mergeProperties([], []).isEmpty()
-        PropertyParser.mergeProperties(null, []).isEmpty()
-        PropertyParser.mergeProperties([], null).isEmpty()
+            PropertyParser.mergeProperties(project, null, null).isEmpty()
+            PropertyParser.mergeProperties(project, [], []).isEmpty()
+            PropertyParser.mergeProperties(project, null, []).isEmpty()
+            PropertyParser.mergeProperties(project, [], null).isEmpty()
     }
 
     def "mergeProperties should handle properties with null groups"() {
@@ -294,7 +294,7 @@ another.valid=value2
         ]
 
         when:
-        def result = PropertyParser.mergeProperties(gradleProps, docProps)
+        def result = PropertyParser.mergeProperties(project, gradleProps, docProps)
 
         then:
         result.size() == 2

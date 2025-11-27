@@ -465,7 +465,7 @@ class ConfigSlurperPropertyScanner {
      */
     private List<PropertyDefinition> unifyAndSort(List<PropertyDefinition> gradleProperties, 
                                                  List<PropertyDefinition> configProperties) {
-        return PropertyParser.mergeProperties(gradleProperties, configProperties)
+        return PropertyParser.mergeProperties(project, gradleProperties, configProperties)
     }
     
     /**

@@ -94,13 +94,16 @@ class PropertyParser {
      * @param docProperties Properties from documentation files
      * @return Unified list of PropertyDefinition objects
      */
-    static List<PropertyDefinition> mergeProperties(List<PropertyDefinition> gradleProperties, 
+    static List<PropertyDefinition> mergeProperties(Project project, List<PropertyDefinition> gradleProperties, 
                                                    List<PropertyDefinition> docProperties) {
+        if (project == null) {
+            throw new IllegalArgumentException("project cannot be null for mergeProperties")
+        }
         def mergedMap = [:]
         
         // First, add all documentation properties
         docProperties.each { docProp ->
-            if (mergedMap.containsKey(docProp.key)) {
+                if (mergedMap.containsKey(docProp.key)) {
                 // Property already exists from another config.gradle - merge groups and metadata
                 def existing = mergedMap[docProp.key]
                 def oldGroups = existing.groups
@@ -124,7 +127,7 @@ class PropertyParser {
                 existing.notSetWhenDefault = existing.notSetWhenDefault || docProp.notSetWhenDefault
                 
                 // Update source to indicate multiple files
-                if (!existing.source.contains("multiple")) {
+                if (!existing.source?.contains("multiple")) {
                     existing.source = "config.gradle (multiple files)"
                 }
             } else {
