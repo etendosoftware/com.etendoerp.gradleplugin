@@ -3,6 +3,7 @@ package com.etendoerp.legacy.interactive
 import com.etendoerp.legacy.interactive.model.PropertyDefinition
 import groovy.json.JsonSlurper
 import org.gradle.api.Project
+import com.etendoerp.connections.DatabaseConnection
 import org.gradle.api.tasks.StopExecutionException
 
 /**
@@ -783,6 +784,11 @@ class InteractiveSetupManager {
     static void registerProjectExt(Project project) {
         project.ext.writeResultsForInteractiveSetup = { Map results, String outputPath = null ->
             InteractiveSetupWriter.writeResults(project, results, outputPath)
+        }
+
+        // Register DatabaseConnection creation closure on project.ext mirroring writer pattern
+        project.ext.createDatabaseConnection = { boolean systemConnection = false ->
+            DatabaseConnection.createAndLoad(project, systemConnection)
         }
     }
 }

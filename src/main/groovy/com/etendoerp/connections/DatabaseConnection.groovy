@@ -119,4 +119,24 @@ class DatabaseConnection {
             throw e
         }
     }
+
+    /**
+     * Registers a helper closure on the given project to create a loaded DatabaseConnection.
+     * Usage: project.createDatabaseConnection(true) -> returns a loaded DatabaseConnection or null
+     */
+    static void registerProjectExt(Project project) {
+        try {
+            project.ext.createDatabaseConnection = { boolean systemConnection = false ->
+                DatabaseConnection db = new DatabaseConnection(project)
+                boolean ok = systemConnection ? db.loadSystemDatabaseConnection() : db.loadDatabaseConnection()
+                if (!ok) {
+                    project.logger.debug("DatabaseConnection could not be established via project ext helper")
+                    return null
+                }
+                return db
+            }
+        } catch (Exception e) {
+            project.logger.debug("Failed to register createDatabaseConnection on project ext: ${e.message}")
+        }
+    }
 }
