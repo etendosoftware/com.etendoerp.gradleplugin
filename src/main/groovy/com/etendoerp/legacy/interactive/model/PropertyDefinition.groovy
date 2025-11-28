@@ -26,8 +26,8 @@ class PropertyDefinition {
     /** Optional additional help text for this property */
     String help
     
-    /** Group/category for organizing properties in the UI */
-    String group
+    /** Groups/categories for organizing properties in the UI - a property can belong to multiple groups */
+    List<String> groups = []
     
     /** Whether this property contains sensitive information (passwords, tokens, etc.) */
     boolean sensitive = false
@@ -118,7 +118,7 @@ class PropertyDefinition {
     String toString() {
         return "PropertyDefinition{" +
                 "key='${key}', " +
-                "group='${group}', " +
+                "groups=${groups}, " +
                 "sensitive=${sensitive}, " +
                 "required=${required}, " +
                 "process=${process}, " +

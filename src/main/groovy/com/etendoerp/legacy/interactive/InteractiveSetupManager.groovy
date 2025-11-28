@@ -3,6 +3,7 @@ package com.etendoerp.legacy.interactive
 import com.etendoerp.legacy.interactive.model.PropertyDefinition
 import groovy.json.JsonSlurper
 import org.gradle.api.Project
+import com.etendoerp.connections.DatabaseConnection
 import org.gradle.api.tasks.StopExecutionException
 
 /**
@@ -46,6 +47,12 @@ class InteractiveSetupManager {
 
         // Set reference to avoid circular dependency
         this.ui.setSetupManager(this)
+        // Register project-level ext helper so tasks can call project.writeResultsForInteractiveSetup
+        try {
+            registerProjectExt(project)
+        } catch (Exception e) {
+            project.logger.debug("Failed to register project ext in InteractiveSetupManager constructor: ${e.message}")
+        }
     }
 
     /**
@@ -279,7 +286,8 @@ class InteractiveSetupManager {
         def groupedProps = [:]
         configuredProperties.each { key, value ->
             def prop = allProperties.find { it.key == key }
-            def group = prop?.group ?: "General"
+            def propGroups = prop?.groups?.isEmpty() ? ["General"] : prop?.groups
+            def group = propGroups ? propGroups.join(", ") : "General"
             if (!groupedProps[group]) {
                 groupedProps[group] = 0
             }
@@ -300,7 +308,8 @@ class InteractiveSetupManager {
         if (unconfiguredRequired.size() > 0) {
             project.logger.warn("⚠️ Warning: ${unconfiguredRequired.size()} required properties remain unconfigured:")
             unconfiguredRequired.each { prop ->
-                project.logger.warn("  - ${prop.key} (${prop.group})")
+                def propGroups = prop?.groups?.isEmpty() ? ["General"] : prop?.groups
+                project.logger.warn("  - ${prop.key} (${propGroups.join(", ")})")
             }
         }
 
@@ -760,31 +769,33 @@ class InteractiveSetupManager {
      * @return boolean true if results were written successfully, false otherwise
      */
     static boolean writeResultsForInteractiveSetup(Project project, Map<String, String> results, String outputPath = null) {
+        // Delegate to the centralized writer in buildSrc2
         try {
-            // Determine output file path
-            String finalOutputPath = outputPath ?: project.findProperty('output')?.toString()
-
-            if (!finalOutputPath) {
-                project.logger.warn("No output path specified for interactive setup results")
-                return false
-            }
-
-            // Create output file
-            def outputFile = new File(finalOutputPath)
-            outputFile.parentFile?.mkdirs()
-
-            // Write JSON results
-            def json = groovy.json.JsonBuilder.newInstance(results)
-            outputFile.text = json.toPrettyString()
-
-            project.logger.debug("Interactive setup results written to: ${finalOutputPath}")
-            project.logger.debug("Results: ${results}")
-
-            return true
-
+            return InteractiveSetupWriter.writeResults(project, results, outputPath)
         } catch (Exception e) {
-            project.logger.error("Failed to write interactive setup results: ${e.message}", e)
+            project.logger.error("Failed to delegate interactive setup results: ${e.message}", e)
             return false
+        }
+    }
+
+    /**
+     * Registers a project extension closure so tasks can call project.writeResultsForInteractiveSetup(results, outputPath)
+     */
+    static void registerProjectExt(Project project) {
+        project.ext.writeResultsForInteractiveSetup = { Map results, String outputPath = null ->
+            InteractiveSetupWriter.writeResults(project, results, outputPath)
+        }
+
+        // Register DatabaseConnection creation closure on project.ext mirroring writer pattern
+        // NOTE: No fallbacks - either a loaded DatabaseConnection is returned or null.
+        project.ext.createDatabaseConnection = { boolean systemConnection = false ->
+            DatabaseConnection db = new DatabaseConnection(project)
+            boolean ok = systemConnection ? db.loadSystemDatabaseConnection() : db.loadDatabaseConnection()
+            if (!ok) {
+                project.logger.debug("DatabaseConnection could not be established via project ext helper")
+                return null
+            }
+            return db
         }
     }
 }

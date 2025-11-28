@@ -636,7 +636,7 @@ class UserInteractionSpec extends Specification {
             key: key,
             defaultValue: defaultValue,
             documentation: description,
-            group: category,
+            groups: [category],
             sensitive: false
         )
     }
@@ -649,7 +649,7 @@ class UserInteractionSpec extends Specification {
             key: key,
             defaultValue: defaultValue,
             documentation: description,
-            group: category,
+            groups: [category],
             sensitive: true
         )
     }

@@ -53,7 +53,7 @@ class PropertyParser {
                 def propertyDef = new PropertyDefinition()
                 propertyDef.key = key.toString()
                 propertyDef.currentValue = value.toString()
-                propertyDef.group = "General" // Default group for gradle.properties
+                propertyDef.groups = ["General"] // Default group for gradle.properties
                 propertyDef.sensitive = SecurityUtils.isSensitive(propertyDef.key)
                 
                 properties.add(propertyDef)
@@ -94,13 +94,46 @@ class PropertyParser {
      * @param docProperties Properties from documentation files
      * @return Unified list of PropertyDefinition objects
      */
-    static List<PropertyDefinition> mergeProperties(List<PropertyDefinition> gradleProperties, 
+    static List<PropertyDefinition> mergeProperties(Project project, List<PropertyDefinition> gradleProperties, 
                                                    List<PropertyDefinition> docProperties) {
+        if (project == null) {
+            throw new IllegalArgumentException("project cannot be null for mergeProperties")
+        }
         def mergedMap = [:]
         
         // First, add all documentation properties
         docProperties.each { docProp ->
-            mergedMap[docProp.key] = docProp
+                if (mergedMap.containsKey(docProp.key)) {
+                // Property already exists from another config.gradle - merge groups and metadata
+                def existing = mergedMap[docProp.key]
+                def oldGroups = existing.groups
+                existing.groups = (existing.groups + docProp.groups).unique()
+                project.logger.debug("Merging duplicate property '${docProp.key}': groups ${oldGroups} + ${docProp.groups} = ${existing.groups}")
+                
+                // Merge metadata (prefer non-empty values from docProp)
+                if (docProp.documentation && !docProp.documentation.trim().isEmpty()) {
+                    existing.documentation = docProp.documentation
+                }
+                if (docProp.help && !docProp.help.trim().isEmpty()) {
+                    existing.help = docProp.help
+                }
+                if (docProp.defaultValue && !docProp.defaultValue.trim().isEmpty()) {
+                    existing.defaultValue = docProp.defaultValue
+                }
+                // Boolean flags: use OR logic (if either says true, result is true)
+                existing.sensitive = existing.sensitive || docProp.sensitive
+                existing.required = existing.required || docProp.required
+                existing.process = existing.process || docProp.process
+                existing.notSetWhenDefault = existing.notSetWhenDefault || docProp.notSetWhenDefault
+                
+                // Update source to indicate multiple files
+                if (!existing.source?.contains("multiple")) {
+                    existing.source = "config.gradle (multiple files)"
+                }
+            } else {
+                project.logger.debug("Adding new property '${docProp.key}' with groups: ${docProp.groups}")
+                mergedMap[docProp.key] = docProp
+            }
         }
         
         // Then, merge in gradle properties, preserving current values and updating metadata
@@ -109,17 +142,21 @@ class PropertyParser {
                 // Merge with existing documentation
                 def existing = mergedMap[gradleProp.key]
                 existing.currentValue = gradleProp.currentValue
-                // Keep documentation and group from docs, but update sensitivity check
+                // Don't merge groups from gradle.properties - those are just default "General"
+                // The real group metadata comes from config.gradle documentation
+                // Keep documentation from docs, but update sensitivity check
                 existing.sensitive = existing.sensitive || SecurityUtils.isSensitive(gradleProp.key)
             } else {
-                // Add new property from gradle.properties
+                // Add new property from gradle.properties (will have groups = ["General"])
                 mergedMap[gradleProp.key] = gradleProp
             }
         }
         
-        // Sort by group, then by key
+        // Sort by first group, then by key
         return mergedMap.values().sort { a, b ->
-            def groupCompare = (a.group ?: "").compareTo(b.group ?: "")
+            def groupA = a.groups?.isEmpty() ? "" : a.groups[0]
+            def groupB = b.groups?.isEmpty() ? "" : b.groups[0]
+            def groupCompare = (groupA ?: "").compareTo(groupB ?: "")
             if (groupCompare != 0) return groupCompare
             return (a.key ?: "").compareTo(b.key ?: "")
         }
