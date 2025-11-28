@@ -773,10 +773,10 @@ class InteractiveSetupManagerSpec extends Specification {
         ]
 
         // Set groups for properties
-        allProperties[0].group = "Database"
-        allProperties[1].group = "Database"
-        allProperties[2].group = "Application"
-        allProperties[3].group = "Logging"
+        allProperties[0].groups = ["Database"]
+        allProperties[1].groups = ["Database"]
+        allProperties[2].groups = ["Application"]
+        allProperties[3].groups = ["Logging"]
 
         when: "logging configuration summary"
         def logMethod = InteractiveSetupManager.class.getDeclaredMethod('logConfigurationSummary', Map, List)
@@ -894,13 +894,13 @@ class InteractiveSetupManagerSpec extends Specification {
         ]
 
         // Configure different property states
-        allProperties[0].group = "Database"
-        allProperties[1].group = "Database"
+        allProperties[0].groups = ["Database"]
+        allProperties[1].groups = ["Database"]
         allProperties[1].required = true  // Required but not configured
-        allProperties[2].group = "Application"
-        allProperties[3].group = "API"
+        allProperties[2].groups = ["Application"]
+        allProperties[3].groups = ["API"]
         allProperties[3].sensitive = true
-        allProperties[4].group = "Logging"
+        allProperties[4].groups = ["Logging"]
 
         when: "logging configuration summary"
         def logMethod = InteractiveSetupManager.class.getDeclaredMethod('logConfigurationSummary', Map, List)
@@ -1340,7 +1340,7 @@ class InteractiveSetupManagerSpec extends Specification {
         def outputPath = outputFile.absolutePath
 
         when: "writing results"
-        def success = InteractiveSetupManager.writeResultsForInteractiveSetup(project, results, outputPath)
+        def success = InteractiveSetupWriter.writeResults(project, results, outputPath)
 
         then: "should write successfully"
         success == true
@@ -1363,7 +1363,7 @@ class InteractiveSetupManagerSpec extends Specification {
         project.ext.output = outputFile.absolutePath
 
         when: "writing results without explicit path"
-        def success = InteractiveSetupManager.writeResultsForInteractiveSetup(project, results, null)
+        def success = InteractiveSetupWriter.writeResults(project, results, null)
 
         then: "should write to project output path"
         success == true
@@ -1381,7 +1381,7 @@ class InteractiveSetupManagerSpec extends Specification {
         // Ensure no output property is set
 
         when: "writing results without path"
-        def success = InteractiveSetupManager.writeResultsForInteractiveSetup(project, results, null)
+        def success = InteractiveSetupWriter.writeResults(project, results, null)
 
         then: "should return false"
         success == false
@@ -1396,7 +1396,7 @@ class InteractiveSetupManagerSpec extends Specification {
         def outputPath = new File(tempDir.toFile(), "nested/deep/results.json").absolutePath
 
         when: "writing results"
-        def success = InteractiveSetupManager.writeResultsForInteractiveSetup(project, results, outputPath)
+        def success = InteractiveSetupWriter.writeResults(project, results, outputPath)
 
         then: "should create directories and write file"
         success == true
@@ -1415,7 +1415,7 @@ class InteractiveSetupManagerSpec extends Specification {
         def outputPath = outputFile.absolutePath
 
         when: "writing empty results"
-        def success = InteractiveSetupManager.writeResultsForInteractiveSetup(project, results, outputPath)
+        def success = InteractiveSetupWriter.writeResults(project, results, outputPath)
 
         then: "should write empty JSON object"
         success == true
@@ -1433,7 +1433,7 @@ class InteractiveSetupManagerSpec extends Specification {
         def outputPath = outputFile.absolutePath
 
         when: "writing null results"
-        def success = InteractiveSetupManager.writeResultsForInteractiveSetup(project, results, outputPath)
+        def success = InteractiveSetupWriter.writeResults(project, results, outputPath)
 
         then: "should write null as JSON"
         success == true
@@ -1455,7 +1455,7 @@ class InteractiveSetupManagerSpec extends Specification {
         def outputPath = outputFile.absolutePath
 
         when: "writing results with special characters"
-        def success = InteractiveSetupManager.writeResultsForInteractiveSetup(project, results, outputPath)
+        def success = InteractiveSetupWriter.writeResults(project, results, outputPath)
 
         then: "should handle special characters correctly"
         success == true
@@ -1479,7 +1479,7 @@ class InteractiveSetupManagerSpec extends Specification {
         def outputPath = outputFile.absolutePath
 
         when: "writing large results"
-        def success = InteractiveSetupManager.writeResultsForInteractiveSetup(project, results, outputPath)
+        def success = InteractiveSetupWriter.writeResults(project, results, outputPath)
 
         then: "should handle large files"
         success == true
@@ -1499,7 +1499,7 @@ class InteractiveSetupManagerSpec extends Specification {
         def outputPath = new File(readOnlyDir, "results.json").absolutePath
 
         when: "writing to read-only location"
-        def success = InteractiveSetupManager.writeResultsForInteractiveSetup(project, results, outputPath)
+        def success = InteractiveSetupWriter.writeResults(project, results, outputPath)
 
         then: "should return false due to write failure"
         success == false
@@ -1518,7 +1518,7 @@ class InteractiveSetupManagerSpec extends Specification {
         def results = ["new.property": "new.value"]
 
         when: "writing new results"
-        def success = InteractiveSetupManager.writeResultsForInteractiveSetup(project, results, outputFile.absolutePath)
+        def success = InteractiveSetupWriter.writeResults(project, results, outputFile.absolutePath)
 
         then: "should overwrite existing content"
         success == true
@@ -1541,7 +1541,7 @@ class InteractiveSetupManagerSpec extends Specification {
         def outputPath = outputFile.absolutePath
 
         when: "writing complex results"
-        def success = InteractiveSetupManager.writeResultsForInteractiveSetup(project, results, outputPath)
+        def success = InteractiveSetupWriter.writeResults(project, results, outputPath)
 
         then: "should write complex values as strings"
         success == true
@@ -1550,6 +1550,61 @@ class InteractiveSetupManagerSpec extends Specification {
         content.contains("config.json")
         content.contains("array.data")
         content.contains("simple.value")
+        noExceptionThrown()
+    }
+
+    def "InteractiveSetupWriter should write results directly"() {
+        given: "results map to write"
+        def results = [
+            "direct.write": "yes",
+            "another.key": "value"
+        ]
+
+        and: "explicit output file path"
+        def outputFile = new File(tempDir.toFile(), "writer-direct.json")
+        def outputPath = outputFile.absolutePath
+
+        when: "calling the writer directly"
+        def success = InteractiveSetupWriter.writeResults(project, results, outputPath)
+
+        then: "should write successfully"
+        success == true
+        outputFile.exists()
+        outputFile.text.contains('"direct.write": "yes"')
+        outputFile.text.contains('"another.key": "value"')
+        noExceptionThrown()
+    }
+
+    def "registerProjectExt should expose closure to project"() {
+        given: "a results map and an output path"
+        def results = ["ext.key": "ext.value"]
+        def outputFile = new File(tempDir.toFile(), "project-ext.json")
+        def outputPath = outputFile.absolutePath
+
+        when: "registering the project extension and invoking it"
+        InteractiveSetupManager.registerProjectExt(project)
+        // The registered closure should be available as project.writeResultsForInteractiveSetup
+        project.writeResultsForInteractiveSetup(results, outputPath)
+
+        then: "the output file is created by the closure"
+        outputFile.exists()
+        outputFile.text.contains('"ext.key": "ext.value"')
+        noExceptionThrown()
+    }
+
+    def "InteractiveSetupWriter should write null as JSON when results are null"() {
+        given: "null results"
+        def results = null
+        def outputFile = new File(tempDir.toFile(), "null-writer.json")
+        def outputPath = outputFile.absolutePath
+
+        when: "writing null results directly"
+        def success = InteractiveSetupWriter.writeResults(project, results, outputPath)
+
+        then: "should write the JSON null literal"
+        success == true
+        outputFile.exists()
+        outputFile.text.trim() == 'null'
         noExceptionThrown()
     }
 

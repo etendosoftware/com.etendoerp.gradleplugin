@@ -407,17 +407,18 @@ class UserInteraction {
             return
         }
         
-        // Group configured properties for display
+        // Group configured properties for display - show in first group only to avoid duplication
         def groupedForDisplay = [:]
         configuredProperties.each { key, value ->
             def prop = allProperties.find { it.key == key }
-            def group = prop?.group ?: "General"
+            def propGroups = prop?.groups?.isEmpty() ? ["General"] : prop?.groups
+            def displayGroup = propGroups ? propGroups[0] : "General"
             
-            if (!groupedForDisplay[group]) {
-                groupedForDisplay[group] = []
+            if (!groupedForDisplay[displayGroup]) {
+                groupedForDisplay[displayGroup] = []
             }
             
-            groupedForDisplay[group] << [
+            groupedForDisplay[displayGroup] << [
                 key: key,
                 value: value,
                 sensitive: prop?.sensitive ?: SecurityUtils.isSensitive(key, prop)
@@ -624,8 +625,17 @@ class UserInteraction {
      * @return Map of group names to lists of properties (ordered by definition, with process properties first)
      */
     private Map<String, List<PropertyDefinition>> groupPropertiesByCategory(List<PropertyDefinition> properties) {
-        def grouped = properties.groupBy { prop -> 
-            prop.group ?: "General" 
+        def grouped = [:]
+        
+        // Add each property to all its groups
+        properties.each { prop ->
+            def propGroups = prop.groups?.isEmpty() ? ["General"] : prop.groups
+            propGroups.each { groupName ->
+                if (!grouped[groupName]) {
+                    grouped[groupName] = []
+                }
+                grouped[groupName] << prop
+            }
         }
         
         // Sort properties within each group: process properties first (by order), then regular properties (by order)

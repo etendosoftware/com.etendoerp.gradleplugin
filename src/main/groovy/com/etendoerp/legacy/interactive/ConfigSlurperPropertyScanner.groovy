@@ -315,7 +315,7 @@ class ConfigSlurperPropertyScanner {
             group = "General"
         }
         
-        project.logger.debug("Creating root-level property: ${gradleKey} (group: ${group}, sensitive: ${sensitive}, required: ${required}, process: ${process}, notSetWhenDefault: ${notSetWhenDefault}, order: ${orderIndex})")
+        project.logger.debug("Creating root-level property: ${gradleKey} (groups: [${group}], sensitive: ${sensitive}, required: ${required}, process: ${process}, notSetWhenDefault: ${notSetWhenDefault}, order: ${orderIndex})")
         
         return new PropertyDefinition(
             key: gradleKey,
@@ -323,7 +323,7 @@ class ConfigSlurperPropertyScanner {
             defaultValue: defaultValue,
             documentation: description,
             help: helpText,
-            group: group,
+            groups: [group],
             sensitive: sensitive,
             required: required,
             process: process,
@@ -413,7 +413,7 @@ class ConfigSlurperPropertyScanner {
             group = capitalizeFirst(groupKey)
         }
         
-        project.logger.debug("Creating property: ${gradleKey} (group: ${group}, sensitive: ${sensitive}, required: ${required}, process: ${process}, notSetWhenDefault: ${notSetWhenDefault}, order: ${orderIndex})")
+        project.logger.debug("Creating property: ${gradleKey} (groups: [${group}], sensitive: ${sensitive}, required: ${required}, process: ${process}, notSetWhenDefault: ${notSetWhenDefault}, order: ${orderIndex})")
         
         return new PropertyDefinition(
             key: gradleKey,
@@ -421,7 +421,7 @@ class ConfigSlurperPropertyScanner {
             defaultValue: defaultValue,
             documentation: description,
             help: helpText,
-            group: group,
+            groups: [group],
             sensitive: sensitive,
             required: required,
             process: process,
@@ -465,7 +465,7 @@ class ConfigSlurperPropertyScanner {
      */
     private List<PropertyDefinition> unifyAndSort(List<PropertyDefinition> gradleProperties, 
                                                  List<PropertyDefinition> configProperties) {
-        return PropertyParser.mergeProperties(gradleProperties, configProperties)
+        return PropertyParser.mergeProperties(project, gradleProperties, configProperties)
     }
     
     /**
@@ -474,8 +474,12 @@ class ConfigSlurperPropertyScanner {
     private void logScanningSummary(List<PropertyDefinition> properties) {
         if (!project.logger.isInfoEnabled()) return
         
-        def groupCounts = properties.groupBy { it.group }.collectEntries { group, props ->
-            [group, props.size()]
+        // Count properties by group (a property can appear in multiple groups)
+        def groupCounts = [:]
+        properties.each { prop ->
+            prop.groups.each { group ->
+                groupCounts[group] = (groupCounts[group] ?: 0) + 1
+            }
         }
         
         def sensitiveCounts = properties.count { it.sensitive }

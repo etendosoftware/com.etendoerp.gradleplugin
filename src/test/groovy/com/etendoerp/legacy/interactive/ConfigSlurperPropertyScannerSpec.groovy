@@ -568,7 +568,7 @@ sensitive.password=secret123
         def prop = new com.etendoerp.legacy.interactive.model.PropertyDefinition()
         prop.key = key
         prop.documentation = documentation
-        prop.group = "Test"
+        prop.groups = ["Test"]
         return prop
     }
 
