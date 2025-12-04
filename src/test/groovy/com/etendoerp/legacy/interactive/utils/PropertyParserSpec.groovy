@@ -302,6 +302,240 @@ another.valid=value2
         noExceptionThrown()
     }
 
+    // ========== ENHANCED MERGE PROPERTIES TESTS FOR COVERAGE ==========
+
+    def "mergeProperties should throw exception when project is null"() {
+        given:
+        def gradleProps = [createProperty("test.prop", "value", "General", false)]
+        def docProps = []
+
+        when:
+        PropertyParser.mergeProperties(null, gradleProps, docProps)
+
+        then:
+        thrown(IllegalArgumentException)
+    }
+
+    def "mergeProperties should merge groups from duplicate properties in multiple config files"() {
+        given:
+        def gradleProps = []
+        def docProps = [
+            createDocumentedPropertyWithGroups("shared.prop", "default1", "First doc", ["Group1"], false),
+            createDocumentedPropertyWithGroups("shared.prop", "default2", "Second doc", ["Group2"], false)
+        ]
+
+        when:
+        def result = PropertyParser.mergeProperties(project, gradleProps, docProps)
+
+        then:
+        result.size() == 1
+        def prop = result[0]
+        prop.key == "shared.prop"
+        prop.groups.containsAll(["Group1", "Group2"])
+        prop.groups.size() == 2
+    }
+
+    def "mergeProperties should merge metadata from duplicate properties preferring non-empty values"() {
+        given:
+        def gradleProps = []
+        def docProps = [
+            createDocumentedPropertyFull("dup.prop", "default1", "First doc", "First help", ["Group1"], false, false, false, false),
+            createDocumentedPropertyFull("dup.prop", "", "", "Second help better", ["Group2"], false, false, false, false)
+        ]
+
+        when:
+        def result = PropertyParser.mergeProperties(project, gradleProps, docProps)
+
+        then:
+        result.size() == 1
+        def prop = result[0]
+        prop.documentation == "First doc"  // First non-empty
+        prop.help == "Second help better"  // Overwrites with later non-empty
+        prop.defaultValue == "default1"    // First non-empty
+    }
+
+    def "mergeProperties should OR boolean flags when merging duplicates"() {
+        given:
+        def gradleProps = []
+        def docProps = [
+            createDocumentedPropertyFull("bool.prop", "", "", "", ["Group1"], false, true, false, false),  // required=true
+            createDocumentedPropertyFull("bool.prop", "", "", "", ["Group2"], true, false, true, false),   // sensitive=true, process=true
+            createDocumentedPropertyFull("bool.prop", "", "", "", ["Group3"], false, false, false, true)   // notSetWhenDefault=true
+        ]
+
+        when:
+        def result = PropertyParser.mergeProperties(project, gradleProps, docProps)
+
+        then:
+        result.size() == 1
+        def prop = result[0]
+        prop.sensitive == true      // OR of false, true, false = true
+        prop.required == true       // OR of true, false, false = true
+        prop.process == true        // OR of false, true, false = true
+        prop.notSetWhenDefault == true  // OR of false, false, true = true
+    }
+
+    def "mergeProperties should update source to indicate multiple files"() {
+        given:
+        def gradleProps = []
+        def docProps = [
+            createDocumentedPropertyWithSource("multi.prop", "v1", "Doc1", ["G1"], "config.gradle", false),
+            createDocumentedPropertyWithSource("multi.prop", "v2", "Doc2", ["G2"], "config.gradle", false)
+        ]
+
+        when:
+        def result = PropertyParser.mergeProperties(project, gradleProps, docProps)
+
+        then:
+        result.size() == 1
+        def prop = result[0]
+        prop.source == "config.gradle (multiple files)"
+    }
+
+    def "mergeProperties should not add gradle.properties groups to documented properties"() {
+        given:
+        def gradleProps = [
+            createProperty("documented.prop", "current-value", "General", false)  // From gradle.properties with General group
+        ]
+        def docProps = [
+            createDocumentedProperty("documented.prop", "default", "Documentation", "Database", false)  // From config.gradle with Database group
+        ]
+
+        when:
+        def result = PropertyParser.mergeProperties(project, gradleProps, docProps)
+
+        then:
+        result.size() == 1
+        def prop = result[0]
+        prop.key == "documented.prop"
+        prop.currentValue == "current-value"  // Should use value from gradle.properties
+        prop.groups == ["Database"]           // Should NOT include "General" from gradle.properties
+        prop.documentation == "Documentation" // Should have documentation from config.gradle
+    }
+
+    def "mergeProperties should preserve sensitivity from gradle properties"() {
+        given:
+        def gradleProps = [
+            createProperty("password.prop", "secret", "General", false)  // Will be detected as sensitive by SecurityUtils
+        ]
+        def docProps = [
+            createDocumentedProperty("password.prop", "", "Password field", "Security", false)
+        ]
+
+        when:
+        def result = PropertyParser.mergeProperties(project, gradleProps, docProps)
+
+        then:
+        result.size() == 1
+        def prop = result[0]
+        prop.sensitive == true  // Should be detected by SecurityUtils.isSensitive
+    }
+
+    def "mergeProperties should add properties from gradle.properties that are not in docs"() {
+        given:
+        def gradleProps = [
+            createProperty("undocumented.prop", "value", "General", false),
+            createProperty("custom.setting", "custom", "General", false)
+        ]
+        def docProps = [
+            createDocumentedProperty("documented.prop", "default", "Doc", "Config", false)
+        ]
+
+        when:
+        def result = PropertyParser.mergeProperties(project, gradleProps, docProps)
+
+        then:
+        result.size() == 3
+        result.find { it.key == "undocumented.prop" }
+        result.find { it.key == "custom.setting" }
+        result.find { it.key == "documented.prop" }
+    }
+
+    def "mergeProperties should sort by first group alphabetically then by key"() {
+        given:
+        def gradleProps = []
+        def docProps = [
+            createDocumentedProperty("z.prop", "", "", "B-Group", false),
+            createDocumentedProperty("a.prop", "", "", "B-Group", false),
+            createDocumentedProperty("m.prop", "", "", "A-Group", false),
+            createDocumentedProperty("c.prop", "", "", "C-Group", false)
+        ]
+
+        when:
+        def result = PropertyParser.mergeProperties(project, gradleProps, docProps)
+
+        then:
+        result.size() == 4
+        result[0].key == "m.prop" && result[0].groups == ["A-Group"]
+        result[1].key == "a.prop" && result[1].groups == ["B-Group"]
+        result[2].key == "z.prop" && result[2].groups == ["B-Group"]
+        result[3].key == "c.prop" && result[3].groups == ["C-Group"]
+    }
+
+    def "mergeProperties should handle properties with empty groups"() {
+        given:
+        def gradleProps = []
+        def docProps = [
+            createDocumentedPropertyWithGroups("empty.groups", "val", "Doc", [], false),
+            createDocumentedProperty("with.group", "val2", "Doc2", "Group1", false)
+        ]
+
+        when:
+        def result = PropertyParser.mergeProperties(project, gradleProps, docProps)
+
+        then:
+        result.size() == 2
+        noExceptionThrown()
+        // Properties with empty groups should sort before those with groups
+        result[0].key == "empty.groups"
+        result[1].key == "with.group"
+    }
+
+    def "mergeProperties should handle complex merge scenario with multiple duplicates"() {
+        given:
+        def gradleProps = [
+            createProperty("prop.a", "gradle-value-a", "General", false),
+            createProperty("prop.b", "gradle-value-b", "General", true),
+            createProperty("prop.only.gradle", "only-gradle", "General", false)
+        ]
+        def docProps = [
+            createDocumentedPropertyFull("prop.a", "default-a", "Doc A from file1", "Help A", ["Group1"], false, true, false, false),
+            createDocumentedPropertyFull("prop.a", "", "", "Help A better", ["Group2"], true, false, false, false),
+            createDocumentedProperty("prop.b", "default-b", "Doc B", "Group3", false),
+            createDocumentedProperty("prop.only.doc", "only-doc", "Doc only", "Group4", false)
+        ]
+
+        when:
+        def result = PropertyParser.mergeProperties(project, gradleProps, docProps)
+
+        then:
+        result.size() == 4
+        
+        // prop.a should merge from multiple doc sources and gradle
+        def propA = result.find { it.key == "prop.a" }
+        propA.currentValue == "gradle-value-a"
+        propA.groups.containsAll(["Group1", "Group2"])
+        propA.documentation == "Doc A from file1"
+        propA.help == "Help A better"
+        propA.sensitive == true    // true from second doc entry
+        propA.required == true     // true from first doc entry
+        
+        // prop.b should have gradle value and doc metadata
+        def propB = result.find { it.key == "prop.b" }
+        propB.currentValue == "gradle-value-b"
+        propB.groups == ["Group3"]
+        propB.sensitive == true    // Already sensitive in gradle
+        
+        // prop.only.gradle should exist with General group
+        def propOnlyGradle = result.find { it.key == "prop.only.gradle" }
+        propOnlyGradle.currentValue == "only-gradle"
+        propOnlyGradle.groups == ["General"]
+        
+        // prop.only.doc should exist from doc only
+        def propOnlyDoc = result.find { it.key == "prop.only.doc" }
+        propOnlyDoc.groups == ["Group4"]
+    }
+
     // ========== HELPER METHODS ==========
 
     private PropertyDefinition createProperty(String key, String value, String group, boolean sensitive) {
@@ -323,6 +557,44 @@ another.valid=value2
         return prop
     }
 
+    private PropertyDefinition createDocumentedPropertyWithGroups(String key, String defaultValue, String doc, List<String> groups, boolean sensitive) {
+        def prop = new PropertyDefinition()
+        prop.key = key
+        prop.defaultValue = defaultValue
+        prop.documentation = doc
+        prop.groups = groups ?: []
+        prop.sensitive = sensitive
+        return prop
+    }
+
+    private PropertyDefinition createDocumentedPropertyFull(String key, String defaultValue, String doc, String help, 
+                                                            List<String> groups, boolean sensitive, boolean required, 
+                                                            boolean process, boolean notSetWhenDefault) {
+        def prop = new PropertyDefinition()
+        prop.key = key
+        prop.defaultValue = defaultValue
+        prop.documentation = doc
+        prop.help = help
+        prop.groups = groups ?: []
+        prop.sensitive = sensitive
+        prop.required = required
+        prop.process = process
+        prop.notSetWhenDefault = notSetWhenDefault
+        return prop
+    }
+
+    private PropertyDefinition createDocumentedPropertyWithSource(String key, String defaultValue, String doc, 
+                                                                  List<String> groups, String source, boolean sensitive) {
+        def prop = new PropertyDefinition()
+        prop.key = key
+        prop.defaultValue = defaultValue
+        prop.documentation = doc
+        prop.groups = groups ?: []
+        prop.source = source
+        prop.sensitive = sensitive
+        return prop
+    }
+
     // ========== EDGE CASES AND ERROR HANDLING ==========
 
     def "parseGradleProperties should handle IOException gracefully"() {
@@ -337,6 +609,48 @@ another.valid=value2
         then:
         result.isEmpty()
         // Should not throw exception
+    }
+
+    def "parseGradleProperties should skip nexusUser when project property is empty"() {
+        given:
+        gradlePropsFile.text = """
+nexusUser=someuser
+nexusPassword=secret
+regular.property=value
+"""
+
+        // Simulate project property being present but empty
+        project.extensions.extraProperties.set('nexusUser', '')
+
+        when:
+        def result = parser.parseGradleProperties()
+
+        then:
+        // nexusUser should be skipped because project.findProperty('nexusUser') is empty
+        !result.find { it.key == 'nexusUser' }
+        // nexusPassword should remain parsed
+        result.find { it.key == 'nexusPassword' }
+        result.find { it.key == 'regular.property' }
+    }
+
+    def "mergeProperties should respect explicit gradle property sensitivity flag"() {
+        given:
+        def gradleProps = [
+            createProperty("explicit.sens", "value", "General", true)
+        ]
+        def docProps = [
+            createDocumentedProperty("explicit.sens", "default", "Doc for explicit.sens", "DocGroup", false)
+        ]
+
+        when:
+        def result = PropertyParser.mergeProperties(project, gradleProps, docProps)
+
+        then:
+        result.size() == 1
+        def p = result.find { it.key == "explicit.sens" }
+        p.currentValue == "value"
+        p.sensitive == true
+        p.groups == ["DocGroup"]
     }
 
     def "shouldSkipProperty should identify properties to skip correctly"() {
