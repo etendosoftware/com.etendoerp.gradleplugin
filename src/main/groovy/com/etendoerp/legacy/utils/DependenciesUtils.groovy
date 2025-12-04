@@ -1,7 +1,6 @@
 package com.etendoerp.legacy.utils
 
 import org.gradle.api.Project
-import org.gradle.internal.impldep.org.apache.commons.lang.StringUtils
 
 class DependenciesUtils {
 
@@ -63,7 +62,7 @@ class DependenciesUtils {
             return dependencies
         }
 
-        def pomParser = new XmlParser().parse(srcPomFile)
+        def pomParser = new groovy.xml.XmlParser().parseText(srcPomFile)
 
         pomParser["dependencies"]["dependency"].each { dep ->
             def groupId = dep["groupId"].text()
