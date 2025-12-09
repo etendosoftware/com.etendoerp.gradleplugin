@@ -13,16 +13,11 @@ class JavaCheckLoader {
             description = 'Verifies current Java version'
 
             doLast {
-                // Obtener la versión de Java actual
                 def javaVersion = System.getProperty('java.version')
                 def majorVersion = javaVersion.split('\\.')[0].toInteger()
 
-                def skipVersion = project.hasProperty('java.version') ?
-                        project.property('java.version').toInteger() : null
-
-                if (skipVersion != 11) {
-                    if (majorVersion < 17) {
-                        throw new GradleException("""
+                if (majorVersion < 17) {
+                    throw new GradleException("""
                     |--------------------------------------------------
                     | ERROR: Incompatible Java Version
                     |--------------------------------------------------
@@ -34,25 +29,13 @@ class JavaCheckLoader {
                     | 2. Use a version manager like SDKMAN! (https://sdkman.io/)
                     |    to manage multiple Java versions easily.
                     | 3. Update your JAVA_HOME environment variable to point to the new version.
-                    | 4. Optionally download and install Java 17 (or higher) from:
+                    | 4. Download and install Java 17 (or higher) from:
                     |    - https://adoptium.net/ (recommended)
                     |    - Or from Oracle's official site: https://www.oracle.com/java/
-                    |
-                    | Alternative (DEPRECATED - Not Recommended):
-                    | If you absolutely cannot update Java, you can temporarily skip this validation
-                    | by running the command with the flag: -Pjava.version=11
-                    | Example: ./gradlew smartbuild -Pjava.version=11
-                    | Or, you can add the following to your gradle.properties file to override this check (at your own risk):
-                    |   java.version=11
-                    | **WARNING**: This option is deprecated and should only be used for legacy maintenance tasks.
-                    | Using this flag may lead to compatibility issues and is not supported for regular development.
                     |--------------------------------------------------
                 """.stripMargin())
-                    } else {
-                        project.logger.info("Detected Java version: ${javaVersion}")
-                    }
                 } else {
-                    project.logger.info("Skipping Java version check")
+                    project.logger.info("Detected Java version: ${javaVersion}")
                 }
             }
         }
