@@ -44,6 +44,11 @@ version(pluginVersion)
 
 repositories {
     mavenCentral()
+    gradlePluginPortal()
+    // Gradle's repository for Tooling API
+    maven {
+        url "https://repo.gradle.org/gradle/libs-releases"
+    }
 }
 
 java {
@@ -78,6 +83,9 @@ dependencies {
     implementation     gradleApi()
     testImplementation gradleTestKit()
 
+    // Node Gradle Plugin for UI tasks
+    implementation 'com.github.node-gradle:gradle-node-plugin:7.1.0'
+
     // https://mvnrepository.com/artifact/org.apache.commons/commons-dbcp2
     implementation group: 'org.apache.commons', name: 'commons-dbcp2', version: '2.9.0'
 
@@ -111,6 +119,13 @@ dependencies {
         transitive = false // this avoids affecting your version of Groovy/Spock
     }
 
+    // Lightweight web framework for REST API
+    implementation 'io.javalin:javalin:6.1.3'
+    implementation 'org.slf4j:slf4j-simple:2.0.7'
+
+    // THE CORE OF THE SOLUTION: Gradle Tooling API
+    implementation 'org.gradle:gradle-tooling-api:8.5'
+
 }
 
 tasks.withType(Test).configureEach {
@@ -142,12 +157,12 @@ test {
     systemProperty 'nexusPassword', project.hasProperty('nexusPassword') ? project.nexusPassword : System.getenv("NEXUS_PSW")
     systemProperty 'githubUser', project.hasProperty('githubUser') ? project.githubUser : System.getenv("GITHUB_USER")
     systemProperty 'githubToken', project.hasProperty('githubToken') ? project.githubToken : System.getenv("GITHUB_TOKEN")
-    systemProperty 'test.bbdd.sid', project['test.bbdd.sid']
-    systemProperty 'test.bbdd.systemUser', project['test.bbdd.systemUser']
-    systemProperty 'test.bbdd.systemPassword', project['test.bbdd.systemPassword']
-    systemProperty 'test.bbdd.user', project['test.bbdd.systemUser']
-    systemProperty 'test.bbdd.password', project['test.bbdd.systemPassword']
-    systemProperty 'test.bbdd.url', project['test.bbdd.url']
+    systemProperty 'test.bbdd.sid', project.findProperty('test.bbdd.sid')
+    systemProperty 'test.bbdd.systemUser', project.findProperty('test.bbdd.systemUser')
+    systemProperty 'test.bbdd.systemPassword', project.findProperty('test.bbdd.systemPassword')
+    systemProperty 'test.bbdd.user', project.findProperty('test.bbdd.systemUser')
+    systemProperty 'test.bbdd.password', project.findProperty('test.bbdd.systemPassword')
+    systemProperty 'test.bbdd.url', project.findProperty('test.bbdd.url')
     systemProperty 'org.gradle.jvmargs', '-Dfile.encoding=UTF-8'
     systemProperty 'etendoCoreName', project.hasProperty('etendoCoreName') ? project.etendoCoreName : "etendo-core"
     systemProperty 'etendoCoreVersion', project.property('etendoCoreVersion')
