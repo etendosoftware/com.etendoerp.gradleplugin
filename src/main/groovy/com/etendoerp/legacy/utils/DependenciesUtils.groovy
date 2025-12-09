@@ -62,7 +62,7 @@ class DependenciesUtils {
             return dependencies
         }
 
-        def pomParser = new groovy.xml.XmlParser().parseText(srcPomFile)
+        def pomParser = new groovy.xml.XmlParser().parse(new File(srcPomFile))
 
         pomParser["dependencies"]["dependency"].each { dep ->
             def groupId = dep["groupId"].text()

@@ -10,7 +10,7 @@ class ModulesUtils {
     static normalizeModule(Project project, File pkg, String user, String pass){
         //Get info from AD_Module
         def srcFile = "modules/" + pkg.getName() + "/src-db/database/sourcedata/AD_MODULE.xml"
-        def ad_module = new groovy.xml.XmlParser().parseText(srcFile)
+        def ad_module = new groovy.xml.XmlParser().parse(new File(srcFile))
         String localVersion = ad_module["AD_MODULE"]["VERSION"].text()
         String javaPackage = ad_module["AD_MODULE"]["JAVAPACKAGE"].text()
         def group = splitGroup(javaPackage)

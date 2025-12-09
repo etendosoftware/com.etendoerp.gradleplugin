@@ -93,7 +93,7 @@ class EtendoArtifactMetadata {
             return false
         }
 
-        def ad_module = new groovy.xml.XmlParser().parseText(locationFile)
+        def ad_module = new groovy.xml.XmlParser().parse(locationFile)
 
         def moduleNode = ad_module[AD_MODULE]
         javaPackage = moduleNode[JAVAPACKAGE.toUpperCase()].text()
