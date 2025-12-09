@@ -1,5 +1,6 @@
 package com.etendoerp
 
+import com.etendoerp.automation.GradleControllerLoader
 import com.etendoerp.copilot.CopilotLoader
 import com.etendoerp.css.CssCompileLoader
 import com.etendoerp.dbdeps.DepsLoader
@@ -66,5 +67,6 @@ class EtendoPlugin implements Plugin<Project> {
         CopilotLoader.load(project)
         DependencyManagerLoader.load(project)
         NodeTasksLoader.load(project)
+        GradleControllerLoader.load(project)
     }
 }

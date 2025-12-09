@@ -45,6 +45,10 @@ version(pluginVersion)
 repositories {
     mavenCentral()
     gradlePluginPortal()
+    // Gradle's repository for Tooling API
+    maven {
+        url "https://repo.gradle.org/gradle/libs-releases"
+    }
 }
 
 java {
@@ -112,6 +116,13 @@ dependencies {
     testImplementation( "com.athaydes:spock-reports:2.0-groovy-3.0" ) {
         transitive = false // this avoids affecting your version of Groovy/Spock
     }
+
+    // Lightweight web framework for REST API
+    implementation 'io.javalin:javalin:6.1.3'
+    implementation 'org.slf4j:slf4j-simple:2.0.7'
+
+    // THE CORE OF THE SOLUTION: Gradle Tooling API
+    implementation 'org.gradle:gradle-tooling-api:8.5'
 
 }
 
