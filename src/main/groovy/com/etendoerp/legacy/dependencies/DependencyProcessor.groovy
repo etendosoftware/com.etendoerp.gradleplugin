@@ -305,32 +305,18 @@ class DependencyProcessor {
     /**
      * Applies a list of dynamic dependencies to a dedicated configuration ('etendoImplementationDynamic').
      * <p>
-     * This method ensures that dynamic dependencies are registered without mutating the default
-     * Gradle configurations such as 'implementation' or 'runtimeClasspath', which would otherwise
-     * cause errors under Gradle 8+ and Gradle 9 due to stricter configuration mutation rules.
+     * NOTE: In Gradle 8.12+, dependencies cannot be added after configuration resolution.
+     * This method is kept for compatibility but dependencies should be declared upfront in build.gradle
+     * rather than added dynamically during task execution.
      * </p>
      *
      * @param dependencies List of Gradle {@link org.gradle.api.artifacts.Dependency} objects
      *                     to be added dynamically to the Etendo runtime classpath.
      */
     void applyDependenciesToMainProject(List<Dependency> dependencies) {
-        Configuration dynConfig = project.configurations.maybeCreate("etendoImplementationDynamic")
-        dynConfig.canBeResolved = true
-        dynConfig.canBeConsumed = false
-
-        if (dependencies == null || dependencies.isEmpty()) {
-            project.logger.lifecycle("ℹ️ No dynamic dependencies were provided for 'etendoImplementationDynamic'.")
-            return
-        }
-
-        project.logger.lifecycle("📦 Applying ${dependencies.size()} dynamic dependencies to 'etendoImplementationDynamic' configuration...")
-
-        for (Dependency dependency : dependencies) {
-            if (dependency) {
-                project.logger.debug("    ➕ Adding dependency: ${dependency.group}:${dependency.name}:${dependency.version ?: 'unspecified'}")
-                project.dependencies.add("etendoImplementationDynamic", dependency)
-            }
-        }
+        // Gradle 8.12+ does not allow adding dependencies after resolution
+        // Dependencies are collected as files and returned by processJarFiles() instead
+        project.logger.debug("ℹ️ Skipping dynamic dependency application (Gradle 8.12+ compatibility)")
     }
 
     /**
@@ -341,41 +327,21 @@ class DependencyProcessor {
      * if it does not exist and is kept resolvable but not consumable.
      * </p>
      *
+    /**
+     * Applies a single {@link ArtifactDependency} instance to the 'etendoImplementationDynamic' configuration.
+     * <p>
+     * NOTE: In Gradle 8.12+, dependencies cannot be added after configuration resolution.
+     * This method is kept for compatibility but dependencies should be declared upfront in build.gradle
+     * rather than added dynamically during task execution.
+     * </p>
+     *
      * @param artifactDependency The {@link ArtifactDependency} to add dynamically.
      * @param transitivity       Whether transitive dependencies should be included.
      */
     void applyDependencyToMainProject(ArtifactDependency artifactDependency, boolean transitivity) {
-        Configuration dynConfig = project.configurations.maybeCreate("etendoImplementationDynamic")
-        dynConfig.canBeResolved = true
-        dynConfig.canBeConsumed = false
-
-        if (artifactDependency == null) {
-            project.logger.warn("⚠️ Skipped applying null artifact dependency to 'etendoImplementationDynamic'.")
-            return
-        }
-
-        project.logger.lifecycle("📦 Applying dynamic artifact dependency '${artifactDependency.displayName}' (transitive=${transitivity}) to 'etendoImplementationDynamic'...")
-
-        project.dependencies.add("etendoImplementationDynamic",
-                project.dependencies.create("${artifactDependency.displayName}") {
-                    transitive = transitivity
-                })
-
-        project.logger.debug("    ➕ Dependency '${artifactDependency.displayName}' successfully registered.")
-    }
-
-
-    /**
-     * Logs and maintains a separate dynamic dependency configuration without mutating the default
-     * Gradle configuration hierarchy.
-     * <p>
-     * This method replaces legacy behavior that attempted to extend 'implementation' using
-     * {@code extendsFrom()}, which is no longer allowed in Gradle 9+. The new approach isolates
-     * Etendo dynamic dependencies under a safe configuration that can be resolved independently.
-     * </p>
-     */
-    private void linkDynamicImplementation() {
-        project.logger.lifecycle("ℹ️ Using separate configuration 'etendoImplementationDynamic' (no modification to 'implementation' hierarchy).")
+        // Gradle 8.12+ does not allow adding dependencies after resolution
+        // Dependencies are collected as files and returned by processJarFiles() instead
+        project.logger.debug("ℹ️ Skipping dynamic dependency application for '${artifactDependency?.displayName}' (Gradle 8.12+ compatibility)")
     }
 
 }
