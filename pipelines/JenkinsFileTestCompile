@@ -229,12 +229,7 @@ pipeline {
               ./gradlew smartbuild --info
               """
 
-              echo "---------------- Cleaning Gradle cache and workspace ----------------"
-              sh """
-                rm -rf /home/jenkins/.gradle/caches
-                rm -rf ${ETENDO_DIR}
-              """
-              echo "---------------- Build JAR Environment Succesful ----------------"
+              echo "---------------- Build JAR Environment Successful ----------------"
               currentBuild.result = SUCCESS
             } catch (Exception e) {
               echo "---------------- Build JAR Environment Failed ----------------"
@@ -244,6 +239,12 @@ pipeline {
               currentBuild.result = UNSTABLE
               env.BUILD_IN_JAR_STATUS = FAILED
               unstable('Build Failed in Etendo JAR Environment')
+            } finally {
+              echo "---------------- Cleaning Gradle cache and workspace ----------------"
+              sh """
+                rm -rf /home/jenkins/.gradle/caches
+                rm -rf ${ETENDO_DIR}
+              """
             }
           }
         }
