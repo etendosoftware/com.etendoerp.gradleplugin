@@ -38,8 +38,8 @@ class ResolutionUtils {
     final static String CONFLICT_WARNING_MESSAGE = "Found a conflict resolution with:"
 
     static List<String> CORE_DEPENDENCIES = [
-            "${CoreMetadata.CLASSIC_ETENDO_CORE_GROUP}:${CoreMetadata.CLASSIC_ETENDO_CORE_NAME}",
-            "${CoreMetadata.DEFAULT_ETENDO_CORE_GROUP}:${CoreMetadata.DEFAULT_ETENDO_CORE_NAME}"
+      "${CoreMetadata.CLASSIC_ETENDO_CORE_GROUP}:${CoreMetadata.CLASSIC_ETENDO_CORE_NAME}",
+      "${CoreMetadata.DEFAULT_ETENDO_CORE_GROUP}:${CoreMetadata.DEFAULT_ETENDO_CORE_NAME}"
     ]
     public static final String MODULES_PROJECT = "modules"
     public static final String DEPENDENCY_MANAGER_PKG = "com.etendoerp.dependencymanager"
@@ -65,52 +65,14 @@ class ResolutionUtils {
         project.logger.info("* Performing the resolution conflicts of the configuration '${configuration.getName()}'.")
 
         Map<String, Boolean> artifactsConflicts = new HashMap<>()
-        Map<String, Set<String>> requestedVersions = new HashMap<>()
 
         configuration.incoming.afterResolve {
-            // Fix for Gradle 8.12: In addition to checking 'reason.conflictResolution', we also detect conflicts
-            // by analyzing if multiple fixed versions (not ranges) of the same module were requested.
-            // This is necessary because 'reason.conflictResolution' may not always be set correctly in Gradle 8.12,
-            // especially for transitive dependencies like core dependencies in source modules.
-            // Note: We only consider it a conflict if there are multiple FIXED versions requested, not ranges.
-            // Ranges are handled by Gradle's resolution mechanism and don't constitute a conflict unless they don't overlap.
-            
-            // First pass: collect all requested versions for each module (only fixed versions, not ranges)
-            resolutionResult.allDependencies.each { dep ->
-                if (dep instanceof ResolvedDependencyResult) {
-                    def requested = dep.requested
-                    if (requested instanceof DefaultModuleComponentSelector) {
-                        String moduleKey = "${requested.group}:${requested.module}"
-                        String requestedVersion = requested.version
-                        
-                        // Only track fixed versions (not ranges) to detect real conflicts
-                        // A version is considered "fixed" if it doesn't contain range indicators like '[', '(', ',', ')'
-                        boolean isFixedVersion = !requestedVersion.contains('[') && 
-                                                !requestedVersion.contains('(') && 
-                                                !requestedVersion.contains(',') && 
-                                                !requestedVersion.contains(')')
-                        
-                        if (isFixedVersion) {
-                            if (!requestedVersions.containsKey(moduleKey)) {
-                                requestedVersions.put(moduleKey, new HashSet<String>())
-                            }
-                            requestedVersions.get(moduleKey).add(requestedVersion)
-                        }
-                    }
-                }
-            }
-            
-            // Second pass: check for conflicts
             resolutionResult.allComponents {
                 ComponentSelectionReasonInternal reason = selectionReason
                 ModuleVersionIdentifier module = moduleVersion
                 String artifactName = "${module.group}:${module.name}"
-                
-                // Check if there were multiple FIXED versions requested (indicates a conflict)
-                Set<String> versions = requestedVersions.get(artifactName)
-                boolean hasVersionConflict = versions != null && versions.size() > 1
-                
-                if ((reason.conflictResolution || hasVersionConflict) && module != null) {
+                artifactsConflicts.put(artifactName, true)
+                if (reason.conflictResolution && module != null) {
                     artifactsConflicts.put(artifactName, true)
                     handleResolutionConflict(project, configuration, reason, module, force, modulesToReport, modulesToNotReport)
                 } else {
@@ -141,8 +103,8 @@ class ResolutionUtils {
         def moduleIdentifier = "${group}:${name}".toLowerCase()
 
         boolean shouldReport = (!(moduleIdentifier in modulesToNotReport*.toLowerCase())
-                && (modulesToReport.isEmpty() || moduleIdentifier in modulesToReport*.toLowerCase()))
-                && isCoreDependency;
+          && (modulesToReport.isEmpty() || moduleIdentifier in modulesToReport*.toLowerCase()))
+          && isCoreDependency;
 
         if (shouldReport) {
             project.logger.info("")
@@ -305,7 +267,7 @@ class ResolutionUtils {
         }
         try {
             def result = databaseConnection.executeSelectQuery(
-                    "SELECT COUNT(*) AS count FROM ad_module where ad_module_id = ?", [DEPENDENCY_MANAGER_ID])
+              "SELECT COUNT(*) AS count FROM ad_module where ad_module_id = ?", [DEPENDENCY_MANAGER_ID])
             if (result && result[0]?.count > 0) {
                 return true
             }
@@ -508,18 +470,18 @@ class ResolutionUtils {
 
         // Create a new configuration container (using the 'configuration' passed has parameter to restore the Core dependency)
         def configurationContainer = ResolverDependencyUtils.createExtendedConfiguration(
-                project,
-                "core-resolution",
-                configToPerformResolution).copyRecursive()
+          project,
+          "core-resolution",
+          configToPerformResolution).copyRecursive()
 
         // Add all the requested dependencies to the new container
         // All the dependencies will be at the same 'level'
         ResolverDependencyUtils.loadConfigurationWithArtifacts(project, configurationContainer, requestedDependencies,
-                false, true, true, true)
+          false, true, true, true)
 
         // Perform the resolution conflicts
         return dependenciesResolutionConflict(project, configurationContainer, false,
-                true, LogLevel.DEBUG, CORE_DEPENDENCIES)
+          true, LogLevel.DEBUG, CORE_DEPENDENCIES)
     }
 
     static Map<String, List<ArtifactDependency>> performResolutionConflicts(Project project, Configuration configToPerformResolution, boolean filterCoreDependency,
@@ -549,7 +511,7 @@ class ResolutionUtils {
 
         // Perform the resolution conflicts
         def resolvedArtifacts = dependenciesResolutionConflict(project, configToPerformResolution, filterCoreDependency,
-                obtainSelectedArtifacts, LogLevel.INFO, [], CORE_DEPENDENCIES)
+          obtainSelectedArtifacts, LogLevel.INFO, [], CORE_DEPENDENCIES)
 
         // Add to the result the selected CORE
         if (currentCoreDependency && coreArtifactDependency && !filterCoreDependency) {
@@ -583,10 +545,10 @@ class ResolutionUtils {
         coreConfigurationContainer.dependencies.add(project.dependencies.create(coreArtifact))
 
         def incomingDependencies = getIncomingDependencies(project, coreConfigurationContainer,
-                true, true, LogLevel.DEBUG)
+          true, true, LogLevel.DEBUG)
 
         ResolverDependencyUtils.loadConfigurationWithArtifacts(project, container, incomingDependencies,
-                false, true, false, true)
+          false, true, false, true)
     }
 
 }

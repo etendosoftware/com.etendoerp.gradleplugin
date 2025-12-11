@@ -38,17 +38,6 @@ class EtendoPlugin implements Plugin<Project> {
         project.getPluginManager().apply(MavenPublishPlugin.class)
         project.getPluginManager().apply(WarPlugin.class)
 
-        // Create etendoImplementationDynamic configuration immediately after Java plugin is applied
-        // and link it to implementation BEFORE any dependency resolution occurs
-        def dynConfig = project.configurations.create("etendoImplementationDynamic")
-        dynConfig.canBeResolved = true
-        dynConfig.canBeConsumed = false
-        dynConfig.description = "Dynamic Etendo dependencies configuration"
-        
-        def implementation = project.configurations.getByName("implementation")
-        implementation.extendsFrom(dynConfig)
-        project.logger.debug("✅ Created and linked 'etendoImplementationDynamic' to 'implementation' configuration.")
-
         project.java {
             withSourcesJar()
         }

@@ -87,7 +87,7 @@ class DependencyProcessor {
             }
             mavenDependenciesFiles.addAll(collectDependenciesFiles(this.dependencyContainer.mavenDependenciesFiles, applyDependenciesToMainProject))
             mavenDependenciesFiles.addAll(
-                project.configurations.runtimeClasspath.collect { File f -> f }
+              project.configurations.runtimeClasspath.collect { File f -> f }
             )
         } else if (coreMetadata.coreType == CoreType.JAR) {
             // When the core is in JAR the Etendo core dependency will be already applied
@@ -303,45 +303,35 @@ class DependencyProcessor {
     }
 
     /**
-     * Applies a list of dynamic dependencies to a dedicated configuration ('etendoImplementationDynamic').
-     * <p>
-     * NOTE: In Gradle 8.12+, dependencies cannot be added after configuration resolution.
-     * This method is kept for compatibility but dependencies should be declared upfront in build.gradle
-     * rather than added dynamically during task execution.
-     * </p>
+     * Hack to load all the project and subproject dependencies to the 'root' project.
+     * This allow defining dependencies in the 'build.gradle' file of submodules and being recognized
+     * in all the project, simulating the legacy behavior.
      *
-     * @param dependencies List of Gradle {@link org.gradle.api.artifacts.Dependency} objects
-     *                     to be added dynamically to the Etendo runtime classpath.
+     * Only the major version of a dependency will be used, this is because the project sets all the
+     * 'modules' in the main 'sourceSets', making the project and subprojects act like one project.
+     *
+     * PROS: If the project is considered like only one, there is not 'circular dependencies'.
+     *
+     * CONS: If two modules are using the same library with different version, the major one is taking
+     * into account.
+     *
      */
     void applyDependenciesToMainProject(List<Dependency> dependencies) {
-        // Gradle 8.12+ does not allow adding dependencies after resolution
-        // Dependencies are collected as files and returned by processJarFiles() instead
-        project.logger.debug("ℹ️ Skipping dynamic dependency application (Gradle 8.12+ compatibility)")
+        for (Dependency dependency : dependencies) {
+            if (dependency) {
+                project.dependencies {
+                    implementation(dependency)
+                }
+            }
+        }
     }
 
-    /**
-     * Applies a single {@link ArtifactDependency} instance to the 'etendoImplementationDynamic' configuration.
-     * <p>
-     * This is used primarily when Etendo JAR modules or other runtime artifacts need to be dynamically
-     * injected into the build process after dependency resolution. The configuration is created lazily
-     * if it does not exist and is kept resolvable but not consumable.
-     * </p>
-     *
-    /**
-     * Applies a single {@link ArtifactDependency} instance to the 'etendoImplementationDynamic' configuration.
-     * <p>
-     * NOTE: In Gradle 8.12+, dependencies cannot be added after configuration resolution.
-     * This method is kept for compatibility but dependencies should be declared upfront in build.gradle
-     * rather than added dynamically during task execution.
-     * </p>
-     *
-     * @param artifactDependency The {@link ArtifactDependency} to add dynamically.
-     * @param transitivity       Whether transitive dependencies should be included.
-     */
     void applyDependencyToMainProject(ArtifactDependency artifactDependency, boolean transitivity) {
-        // Gradle 8.12+ does not allow adding dependencies after resolution
-        // Dependencies are collected as files and returned by processJarFiles() instead
-        project.logger.debug("ℹ️ Skipping dynamic dependency application for '${artifactDependency?.displayName}' (Gradle 8.12+ compatibility)")
+        project.dependencies {
+            implementation("${artifactDependency.displayName}") {
+                transitive = transitivity
+            }
+        }
     }
 
 }

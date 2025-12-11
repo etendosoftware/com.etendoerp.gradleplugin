@@ -119,7 +119,7 @@ class LegacyScriptLoader {
         }
 
         project.tasks.named('compileJava') {
-            destinationDirectory.set(project.file("${project.buildDir}/classes"))
+            destinationDir = project.file("${project.buildDir}/classes")
         }
 
         project.configurations {

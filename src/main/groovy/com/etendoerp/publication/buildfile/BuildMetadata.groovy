@@ -163,7 +163,7 @@ class BuildMetadata {
     }
 
     void loadBuildMetadata() {
-        def ad_module = new groovy.xml.XmlParser().parse(new File(srcFile))
+        def ad_module = new XmlParser().parse(srcFile)
 
         def moduleNode = ad_module[AD_MODULE]
 
@@ -283,7 +283,7 @@ class BuildMetadata {
         }
 
         // Get the dependencies declared in the AD_MODULE_DEPENDENCY.xml file
-        def ad_module_dependency = new groovy.xml.XmlParser().parse(adModuleDependencyFile)
+        def ad_module_dependency = new XmlParser().parse(adModuleDependencyFile)
         List<String> unloadedModulesIds = []
         NodeList moduleDependencyNode = ad_module_dependency[AD_MODULE_DEPENDENCY] as NodeList
         moduleDependencyNode.each {dep ->
