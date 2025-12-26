@@ -88,6 +88,8 @@ class LegacyScriptLoader {
                     srcDirs = ['build/javasqlc/src'] //clean the default sources directories.
                     srcDirs 'build/javasqlc/srcAD'
                     srcDirs 'src'
+                    srcDirs 'src-core/src' // Added for unified compilation
+                    srcDirs 'src-wad/src'  // Added for unified compilation
                     srcDirs 'src-gen'
                     srcDirs 'srcAD'
 
@@ -120,6 +122,18 @@ class LegacyScriptLoader {
 
         project.tasks.named('compileJava') {
             destinationDir = project.file("${project.buildDir}/classes")
+            
+            // --- OPTIMIZACIONES DE COMPILACIÓN ---
+            options.incremental = true
+            options.fork = true
+            options.encoding = 'UTF-8'
+            
+            // Aumentar memoria para el compilador
+            options.forkOptions.memoryMaximumSize = '2G'
+            
+            // Evitar procesamientos pesados innecesarios en desarrollo
+            options.compilerArgs << '-Xlint:none'
+            options.compilerArgs << '-nowarn'
         }
 
         project.configurations {
