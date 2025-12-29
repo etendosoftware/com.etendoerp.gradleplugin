@@ -3,7 +3,7 @@ package com.etendoerp.consistency
 import com.etendoerp.legacy.dependencies.container.ArtifactDependency
 import com.etendoerp.legacy.dependencies.container.DependencyType
 import org.gradle.api.Project
-import org.gradle.util.internal.VersionNumber
+import org.gradle.util.VersionNumber
 
 import javax.annotation.Nullable
 
