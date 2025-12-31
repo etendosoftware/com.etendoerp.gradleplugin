@@ -125,7 +125,7 @@ class AntLoader {
                 case 'install.source':
                     return 'antInstall'
                 case 'war':
-                    return 'antWar'
+                    return '_antWar'
                 case 'smartbuild':
                     return 'antSmartbuild'
                 case 'compile.complete':

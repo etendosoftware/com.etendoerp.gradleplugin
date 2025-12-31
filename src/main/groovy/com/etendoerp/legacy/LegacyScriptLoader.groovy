@@ -81,42 +81,52 @@ class LegacyScriptLoader {
             askNexusCredentials = this.&askNexusCredentials
         }
 
-        project.sourceSets{
+        project.sourceSets {
             main {
                 java {
                     output.classesDirs = project.files("${project.buildDir}/classes")
-                    srcDirs = ['build/javasqlc/src'] //clean the default sources directories.
-                    srcDirs 'build/javasqlc/srcAD'
-                    srcDirs 'src'
-                    srcDirs 'src-core/src' // Added for unified compilation
-                    srcDirs 'src-wad/src'  // Added for unified compilation
-                    srcDirs 'src-gen'
-                    srcDirs 'srcAD'
-
-                    // The core is in JARs
-                    srcDirs 'build/etendo/build/javasqlc/src'
-                    srcDirs 'build/etendo/build/javasqlc/srcAD'
-                    srcDirs 'build/etendo/src-gen'
-                    srcDirs 'build/etendo/srcAD'
+                    srcDirs = [
+                        'src',
+                        'src-gen',
+                        'srcAD',
+                        'src-core/src',
+                        'src-wad/src',
+                        'build/javasqlc/src',
+                        'build/javasqlc/srcAD',
+                        'build/etendo/src',
+                        'build/etendo/src-gen',
+                        'build/etendo/srcAD',
+                        'build/etendo/build/javasqlc/src',
+                        'build/etendo/build/javasqlc/srcAD'
+                    ]
                 }
             }
         }
-        //set the modules sources directories.
+        
+        // set the modules sources directories.
         if (project.file('modules').exists() && project.file('modules').isDirectory()) {
-            project.file('modules').eachDir {
-                project.sourceSets.main.java.srcDirs += it.toString() + "/src"
-                if (project.file(it.toString() + '/etendo-resources').exists()) {
+            project.file('modules').eachDir { dir ->
+                def moduleSrc = project.file("${dir}/src")
+                if (moduleSrc.exists()) {
+                    project.sourceSets.main.java.srcDir moduleSrc
+                }
+                
+                def moduleResources = project.file("${dir}/etendo-resources")
+                if (moduleResources.exists()) {
                     if (!project.sourceSets.main.resources.srcDirs.any { it.toString().endsWith('/etendo-resources') }) {
-                        project.sourceSets.main.resources.srcDirs += it.toString() + "/etendo-resources"
+                        project.sourceSets.main.resources.srcDir moduleResources
                     }
                 }
             }
         }
 
-        //set the modules_core sources directories.
-        if(project.file('modules_core').exists() && project.file('modules_core').isDirectory()){
-            project.file('modules_core').eachDir {
-                project.sourceSets.main.java.srcDirs += it.toString()+"/src"
+        // set the modules_core sources directories.
+        if (project.file('modules_core').exists() && project.file('modules_core').isDirectory()) {
+            project.file('modules_core').eachDir { dir ->
+                def moduleSrc = project.file("${dir}/src")
+                if (moduleSrc.exists()) {
+                    project.sourceSets.main.java.srcDir moduleSrc
+                }
             }
         }
 
@@ -200,9 +210,42 @@ class LegacyScriptLoader {
          * BUILD TASKS
          */
 
-        /** war coinfiguration */
-        project.war {
-            from 'WebContent'
+        project.afterEvaluate {
+            project.war {
+                dependsOn 'gradleCopyWebInf', 'gradleSyncLib', 'gradlePostsrc', 'gradleCopyReferenceData', 'gradleBuildLocalContext', 'gradleWad', 'gradleCopyDesign', 'gradleCopySkins', 'gradleCopyModuleWeb'
+                
+                // Include everything from WebContent
+                from('WebContent') {
+                    include '**/*'
+                }
+                
+                // Explicitly include src-loc just in case it's being ignored
+                from('WebContent/src-loc') {
+                    into 'src-loc'
+                }
+                
+                destinationDirectory = project.file('lib')
+                archiveFileName = 'etendo.war'
+
+                def coreInSources = com.etendoerp.legacy.ant.AntLoader.isCoreInSources(project)
+                def webXmlPath = coreInSources ? 'build/javasqlc/src/web.xml' : 'build/etendo/build/javasqlc/src/web.xml'
+                
+                // Instead of setting webXml property which is strictly validated at configuration/start of execution,
+                // we include it in the war content. This avoids "file does not exist" errors.
+                from(project.file(webXmlPath).parentFile) {
+                    include 'web.xml'
+                    into 'WEB-INF'
+                }
+                
+                duplicatesStrategy = 'exclude'
+            }
+        }
+
+        /** Alias for compatibility */
+        project.task("antWar") {
+            description = 'Alias for the Gradle war task (compatibility)'
+            group = 'etendo-build'
+            dependsOn project.tasks.findByName('war')
         }
 
         /** Unpacks the Core dependency to a temporary folder. Used by expandCoreLegacy **/
@@ -282,54 +325,116 @@ class LegacyScriptLoader {
         }
 
         /** Copy backup.properties template */
-        project.task("createBackupProperties", type: Copy) {
+        project.task("createBackupProperties") {
             dependsOn "createOBProperties"
-            outputs.upToDateWhen { return false }
-            from project.file("config/backup.properties.template")
-            into project.file("config")
-            rename { String fileName ->
-                fileName.replace("backup.properties.template", "backup.properties")
-            }
+            def template = project.file("config/backup.properties.template")
+            def target = project.file("config/backup.properties")
+            
+            inputs.file(template)
+            outputs.file(target)
+
             doFirst {
                 boolean force = project.findProperty(FORCE_BACKUP_PROPS) ? true : false
-                if (!project.file("config/backup.properties.template").exists() || (project.file("config/backup.properties").exists() && !force)) {
+                if (!template.exists() || (target.exists() && !force)) {
                     project.logger.info("* Omitting the creation of the 'backup.properties' from the template. To recreate run with '-P${FORCE_BACKUP_PROPS}=true'")
                     throw new StopExecutionException()
+                }
+            }
+            
+            doLast {
+                project.copy {
+                    from template
+                    into project.file("config")
+                    rename { "backup.properties" }
                 }
             }
         }
 
         /** Copy Openbravo.properties template */
-        project.task("createOBProperties", type: Copy) {
+        project.task("createOBProperties") {
             dependsOn "createQuartzProperties"
-            outputs.upToDateWhen { return false }
-            from project.file("config/Openbravo.properties.template")
-            into project.file("config")
-            rename { String fileName ->
-                fileName.replace("Openbravo.properties.template", "Openbravo.properties")
-            }
+            def template = project.file("config/Openbravo.properties.template")
+            def target = project.file("config/Openbravo.properties")
+            
+            inputs.file(template)
+            outputs.file(target)
+
             doFirst {
                 boolean force = project.findProperty(FORCE_DEFAULT_PROPS) ? true : false
-                if (!project.file("config/Openbravo.properties.template").exists() || (project.file("config/Openbravo.properties").exists() && !force)) {
+                if (!template.exists() || (target.exists() && !force)) {
                     project.logger.info("* Omitting the creation of the 'Openbravo.properties' from the template. To recreate run with '-P${FORCE_DEFAULT_PROPS}=true'")
                     throw new StopExecutionException()
+                }
+            }
+            
+            doLast {
+                project.copy {
+                    from template
+                    into project.file("config")
+                    rename { "Openbravo.properties" }
                 }
             }
         }
 
         /** Copy quartz.properties template */
-        project.task("createQuartzProperties", type: Copy) {
-            outputs.upToDateWhen { return false }
-            from project.file("config/quartz.properties.template")
-            into project.file("config")
-            rename { String fileName ->
-                fileName.replace("quartz.properties.template", "quartz.properties")
-            }
+        project.task("createQuartzProperties") {
+            dependsOn "createOtherConfigProperties"
+            def template = project.file("config/quartz.properties.template")
+            def target = project.file("config/quartz.properties")
+            
+            inputs.file(template)
+            outputs.file(target)
+
             doFirst {
                 boolean force = project.findProperty(FORCE_QUARTZ_PROPS) ? true : false
-                if (project.file("config/quartz.properties").exists() || (!project.file("config/quartz.properties.template").exists() && !force)) {
+                if (target.exists() || (!template.exists() && !force)) {
                     project.logger.info("* Omitting the creation of the 'quartz.properties' from the template. To recreate run with '-P${FORCE_QUARTZ_PROPS}=true'")
                     throw new StopExecutionException()
+                }
+            }
+            
+            doLast {
+                project.copy {
+                    from template
+                    into project.file("config")
+                    rename { "quartz.properties" }
+                }
+            }
+        }
+
+        /** Copy other config templates */
+        project.task("createOtherConfigProperties") {
+            description = "Copies .template files to their non-template version in the same directory"
+            group = "etendo-config"
+            
+            def configDir = project.file("config")
+            def templates = project.fileTree(configDir) {
+                include "*.template"
+                exclude "backup.properties.template"
+                exclude "Openbravo.properties.template"
+                exclude "quartz.properties.template"
+            }
+            
+            inputs.files(templates)
+            
+            // Declare specific output files instead of the whole directory
+            templates.each { templateFile ->
+                def targetName = templateFile.name.replace(".template", "")
+                outputs.file(new File(configDir, targetName))
+            }
+
+            doLast {
+                templates.each { templateFile ->
+                    def targetName = templateFile.name.replace(".template", "")
+                    def targetFile = new File(configDir, targetName)
+                    if (!targetFile.exists()) {
+                        project.copy {
+                            from templateFile
+                            into configDir
+                            rename { targetName }
+                        }
+                        project.logger.lifecycle("Created ${targetName} from template")
+                    }
                 }
             }
         }
@@ -339,6 +444,7 @@ class LegacyScriptLoader {
             dependsOn project.tasks.findByName("createOBProperties")
             dependsOn project.tasks.findByName("createBackupProperties")
             dependsOn project.tasks.findByName("createQuartzProperties")
+            dependsOn project.tasks.findByName("createOtherConfigProperties")
 
             doLast {
                 def props = new Properties()

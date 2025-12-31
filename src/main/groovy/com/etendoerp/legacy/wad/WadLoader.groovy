@@ -30,8 +30,10 @@ class WadLoader {
             def outputDir = project.file('build/etendo/wad/src-gen')
             outputs.dir(outputDir)
 
-            // Needs core compiled
-            dependsOn 'core.lib' 
+            // Needs core compiled only if in sources
+            if (com.etendoerp.legacy.ant.AntLoader.isCoreInSources(project)) {
+                dependsOn 'core.lib'
+            }
 
             doLast {
                 // Ensure output directory exists
@@ -144,8 +146,16 @@ class WadLoader {
             dependsOn 'wadCompile'
             dependsOn 'gradleCopyConfig'
             
+            // Detect mode
+            def coreInSources = com.etendoerp.legacy.ant.AntLoader.isCoreInSources(project)
+            def corePath = coreInSources ? "." : "build/etendo"
+
             archiveFileName = 'openbravo-wad.jar'
-            destinationDirectory = project.file('src-wad/lib')
+            destinationDirectory = project.file("${corePath}/src-wad/lib")
+
+            // Reproducible JAR
+            preserveFileTimestamps = false
+            reproducibleFileOrder = true
 
             from project.file('build/etendo/wad/classes')
             

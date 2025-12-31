@@ -10,6 +10,7 @@ import com.etendoerp.jars.JarLoader
 import com.etendoerp.java.JavaCheckLoader
 import com.etendoerp.legacy.EtendoLegacy
 import com.etendoerp.legacy.ant.AntLoader
+import com.etendoerp.legacy.database.EntitiesLoader
 import com.etendoerp.legacy.install.InstallLoader
 import com.etendoerp.legacy.smartbuild.SmartbuildLoader
 import com.etendoerp.legacy.sqlc.SqlcLoader
@@ -68,5 +69,6 @@ class EtendoPlugin implements Plugin<Project> {
         TrlLoader.load(project)
         SmartbuildLoader.load(project)
         InstallLoader.load(project)
+        EntitiesLoader.load(project)
     }
 }

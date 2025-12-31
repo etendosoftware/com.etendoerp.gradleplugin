@@ -86,6 +86,13 @@ class SmartbuildLoader {
                 project.logger.lifecycle("  - System status updated to RB51")
             }
         }
+        // Smartbuild alias: compile.complete
+        project.tasks.register('compile.complete') {
+            description = 'Alias de smartbuild - Build completo optimizado (Gradle puro)'
+            group = 'etendo-build'
+            dependsOn 'smartbuild'
+        }
+
     }
 
     /**

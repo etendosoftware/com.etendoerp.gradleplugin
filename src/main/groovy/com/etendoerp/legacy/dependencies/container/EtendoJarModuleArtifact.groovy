@@ -46,14 +46,24 @@ class EtendoJarModuleArtifact extends ArtifactDependency{
         EtendoArtifactsConsistencyContainer consistencyContainer = project.ext.get(ResolverDependencyLoader.CONSISTENCY_CONTAINER)
         consistencyContainer.validateArtifact(this)
 
-        project.logger.info("")
-        project.logger.info("Extracting the Etendo module JAR '${this.group}:${this.name}:${this.version}'")
-
         final String etendoModulesLocation = PathUtils.createPath(
                 project.buildDir.absolutePath,
                 PublicationUtils.ETENDO,
                 PublicationUtils.BASE_MODULE_DIR
         )
+
+        final String moduleLocation = "${etendoModulesLocation}${this.moduleName}"
+        EtendoArtifactMetadata currentMetadata = new EtendoArtifactMetadata(project, this.type)
+        if (currentMetadata.loadMetadataFile(moduleLocation)) {
+            if (currentMetadata.version == this.version) {
+                project.logger.info("The Etendo module JAR '${this.moduleName}' is already extracted and is the same version - ${this.version}")
+                this.extracted = true
+                return
+            }
+        }
+
+        project.logger.info("")
+        project.logger.info("Extracting the Etendo module JAR '${this.group}:${this.name}:${this.version}'")
 
         FileTree moduleFileTree = project.zipTree(this.locationFile)
 
