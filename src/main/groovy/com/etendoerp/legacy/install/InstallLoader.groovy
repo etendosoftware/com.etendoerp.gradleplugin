@@ -16,6 +16,14 @@ class InstallLoader {
             description = 'Instalación completa optimizada (usa smartbuild en lugar de Ant)'
             group = 'etendo-build'
 
+            // === CONFIGURACIÓN INICIAL ===
+            // Forzar apply.on.create=true para que se ejecute apply.module durante create.database
+            // Esto asegura que los datos de referencia (/referencedata/standard/*.xml) se inserten
+            doFirst {
+                project.logger.lifecycle("Setting apply.on.create=true to ensure reference data is imported during database creation")
+                project.ant.properties['apply.on.create'] = 'true'
+            }
+
             // === SETUP OPCIONAL ===
             // Ejecutar setup solo si doSetup=true (default true)
             def doSetup = project.hasProperty("doSetup") ?
@@ -54,6 +62,14 @@ class InstallLoader {
             def deployTask = project.tasks.findByName('gradleDeployToTomcat')
             if (deployTask != null) {
                 dependsOn deployTask
+            }
+
+            // === GENERACIÓN DE ENTIDADES ===
+            // CRÍTICO: generate.entities debe ejecutarse ANTES de apply.module
+            // para generar los archivos META-INF/services necesarios para Hibernate
+            def generateEntitiesTask = project.tasks.findByName('generate.entities')
+            if (generateEntitiesTask != null) {
+                dependsOn generateEntitiesTask
             }
 
             // === APLICACIÓN DE MÓDULOS ===
@@ -154,6 +170,7 @@ class InstallLoader {
         def smartbuildTask = project.tasks.findByName('smartbuild')
         def wadGenerateSqlc = project.tasks.findByName('wadGenerateSqlc')
         def deployTask = project.tasks.findByName('gradleDeployToTomcat')
+        def generateEntitiesTask = project.tasks.findByName('generate.entities')
         def applyModuleTask = project.tasks.findByName('apply.module')
         def importSampleDataTask = project.tasks.findByName('import.sample.data')
 
@@ -181,12 +198,25 @@ class InstallLoader {
              if (createDbTask == null) project.logger.warn("create.database task not found for ordering")
         }
 
+        // 3.5. generate.entities debe ejecutarse después de create.database pero ANTES de smartbuild
+        // CRÍTICO: Esto genera los archivos META-INF/services necesarios para Hibernate
+        if (generateEntitiesTask != null && createDbTask != null) {
+            generateEntitiesTask.mustRunAfter createDbTask
+        }
+        if (generateEntitiesTask != null && smartbuildTask != null) {
+            smartbuildTask.mustRunAfter generateEntitiesTask
+        }
+
         // 4. deploy debe ejecutarse después de smartbuild
         if (deployTask != null && smartbuildTask != null) {
             deployTask.mustRunAfter smartbuildTask
         }
 
-        // 5. apply.module debe ejecutarse después de deploy
+        // 5. apply.module debe ejecutarse después de deploy (o generate.entities si no hay deploy)
+        if (applyModuleTask != null && generateEntitiesTask != null) {
+            applyModuleTask.mustRunAfter generateEntitiesTask
+            project.logger.info("Configured apply.module to run after generate.entities")
+        }
         if (applyModuleTask != null && deployTask != null) {
             applyModuleTask.mustRunAfter deployTask
         } else if (applyModuleTask != null && smartbuildTask != null) {
