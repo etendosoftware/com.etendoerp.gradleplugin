@@ -91,8 +91,8 @@ class LegacyScriptLoader {
                         'srcAD',
                         'src-core/src',
                         'src-wad/src',
-                        'build/javasqlc/src',
-                        'build/javasqlc/srcAD',
+                        // Removed: 'build/javasqlc/src' - old Ant output, now using 'build/javasqlc/sqlc/src' from Gradle
+                        // Removed: 'build/javasqlc/srcAD' - old Ant output, now using 'build/javasqlc/sqlc/srcAD' from Gradle
                         'build/etendo/src',
                         'build/etendo/src-gen',
                         'build/etendo/srcAD',
