@@ -228,7 +228,7 @@ class LegacyScriptLoader {
                 archiveFileName = 'etendo.war'
 
                 def coreInSources = com.etendoerp.legacy.ant.AntLoader.isCoreInSources(project)
-                def webXmlPath = coreInSources ? 'build/javasqlc/src/web.xml' : 'build/etendo/build/javasqlc/src/web.xml'
+                def webXmlPath = coreInSources ? 'build/javasqlc/wad/src/web.xml' : 'build/etendo/build/javasqlc/wad/src/web.xml'
                 
                 // Instead of setting webXml property which is strictly validated at configuration/start of execution,
                 // we include it in the war content. This avoids "file does not exist" errors.
@@ -324,86 +324,9 @@ class LegacyScriptLoader {
             finalizedBy project.tasks.findByName("cleanTempModules")
         }
 
-        /** Copy backup.properties template */
-        project.task("createBackupProperties") {
-            dependsOn "createOBProperties"
-            def template = project.file("config/backup.properties.template")
-            def target = project.file("config/backup.properties")
-            
-            inputs.file(template)
-            outputs.file(target)
-
-            doFirst {
-                boolean force = project.findProperty(FORCE_BACKUP_PROPS) ? true : false
-                if (!template.exists() || (target.exists() && !force)) {
-                    project.logger.info("* Omitting the creation of the 'backup.properties' from the template. To recreate run with '-P${FORCE_BACKUP_PROPS}=true'")
-                    throw new StopExecutionException()
-                }
-            }
-            
-            doLast {
-                project.copy {
-                    from template
-                    into project.file("config")
-                    rename { "backup.properties" }
-                }
-            }
-        }
-
-        /** Copy Openbravo.properties template */
-        project.task("createOBProperties") {
-            dependsOn "createQuartzProperties"
-            def template = project.file("config/Openbravo.properties.template")
-            def target = project.file("config/Openbravo.properties")
-            
-            inputs.file(template)
-            outputs.file(target)
-
-            doFirst {
-                boolean force = project.findProperty(FORCE_DEFAULT_PROPS) ? true : false
-                if (!template.exists() || (target.exists() && !force)) {
-                    project.logger.info("* Omitting the creation of the 'Openbravo.properties' from the template. To recreate run with '-P${FORCE_DEFAULT_PROPS}=true'")
-                    throw new StopExecutionException()
-                }
-            }
-            
-            doLast {
-                project.copy {
-                    from template
-                    into project.file("config")
-                    rename { "Openbravo.properties" }
-                }
-            }
-        }
-
-        /** Copy quartz.properties template */
-        project.task("createQuartzProperties") {
-            dependsOn "createOtherConfigProperties"
-            def template = project.file("config/quartz.properties.template")
-            def target = project.file("config/quartz.properties")
-            
-            inputs.file(template)
-            outputs.file(target)
-
-            doFirst {
-                boolean force = project.findProperty(FORCE_QUARTZ_PROPS) ? true : false
-                if (target.exists() || (!template.exists() && !force)) {
-                    project.logger.info("* Omitting the creation of the 'quartz.properties' from the template. To recreate run with '-P${FORCE_QUARTZ_PROPS}=true'")
-                    throw new StopExecutionException()
-                }
-            }
-            
-            doLast {
-                project.copy {
-                    from template
-                    into project.file("config")
-                    rename { "quartz.properties" }
-                }
-            }
-        }
 
         /** Copy other config templates */
-        project.task("createOtherConfigProperties") {
+        project.tasks.register("createOtherConfigProperties") {
             description = "Copies .template files to their non-template version in the same directory"
             group = "etendo-config"
             
@@ -415,14 +338,8 @@ class LegacyScriptLoader {
                 exclude "quartz.properties.template"
             }
             
-            inputs.files(templates)
+            inputs.files(templates).withPropertyName("templates")
             
-            // Declare specific output files instead of the whole directory
-            templates.each { templateFile ->
-                def targetName = templateFile.name.replace(".template", "")
-                outputs.file(new File(configDir, targetName))
-            }
-
             doLast {
                 templates.each { templateFile ->
                     def targetName = templateFile.name.replace(".template", "")
@@ -440,86 +357,119 @@ class LegacyScriptLoader {
         }
 
         /** Copy Openbravo.properties template and set values */
-        project.task("prepareConfig") {
-            dependsOn project.tasks.findByName("createOBProperties")
-            dependsOn project.tasks.findByName("createBackupProperties")
-            dependsOn project.tasks.findByName("createQuartzProperties")
-            dependsOn project.tasks.findByName("createOtherConfigProperties")
+        project.tasks.register("prepareConfig") {
+            description = "Prepares the configuration files (Openbravo.properties, etc.) from templates and gradle.properties"
+            group = "etendo-config"
+
+            dependsOn "createOtherConfigProperties"
+
+            // Inputs: gradle.properties and the templates
+            inputs.file("gradle.properties").withPropertyName("gradleProperties")
+            inputs.file("config/Openbravo.properties.template").withPropertyName("obTemplate").optional()
+            inputs.file("config/backup.properties.template").withPropertyName("backupTemplate").optional()
+            inputs.file("config/quartz.properties.template").withPropertyName("quartzTemplate").optional()
+
+            // Outputs: the generated property files
+            outputs.file("config/Openbravo.properties").withPropertyName("openbravoProperties")
+            outputs.file("config/backup.properties").withPropertyName("backupProperties")
+            outputs.file("config/quartz.properties").withPropertyName("quartzProperties")
 
             inputs.file(project.file("gradle.properties"))
             outputs.file(project.file("config/Openbravo.properties"))
 
             doLast {
-                def props = new Properties()
-                project.file("gradle.properties").withInputStream { props.load(it) }
-                ant.propertyfile(file: "config/Openbravo.properties") {
+                // 1. Ensure files exist from templates if they don't
+                def filesToCreate = [
+                        "Openbravo.properties": "config/Openbravo.properties.template",
+                        "backup.properties"   : "config/backup.properties.template",
+                        "quartz.properties"   : "config/quartz.properties.template"
+                ]
 
-                    // Find all properties in gradle.properties and set their value in Openbravo.properties
-                    for (Map.Entry<Object, Object> prop : props) {
-                        String key = (String) prop.key
-                        if ("bbdd.port" == key || key.startsWith("org.gradle") || key == "nexusUser" || key == "nexusPassword") {
-                            // Skip helper and gradle props
-                            continue
+                filesToCreate.each { targetName, templatePath ->
+                    def targetFile = project.file("config/${targetName}")
+                    def templateFile = project.file(templatePath)
+                    if (!targetFile.exists() && templateFile.exists()) {
+                        project.copy {
+                            from templateFile
+                            into "config"
+                            rename { targetName }
                         }
-                        entry(key: prop.key, value: prop.value)
+                        project.logger.lifecycle("Created ${targetName} from template")
                     }
+                }
 
-                    // If some properties do not exists, fill them with their default values
-                    if (!props.getProperty("context.name")) {
-                        entry(key: "context.name", value: "etendo")
-                    }
+                // 2. Update Openbravo.properties with values from gradle.properties
+                if (project.file("config/Openbravo.properties").exists()) {
+                    def props = new Properties()
+                    project.file("gradle.properties").withInputStream { props.load(it) }
+                    ant.propertyfile(file: project.file("config/Openbravo.properties")) {
 
-                    if (!props.getProperty("bbdd.sid")) {
-                        entry(key: "bbdd.sid", value: "etendo")
-                    }
-
-                    if (!props.getProperty("bbdd.url")) {
-                        def host = props.getProperty("bbdd.host", "localhost")
-                        def port = props.getProperty("bbdd.port", "5432")
-
-                        def database = props.getProperty("bbdd.rdbms")
-                        def urlValue
-                        if (database && database == "ORACLE") {
-                            def sid = props.getProperty("bbdd.sid", "etendo")
-                            port = props.getProperty("bbdd.port", "1521")
-                            urlValue = "jdbc:oracle:thin:@" + host + ":" + port + ":" + sid
-                        } else {
-                            urlValue = "jdbc:postgresql://" + host + ":" + port
+                        // Find all properties in gradle.properties and set their value in Openbravo.properties
+                        for (Map.Entry<Object, Object> prop : props) {
+                            String key = (String) prop.key
+                            if ("bbdd.port" == key || key.startsWith("org.gradle") || key == "nexusUser" || key == "nexusPassword") {
+                                // Skip helper and gradle props
+                                continue
+                            }
+                            entry(key: prop.key, value: prop.value)
                         }
 
-                        entry(key: "bbdd.url", value: urlValue)
-                    }
+                        // If some properties do not exists, fill them with their default values
+                        if (!props.getProperty("context.name")) {
+                            entry(key: "context.name", value: "etendo")
+                        }
 
-                    if (!props.getProperty("bbdd.systemUser")) {
-                        entry(key: "bbdd.systemUser", value: "postgres")
-                    }
+                        if (!props.getProperty("bbdd.sid")) {
+                            entry(key: "bbdd.sid", value: "etendo")
+                        }
 
-                    if (!props.getProperty("bbdd.systemPassword")) {
-                        entry(key: "bbdd.systemPassword", value: "syspass")
-                    }
+                        if (!props.getProperty("bbdd.url")) {
+                            def host = props.getProperty("bbdd.host", "localhost")
+                            def port = props.getProperty("bbdd.port", "5432")
 
-                    if (!props.getProperty("bbdd.user")) {
-                        entry(key: "bbdd.user", value: "tad")
-                    }
+                            def database = props.getProperty("bbdd.rdbms")
+                            def urlValue
+                            if (database && database == "ORACLE") {
+                                def sid = props.getProperty("bbdd.sid", "etendo")
+                                port = props.getProperty("bbdd.port", "1521")
+                                urlValue = "jdbc:oracle:thin:@" + host + ":" + port + ":" + sid
+                            } else {
+                                urlValue = "jdbc:postgresql://" + host + ":" + port
+                            }
 
-                    if (!props.getProperty("bbdd.password")) {
-                        entry(key: "bbdd.password", value: "tad")
-                    }
+                            entry(key: "bbdd.url", value: urlValue)
+                        }
 
-                    if (!props.getProperty("allow.root")) {
-                        entry(key: "allow.root", value: "false")
-                    }
+                        if (!props.getProperty("bbdd.systemUser")) {
+                            entry(key: "bbdd.systemUser", value: "postgres")
+                        }
 
-                    if (!props.getProperty("source.path")) {
-                        entry(key: "source.path", value: project.projectDir.getAbsolutePath())
-                    }
+                        if (!props.getProperty("bbdd.systemPassword")) {
+                            entry(key: "bbdd.systemPassword", value: "syspass")
+                        }
 
-                    if (!props.getProperty("attach.path")) {
-                        entry(key: "attach.path", value: project.projectDir.getAbsolutePath() + "/attachments")
+                        if (!props.getProperty("bbdd.user")) {
+                            entry(key: "bbdd.user", value: "tad")
+                        }
+
+                        if (!props.getProperty("bbdd.password")) {
+                            entry(key: "bbdd.password", value: "tad")
+                        }
+
+                        if (!props.getProperty("allow.root")) {
+                            entry(key: "allow.root", value: "false")
+                        }
+
+                        if (!props.getProperty("source.path")) {
+                            entry(key: "source.path", value: project.projectDir.getAbsolutePath())
+                        }
+
+                        if (!props.getProperty("attach.path")) {
+                            entry(key: "attach.path", value: project.projectDir.getAbsolutePath() + "/attachments")
+                        }
                     }
                 }
             }
-
         }
 
         // =============================================================
@@ -607,7 +557,9 @@ class LegacyScriptLoader {
             }
             
             // Make prepareConfig depend on interactiveSetup when in interactive mode
-            project.tasks.findByName("prepareConfig").dependsOn "interactiveSetup"
+            project.tasks.named("prepareConfig").configure {
+                dependsOn "interactiveSetup"
+            }
             
             project.logger.info("Interactive setup mode enabled. Use 'interactiveSetup' task for guided configuration.")
         }

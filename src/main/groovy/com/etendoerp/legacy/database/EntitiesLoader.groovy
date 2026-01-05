@@ -42,7 +42,7 @@ class EntitiesLoader {
         }
 
         // 3. Config
-        task.inputs.file('config/Openbravo.properties').withPropertyName('config')
+        task.inputs.files(project.tasks.named('prepareConfig')).withPropertyName('config')
 
         // --- OUTPUTS ---
         task.outputs.dir('src-gen').withPropertyName('generatedEntities')

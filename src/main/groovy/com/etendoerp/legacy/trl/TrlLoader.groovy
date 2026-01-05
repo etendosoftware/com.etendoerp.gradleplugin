@@ -17,14 +17,20 @@ class TrlLoader {
             description = 'Generates Java code from .xsql files for TRL'
             group = 'etendo-trl'
 
+            dependsOn 'prepareConfig'
+
             inputs.files(project.fileTree(dir: 'src-trl/src', include: '**/*.xsql')).withPropertyName('trlXsql')
+            def prepareConfig = project.tasks.named('prepareConfig')
+            inputs.files(prepareConfig).withPropertyName('config')
             
-            def outputDir = project.file('build/javasqlc/src-trl')
+            def outputDir = project.file('build/javasqlc/trl/src')
             outputs.dir(outputDir).withPropertyName('generatedTrlJava')
             outputs.cacheIf { true }
 
             doLast {
                 outputDir.mkdirs()
+                def openbravoProperties = prepareConfig.get().outputs.files.find { it.name == 'Openbravo.properties' }
+
                 def sqlcClasspath = project.files('src-core/lib/openbravo-core.jar') + 
                                     project.configurations.findByName('compileClasspath') +
                                     project.files('config')
@@ -46,7 +52,7 @@ class TrlLoader {
                         maxHeapSize = '1024m'
                         
                         args = [
-                            "${baseConfig}/Openbravo.properties",
+                            openbravoProperties.absolutePath,
                             ".xsql",
                             '.',
                             outputDir.absolutePath,
@@ -82,7 +88,6 @@ class TrlLoader {
         project.afterEvaluate {
             def mainSourceSet = project.sourceSets.main
             mainSourceSet.java.srcDir 'src-trl/src'
-            mainSourceSet.java.srcDir 'build/javasqlc/src-trl'
             
             def compileJavaTask = project.tasks.findByName('compileJava')
             if (compileJavaTask != null) {

@@ -35,7 +35,7 @@ class GradleCopyTasksLoader {
             def gradleCopyWebInfTask = project.tasks.findByName('gradleCopyWebInf')
             def gradleSyncLibTask = project.tasks.findByName('gradleSyncLib')
             
-            ['createQuartzProperties', 'createOBProperties', 'createBackupProperties', 'createOtherConfigProperties'].each { genTaskName ->
+            ['createOtherConfigProperties', 'prepareConfig'].each { genTaskName ->
                 def genTask = project.tasks.findByName(genTaskName)
                 if (genTask != null) {
                     if (gradleCopyConfigTask != null) gradleCopyConfigTask.dependsOn(genTask)
@@ -121,9 +121,9 @@ class GradleCopyTasksLoader {
             def corePath = coreInSources ? "." : "build/etendo"
 
             // Use task outputs as inputs to avoid dependency warnings
-            def quartzTask = project.tasks.findByName('createQuartzProperties')
-            if (quartzTask != null) {
-                from(quartzTask) { include 'quartz.properties' }
+            def prepareConfigTask = project.tasks.findByName('prepareConfig')
+            if (prepareConfigTask != null) {
+                from(prepareConfigTask) { include 'quartz.properties' }
             } else {
                 from(project.file('config')) { include 'quartz.properties' }
             }
@@ -219,12 +219,14 @@ class GradleCopyTasksLoader {
             
             def coreInSources = AntLoader.isCoreInSources(project)
             def corePath = coreInSources ? "." : "build/etendo"
-            def sqlcOutputDir = coreInSources ? 'build/javasqlc/src' : 'build/etendo/build/javasqlc/src'
+            
+            def wadTask = project.tasks.named('gradleWad')
+            def prepareConfig = project.tasks.named('prepareConfig')
+            
+            dependsOn wadTask, prepareConfig
 
             // 1. Core Config
-            if (project.file(sqlcOutputDir).exists()) {
-                from(project.file(sqlcOutputDir)) { include 'web.xml' }
-            }
+            from(wadTask) { include 'web.xml' }
             
             if (project.file('config').exists()) {
                 from(project.file('config')) {

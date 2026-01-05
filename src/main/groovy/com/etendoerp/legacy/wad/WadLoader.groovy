@@ -22,6 +22,7 @@ class WadLoader {
             // Inputs
             inputs.files(project.fileTree(dir: 'src-wad/src', include: '**/*.xsql'))
             inputs.files(project.fileTree(dir: 'modules', include: '**/src-wad/**/*.xsql'))
+            inputs.files(project.tasks.named('prepareConfig')).withPropertyName('config')
             if (project.file('modules_core').exists()) {
                 inputs.files(project.fileTree(dir: 'modules_core', include: '**/src-wad/**/*.xsql'))
             }

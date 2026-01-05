@@ -16,10 +16,12 @@ class SqlcLoader {
             description = 'Generates Java code from .xsql files (Native Gradle implementation)'
             group = 'etendo-sqlc'
             
+            dependsOn 'prepareConfig'
+
             // Detect mode
             def coreInSources = AntLoader.isCoreInSources(project)
             def corePath = coreInSources ? "." : "build/etendo"
-            def outputDir = coreInSources ? project.file('build/javasqlc/src') : project.file('build/etendo/build/javasqlc/src')
+            def outputDir = coreInSources ? project.file('build/javasqlc/sqlc/src') : project.file('build/etendo/build/javasqlc/sqlc/src')
 
             // --- INPUTS ---
             if (project.file("${corePath}/src").exists()) {
@@ -31,7 +33,9 @@ class SqlcLoader {
             if (project.file('modules_core').exists()) {
                 inputs.files(project.fileTree('modules_core') { include '**/src/**/*.xsql' }).withPropertyName('modulesCoreXsql')
             }
-            inputs.file('config/Openbravo.properties').withPropertyName('config')
+            
+            def prepareConfig = project.tasks.named('prepareConfig')
+            inputs.files(prepareConfig).withPropertyName('config')
             inputs.files("${corePath}/src-core/lib/openbravo-core.jar").optional().withPropertyName('coreJar')
 
             // --- OUTPUTS ---
@@ -42,6 +46,8 @@ class SqlcLoader {
 
             doLast {
                 outputDir.mkdirs()
+                
+                def openbravoProperties = prepareConfig.get().outputs.files.find { it.name == 'Openbravo.properties' }
                 
                 // Use compileClasspath instead of Ant references to avoid conversion issues/cycles
                 def sqlcClasspath = project.files()
@@ -95,7 +101,7 @@ class SqlcLoader {
                        maxHeapSize = '1024m'
                        
                        args = [
-                           "${baseConfig}/Openbravo.properties",
+                           openbravoProperties.absolutePath,
                            ".xsql",
                            dirIni,
                            targetDir.absolutePath,
@@ -122,12 +128,13 @@ class SqlcLoader {
             description = 'Generates Java code from .xsql files in srcAD (Native Gradle implementation)'
             group = 'etendo-sqlc'
 
+            dependsOn 'prepareConfig'
             dependsOn 'gradleWad'
 
             // Detect mode
             def coreInSources = AntLoader.isCoreInSources(project)
             def corePath = coreInSources ? "." : "build/etendo"
-            def outputDir = coreInSources ? project.file('build/javasqlc/srcAD') : project.file('build/etendo/build/javasqlc/srcAD')
+            def outputDir = coreInSources ? project.file('build/javasqlc/sqlc/srcAD') : project.file('build/etendo/build/javasqlc/sqlc/srcAD')
 
             // --- INPUTS ---
             // Solo rastreamos archivos .xsql para evitar que cambios en archivos .java generados por WAD
@@ -135,7 +142,8 @@ class SqlcLoader {
             if (project.file('srcAD').exists()) {
                 inputs.files(project.fileTree('srcAD') { include '**/*.xsql' }).withPropertyName('srcADXsql')
             }
-            inputs.file('config/Openbravo.properties').withPropertyName('config')
+            def prepareConfig = project.tasks.named('prepareConfig')
+            inputs.files(prepareConfig).withPropertyName('config')
             inputs.files("${corePath}/src-core/lib/openbravo-core.jar").optional().withPropertyName('coreJar')
             
             // --- OUTPUTS ---
@@ -144,6 +152,8 @@ class SqlcLoader {
             outputs.cacheIf { true }
 
             doLast {
+                def openbravoProperties = prepareConfig.get().outputs.files.find { it.name == 'Openbravo.properties' }
+
                 def sqlcClasspath = project.files("${corePath}/src-core/lib/openbravo-core.jar") + 
                                     project.configurations.findByName('compileClasspath') +
                                     project.files('config')
@@ -175,7 +185,7 @@ class SqlcLoader {
                         maxHeapSize = '1024m'
                         
                         args = [
-                            "${baseConfig}/Openbravo.properties",
+                            openbravoProperties.absolutePath,
                             ".xsql",
                             '.',
                             outputDir.absolutePath,
@@ -191,28 +201,30 @@ class SqlcLoader {
     private static void configureSourceSets(Project project) {
         project.afterEvaluate {
             def mainSourceSet = project.sourceSets.main
-            mainSourceSet.java.srcDir 'build/javasqlc/src'
-            mainSourceSet.java.srcDir 'build/javasqlc/srcAD'
+            def coreInSources = AntLoader.isCoreInSources(project)
+            def corePath = coreInSources ? "." : "build/etendo"
+
+            // Add all generated source directories
+            if (coreInSources) {
+                mainSourceSet.java.srcDir 'build/javasqlc/sqlc/src'
+                mainSourceSet.java.srcDir 'build/javasqlc/sqlc/srcAD'
+                mainSourceSet.java.srcDir 'build/javasqlc/wad/src'
+                mainSourceSet.java.srcDir 'build/javasqlc/trl/src'
+            } else {
+                mainSourceSet.java.srcDir 'build/etendo/build/javasqlc/sqlc/src'
+                mainSourceSet.java.srcDir 'build/etendo/build/javasqlc/sqlc/srcAD'
+                mainSourceSet.java.srcDir 'build/etendo/build/javasqlc/wad/src'
+                mainSourceSet.java.srcDir 'build/etendo/build/javasqlc/trl/src'
+            }
             mainSourceSet.java.srcDir 'srcAD'
             
-            // Ensure compileJava depends on gradleSqlc and gradleSqlcAD
+            // Ensure compileJava depends on all generation tasks
             def compileJavaTask = project.tasks.findByName('compileJava')
             if (compileJavaTask != null) {
                 compileJavaTask.dependsOn('gradleSqlc')
                 compileJavaTask.dependsOn('gradleSqlcAD')
-            }
-
-            // Fix implicit dependencies on configuration generation tasks
-            ['gradleSqlc', 'gradleSqlcAD'].each { sqlcTaskName ->
-                def sqlcTask = project.tasks.findByName(sqlcTaskName)
-                if (sqlcTask != null) {
-                    ['createQuartzProperties', 'createOBProperties', 'createBackupProperties', 'createOtherConfigProperties'].each { genTaskName ->
-                        def genTask = project.tasks.findByName(genTaskName)
-                        if (genTask != null) {
-                            sqlcTask.dependsOn(genTask)
-                        }
-                    }
-                }
+                compileJavaTask.dependsOn('gradleWad')
+                compileJavaTask.dependsOn('gradleTrlSqlc')
             }
         }
     }
