@@ -1,6 +1,7 @@
 package com.etendoerp.legacy.database
 
 import org.gradle.api.Project
+import groovy.sql.Sql
 
 class DatabaseLoader {
 
@@ -124,28 +125,32 @@ class DatabaseLoader {
         )
     }
     
-    // Helper to execute SQL
+    // Helper to execute SQL using Groovy Sql to ensure connections are closed
     private static void executeSql(Project project, String driver, String url, String user, String password, String sql, boolean autocommit = true, boolean continueOnError = false) {
+        Sql sqlInstance = null
         try {
-            project.ant.sql(
-                driver: driver,
-                url: url,
-                userid: user,
-                password: password,
-                onerror: continueOnError ? 'continue' : 'abort',
-                autocommit: autocommit
-            ) {
-                // Classpath for JDBC driver
-                classpath {
-                    fileset(dir: 'lib/runtime') { include(name: '*.jar') }
-                    // Also include project dependencies if needed
-                    pathElement(path: project.configurations.findByName('compileClasspath')?.asPath)
+            sqlInstance = Sql.newInstance(url, user, password, driver)
+            sqlInstance.getConnection().setAutoCommit(autocommit)
+            
+            // Split by semicolon if it's a block, but be careful with functions
+            // For simplicity, if it contains multiple lines and ends with semicolon, we try to execute as is
+            // or split if it's a simple script.
+            if (sql.trim().contains(';')) {
+                sql.split(';').each { statement ->
+                    if (statement.trim()) {
+                        sqlInstance.execute(statement.trim())
+                    }
                 }
-                transaction(sql)
+            } else {
+                sqlInstance.execute(sql)
             }
         } catch (Exception e) {
             if (!continueOnError) throw e
             project.logger.warn("SQL execution error (ignored): ${e.message}")
+        } finally {
+            if (sqlInstance != null) {
+                sqlInstance.close()
+            }
         }
     }
 

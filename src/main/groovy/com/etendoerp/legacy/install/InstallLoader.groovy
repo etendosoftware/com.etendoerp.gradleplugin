@@ -1,6 +1,7 @@
 package com.etendoerp.legacy.install
 
 import org.gradle.api.Project
+import groovy.sql.Sql
 
 class InstallLoader {
 
@@ -93,6 +94,7 @@ class InstallLoader {
     private static void updateSystemStatus(Project project, String status) {
         project.logger.info("Updating system status to ${status}")
         
+        Sql sqlInstance = null
         try {
             def driver = getProperty(project, 'bbdd.driver')
             def url = getProperty(project, 'bbdd.owner.url')
@@ -104,22 +106,15 @@ class InstallLoader {
                  return
             }
 
-            project.ant.sql(
-                driver: driver,
-                url: url,
-                userid: user,
-                password: password,
-                onerror: 'continue',
-                autocommit: true
-            ) {
-                // Use the classpath defined in ant project (imported from build.xml)
-                classpath {
-                    pathElement(path: project.ant.references['project.class.path'])
-                }
-                transaction("UPDATE ad_system_info SET system_status='${status}'")
-            }
+            sqlInstance = Sql.newInstance(url, user, password, driver)
+            sqlInstance.execute("UPDATE ad_system_info SET system_status=?", [status])
+            
         } catch (Exception e) {
             project.logger.warn("Could not update system status: ${e.message}")
+        } finally {
+            if (sqlInstance != null) {
+                sqlInstance.close()
+            }
         }
     }
 

@@ -446,6 +446,9 @@ class LegacyScriptLoader {
             dependsOn project.tasks.findByName("createQuartzProperties")
             dependsOn project.tasks.findByName("createOtherConfigProperties")
 
+            inputs.file(project.file("gradle.properties"))
+            outputs.file(project.file("config/Openbravo.properties"))
+
             doLast {
                 def props = new Properties()
                 project.file("gradle.properties").withInputStream { props.load(it) }
