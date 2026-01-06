@@ -10,7 +10,6 @@ import com.etendoerp.publication.PublicationUtils
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ResolvedArtifact
 import org.gradle.api.file.FileTree
-import org.gradle.internal.impldep.org.junit.platform.commons.util.ModuleUtils
 
 class EtendoJarModuleArtifact extends ArtifactDependency{
 
@@ -23,6 +22,20 @@ class EtendoJarModuleArtifact extends ArtifactDependency{
 
     @Override
     void extract() {
+        // Obtain the XML version to perform the version consistency
+        File ADModuleFile = getADModuleFile(this.project, this.locationFile)
+
+        if (ADModuleFile) {
+            EtendoArtifactMetadata metadata = new EtendoArtifactMetadata(project, this.type)
+            if (metadata.loadMetadataFromXML(ADModuleFile.absolutePath)) {
+                this.versionParser = metadata.version
+            }
+        }
+
+        if (!this.versionParser) {
+            this.versionParser = this.version
+        }
+
         // TODO: Improvement - Use the result of the 'resolutionConflicts' to verify if the module contains conflicts.
 
         def extension = project.extensions.findByType(EtendoPluginExtension)
@@ -42,7 +55,6 @@ class EtendoJarModuleArtifact extends ArtifactDependency{
         }
 
         // Validate that the module is allowed to be extracted
-        this.versionParser = this.version
         EtendoArtifactsConsistencyContainer consistencyContainer = project.ext.get(ResolverDependencyLoader.CONSISTENCY_CONTAINER)
         consistencyContainer.validateArtifact(this)
 
@@ -68,7 +80,7 @@ class EtendoJarModuleArtifact extends ArtifactDependency{
         FileTree moduleFileTree = project.zipTree(this.locationFile)
 
         def metainfFilter = moduleFileTree.matching {
-            include "${JAR_ETENDO_LOCATION}**"
+            include "${JAR_ETENDO_MODULE_LOCATION}${this.moduleName}/**"
         }
 
         def srcFilter = moduleFileTree.matching {
