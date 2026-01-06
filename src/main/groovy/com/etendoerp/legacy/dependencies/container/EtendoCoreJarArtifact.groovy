@@ -35,7 +35,7 @@ class EtendoCoreJarArtifact extends ArtifactDependency{
 
         // Prevent extracting if the Core JAR already exists and is the same version
         final String coreJarLocation = "${project.buildDir.absolutePath}${File.separator}etendo"
-        
+
         EtendoArtifactMetadata currentMetadata = new EtendoArtifactMetadata(project, this.type)
         if (currentMetadata.loadMetadataFile(coreJarLocation)) {
             if (currentMetadata.version == this.version) {
@@ -51,7 +51,7 @@ class EtendoCoreJarArtifact extends ArtifactDependency{
         FileTree coreFileTree = project.zipTree(this.locationFile)
 
         def metainfFilter = coreFileTree.matching {
-            include "${JAR_ETENDO_LOCATION}"
+            include "${JAR_ETENDO_LOCATION}**"
         }
 
         /*
@@ -69,6 +69,18 @@ class EtendoCoreJarArtifact extends ArtifactDependency{
                 metainfFilter
             }
             into ("${project.buildDir}/etendo")
+            preserve {
+                include "src-gen/**"
+                include "srcAD/**"
+                include "src-db/**"
+                include "src-util/**"
+                include "src-wad/**"
+                include "wad/**"
+                include "web/**"
+                include "modules/**"
+                include "referencedata/**"
+                include ".entities"
+            }
             eachFile { f ->
                 f.path = f.path.replaceFirst(metaInfPath, '')
             }

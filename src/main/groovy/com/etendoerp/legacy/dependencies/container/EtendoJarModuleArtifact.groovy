@@ -68,7 +68,7 @@ class EtendoJarModuleArtifact extends ArtifactDependency{
         FileTree moduleFileTree = project.zipTree(this.locationFile)
 
         def metainfFilter = moduleFileTree.matching {
-            include "${JAR_ETENDO_LOCATION}"
+            include "${JAR_ETENDO_LOCATION}**"
         }
 
         def srcFilter = moduleFileTree.matching {
@@ -92,6 +92,9 @@ class EtendoJarModuleArtifact extends ArtifactDependency{
                 metainfFilter
             }
             into "${etendoModulesLocation}${this.moduleName}"
+            preserve {
+                include "src/**"
+            }
             eachFile { f ->
                 f.path = f.path.replaceFirst(metaInfPath + this.moduleName, '')
             }

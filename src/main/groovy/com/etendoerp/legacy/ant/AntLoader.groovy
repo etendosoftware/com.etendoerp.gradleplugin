@@ -153,12 +153,18 @@ class AntLoader {
             }
         }
 
-        ['antSmartbuild', 'antCompile.complete', 'compile.complete.deploy', 'update.database', 'export.database'].each {
+        ['antSmartbuild', 'antCompile.complete', 'compile.complete.deploy', 'update.database', 'export.database', 'generate.entities', 'generate.entities.quick', 'generate.entities.full'].each {
             def task = project.tasks.findByName(it)
             if (task != null) {
                 task.dependsOn(project.tasks.findByName("compileFilesCheck"))
             }
         }
+
+        // Declare outputs for generation tasks to improve up-to-date detection
+        project.tasks.findByName("generate.entities")?.outputs?.dir("${project.buildDir}/etendo/src-gen")
+        project.tasks.findByName("generate.entities.quick")?.outputs?.dir("${project.buildDir}/etendo/src-gen")
+        project.tasks.findByName("generate.entities.full")?.outputs?.dir("${project.buildDir}/etendo/src-gen")
+        project.tasks.findByName("compute.entities.uptodate")?.outputs?.file("${project.buildDir}/etendo/.entities")
 
         // Consistency verification
         ['antSmartbuild', 'antCompile.complete', 'compile.complete.deploy'].each {
