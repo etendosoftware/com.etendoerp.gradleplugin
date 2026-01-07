@@ -10,6 +10,42 @@ class NodeTasksLoader {
     static final String PID_FILE = 'build/ui/.pid'
     static final String LOG_FILE = 'build/ui/server.log'
 
+    /**
+     * Resolve Etendo Classic URLs from gradle.properties or infer from context.name
+     * Searches for properties in this order:
+     * 1. etendo.classic.url / etendo.classic.host (gradle property)
+     * 2. ETENDO_CLASSIC_URL / ETENDO_CLASSIC_HOST (gradle property)
+     * 3. ETENDO_CLASSIC_URL / ETENDO_CLASSIC_HOST (environment variable)
+     * 4. Infer from context.name
+     */
+    static Map<String, String> resolveEtendoUrls(Project project) {
+        // Try to find etendo.classic.url (priority order)
+        String etendoUrl = project.findProperty('etendo.classic.url') ?: 
+                          project.findProperty('ETENDO_CLASSIC_URL') ?:
+                          System.getenv('ETENDO_CLASSIC_URL')
+        
+        // Try to find etendo.classic.host (priority order)
+        String etendoHost = project.findProperty('etendo.classic.host') ?: 
+                           project.findProperty('ETENDO_CLASSIC_HOST') ?:
+                           System.getenv('ETENDO_CLASSIC_HOST')
+        
+        // If etendo.classic.url is not explicitly defined, infer from context.name
+        if (!etendoUrl) {
+            String contextName = project.findProperty('context.name') ?: 'etendo'
+            etendoUrl = "http://localhost:8080/${contextName}"
+        }
+        
+        // If etendo.classic.host is not defined, use the same as etendoUrl
+        if (!etendoHost) {
+            etendoHost = etendoUrl
+        }
+        
+        return [
+            url: etendoUrl,
+            host: etendoHost
+        ]
+    }
+
     static void load(Project project) {
         // Register ui task (foreground)
         project.tasks.register('ui') {
@@ -57,27 +93,42 @@ class NodeTasksLoader {
 
         project.logger.lifecycle("Downloading UI package from GitHub Packages...")
 
-        // Get GitHub token
+        // Get GitHub credentials
         String githubToken = project.findProperty('githubToken') ?: ""
+        String githubUser = project.findProperty('githubUser') ?: ""
+        
         if (githubToken.isEmpty()) {
             throw new RuntimeException("Property 'githubToken' not found in gradle.properties")
         }
+        
+        if (githubUser.isEmpty()) {
+            throw new RuntimeException("Property 'githubUser' not found in gradle.properties. Add your GitHub username in lowercase.")
+        }
 
-        // Create temp directory for npm operations
+        // Create install directory
+        installDir.mkdirs()
+
+        // Create .npmrc in install directory for authentication
+        File npmrc = new File(installDir, '.npmrc')
+        npmrc.text = """@etendosoftware:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${githubToken}
+//npm.pkg.github.com/:username=${githubUser.toLowerCase()}
+//npm.pkg.github.com/:always-auth=true
+"""
+
+        project.logger.lifecycle("Authenticating as: ${githubUser.toLowerCase()}")
+        project.logger.lifecycle(".npmrc created at: ${npmrc.absolutePath}")
+        project.logger.lifecycle("Fetching package tarball...")
+
+        // Create temp directory for download
         File tempDir = new File(installDir, '.temp')
         tempDir.mkdirs()
 
-        // Create .npmrc for authentication
-        File npmrc = new File(tempDir, '.npmrc')
-        npmrc.text = """@etendosoftware:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=${githubToken}
-"""
-
-        // Download package using npm pack
-        project.logger.lifecycle("Fetching package tarball...")
+        // Download package using npm pack with explicit userconfig
         def packResult = project.exec {
-            workingDir tempDir
-            commandLine 'npm', 'pack', PACKAGE_NAME, '--registry=https://npm.pkg.github.com'
+            workingDir installDir
+            environment 'NPM_CONFIG_USERCONFIG', npmrc.absolutePath
+            commandLine 'npm', 'pack', PACKAGE_NAME, '--pack-destination', tempDir.absolutePath, '--userconfig', npmrc.absolutePath
             ignoreExitValue true
         }
 
@@ -157,6 +208,11 @@ class NodeTasksLoader {
         env.put("NODE_ENV", "production")
         env.put("HOSTNAME", "0.0.0.0")
         env.put("NEXT_TELEMETRY_DISABLED", "1")
+        
+        // Etendo Classic backend URLs
+        def etendoUrls = resolveEtendoUrls(project)
+        env.put("ETENDO_CLASSIC_URL", etendoUrls.url)
+        env.put("ETENDO_CLASSIC_HOST", etendoUrls.host)
 
         // Redirect output to log file
         processBuilder.redirectOutput(ProcessBuilder.Redirect.appendTo(logFile))
@@ -314,6 +370,11 @@ class NodeTasksLoader {
             env.put("NODE_ENV", "production")
             env.put("HOSTNAME", "0.0.0.0")
             env.put("NEXT_TELEMETRY_DISABLED", "1")
+            
+            // Etendo Classic backend URLs
+            def etendoUrls = resolveEtendoUrls(project)
+            env.put("ETENDO_CLASSIC_URL", etendoUrls.url)
+            env.put("ETENDO_CLASSIC_HOST", etendoUrls.host)
 
             // Start the process
             process = processBuilder.start()
