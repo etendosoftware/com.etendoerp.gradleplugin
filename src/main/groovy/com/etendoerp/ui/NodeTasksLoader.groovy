@@ -1,188 +1,302 @@
 package com.etendoerp.ui
 
 import org.gradle.api.Project
+import groovy.json.JsonSlurper
 
 class NodeTasksLoader {
 
-    static final String UI_MODULE_PATH = 'modules/com.etendorx.workspace-ui'
-    static final String UI_BUILD_PATH = 'build/ui'
-    static final String UI_REPO_URL = 'https://github.com/etendosoftware/com.etendorx.workspace-ui.git'
+    static final String UI_INSTALL_PATH = 'build/ui'
+    static final String PACKAGE_NAME = '@etendosoftware/mainui-cli'
+    static final String PID_FILE = 'build/ui/.pid'
+    static final String LOG_FILE = 'build/ui/server.log'
 
     static void load(Project project) {
-        // Determine the UI project directory
-        File uiProjectDir = resolveUIProjectDirectory(project)
-
-        // Configure node extension (plugin is applied in main build.gradle)
-        project.afterEvaluate {
-            if (project.extensions.findByName('node')) {
-                project.extensions.configure("node") { node ->
-                    node.version.set('20.10.0')
-                    node.download.set(true)
-                    node.nodeProjectDir.set(uiProjectDir)
-                }
-            }
-        }
-
-        // Register uiInstall task
-        project.tasks.register('uiInstall') {
-            group = 'ui'
-            description = 'Install UI dependencies using pnpm'
-            doLast {
-                project.exec {
-                    workingDir uiProjectDir
-                    commandLine 'pnpm', 'install'
-                }
-            }
-        }
-
-        // Register uiBuild task
-        project.tasks.register('uiBuild') {
-            group = 'ui'
-            description = 'Build the UI project'
-            dependsOn 'uiInstall'
-            doLast {
-                project.exec {
-                    workingDir uiProjectDir
-                    commandLine 'pnpm', 'build'
-                }
-            }
-        }
-
-        // Register ui task
+        // Register ui task (foreground)
         project.tasks.register('ui') {
             group = 'ui'
-            description = 'Start the UI development server'
-            dependsOn 'uiBuild'
+            description = 'Start the Etendo UI from GitHub Packages (foreground)'
             doLast {
-                startUIServer(project, uiProjectDir)
+                downloadAndExtractUI(project)
+                startUIServer(project, false)
+            }
+        }
+
+        // Register ui.start task (background)
+        project.tasks.register('ui.start') {
+            group = 'ui'
+            description = 'Start the Etendo UI server in background'
+            doLast {
+                downloadAndExtractUI(project)
+                startUIServerBackground(project)
+            }
+        }
+
+        // Register ui.stop task
+        project.tasks.register('ui.stop') {
+            group = 'ui'
+            description = 'Stop the Etendo UI server (foreground or background)'
+            doLast {
+                stopUIServer(project)
             }
         }
     }
 
     /**
-     * Resolves the UI project directory with the following logic:
-     * 1. If modules/com.etendorx.workspace-ui exists, use it
-     * 2. Otherwise, check build/ui:
-     *    - If it exists and is a git repo, pull latest changes
-     *    - If it doesn't exist, clone the repository
-     * @param project The Gradle project
-     * @return The resolved UI project directory
+     * Download and extract the UI package as a tarball
+     * This avoids npm/pnpm dependency resolution issues
      */
-    static File resolveUIProjectDirectory(Project project) {
-        File moduleDir = project.file(UI_MODULE_PATH)
-        File buildDir = project.file(UI_BUILD_PATH)
+    static void downloadAndExtractUI(Project project) {
+        File installDir = project.file(UI_INSTALL_PATH)
+        File packageDir = new File(installDir, 'package')
 
-        // Check if the module directory exists
-        if (moduleDir.exists() && moduleDir.isDirectory()) {
-            project.logger.info("Using UI module from: ${UI_MODULE_PATH}")
-            return moduleDir
+        // Check if already extracted
+        if (packageDir.exists() && new File(packageDir, 'cli.js').exists()) {
+            project.logger.lifecycle("UI package already installed in ${UI_INSTALL_PATH}")
+            return
         }
 
-        // Module doesn't exist, use build directory
-        project.logger.info("UI module not found in ${UI_MODULE_PATH}, using build directory")
+        project.logger.lifecycle("Downloading UI package from GitHub Packages...")
 
-        if (buildDir.exists() && buildDir.isDirectory()) {
-            // Check if it's a git repository
-            File gitDir = new File(buildDir, '.git')
-            if (gitDir.exists()) {
-                project.logger.info("Updating UI repository in ${UI_BUILD_PATH}")
-                updateGitRepository(project, buildDir)
-            } else {
-                project.logger.warn("Directory ${UI_BUILD_PATH} exists but is not a git repository. Removing and cloning fresh.")
-                buildDir.deleteDir()
-                cloneRepository(project, buildDir)
-            }
-        } else {
-            // Clone the repository
-            project.logger.info("Cloning UI repository to ${UI_BUILD_PATH}")
-            cloneRepository(project, buildDir)
+        // Get GitHub token
+        String githubToken = project.findProperty('githubToken') ?: ""
+        if (githubToken.isEmpty()) {
+            throw new RuntimeException("Property 'githubToken' not found in gradle.properties")
         }
 
-        return buildDir
+        // Create temp directory for npm operations
+        File tempDir = new File(installDir, '.temp')
+        tempDir.mkdirs()
+
+        // Create .npmrc for authentication
+        File npmrc = new File(tempDir, '.npmrc')
+        npmrc.text = """@etendosoftware:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${githubToken}
+"""
+
+        // Download package using npm pack
+        project.logger.lifecycle("Fetching package tarball...")
+        def packResult = project.exec {
+            workingDir tempDir
+            commandLine 'npm', 'pack', PACKAGE_NAME, '--registry=https://npm.pkg.github.com'
+            ignoreExitValue true
+        }
+
+        if (packResult.exitValue != 0) {
+            throw new RuntimeException("Failed to download UI package. Check your githubToken permissions.")
+        }
+
+        // Find the downloaded tarball
+        File tarball = tempDir.listFiles().find { it.name.endsWith('.tgz') }
+        if (!tarball) {
+            throw new RuntimeException("Tarball not found after npm pack")
+        }
+
+        project.logger.lifecycle("Extracting package...")
+        
+        // Clean package directory if exists
+        if (packageDir.exists()) {
+            packageDir.deleteDir()
+        }
+        packageDir.mkdirs()
+
+        // Extract tarball using tar command
+        project.exec {
+            workingDir installDir
+            commandLine 'tar', '-xzf', tarball.absolutePath, '-C', packageDir.absolutePath, '--strip-components=1'
+        }
+
+        // Cleanup temp directory
+        tempDir.deleteDir()
+
+        project.logger.lifecycle("UI package ready at ${packageDir.absolutePath}")
     }
 
     /**
-     * Clones the UI repository to the specified directory
+     * Start the UI server in background
      */
-    static void cloneRepository(Project project, File targetDir) {
-        try {
-            def result = project.exec {
-                commandLine 'git', 'clone', UI_REPO_URL, targetDir.absolutePath
-                ignoreExitValue = true
-            }
-            if (result.exitValue != 0) {
-                throw new RuntimeException("Failed to clone UI repository from ${UI_REPO_URL}")
-            }
-            project.logger.lifecycle("Successfully cloned UI repository to ${targetDir.absolutePath}")
-        } catch (Exception e) {
-            project.logger.error("Error cloning repository: ${e.message}")
-            throw e
-        }
-    }
-
-    /**
-     * Updates the git repository by pulling the latest changes
-     */
-    static void updateGitRepository(Project project, File repoDir) {
-        try {
-            // Fetch latest changes
-            def fetchResult = project.exec {
-                workingDir repoDir
-                commandLine 'git', 'fetch', 'origin'
-                ignoreExitValue = true
-            }
-
-            if (fetchResult.exitValue != 0) {
-                project.logger.warn("Failed to fetch updates from origin. Using existing version.")
+    static void startUIServerBackground(Project project) {
+        File pidFile = project.file(PID_FILE)
+        
+        // Check if already running
+        if (pidFile.exists()) {
+            def existingPid = pidFile.text.trim()
+            if (isProcessRunning(existingPid)) {
+                project.logger.lifecycle("UI server is already running with PID ${existingPid}")
+                project.logger.lifecycle("Use './gradlew ui.stop' to stop it first")
                 return
+            } else {
+                // Stale PID file, clean it up
+                pidFile.delete()
             }
+        }
 
-            // Check if there are updates available
-            def revParseLocal = new ByteArrayOutputStream()
-            project.exec {
-                workingDir repoDir
-                commandLine 'git', 'rev-parse', 'HEAD'
-                standardOutput = revParseLocal
-            }
+        File packageDir = new File(project.file(UI_INSTALL_PATH), 'package')
+        File cliJs = new File(packageDir, 'cli.js')
+        File logFile = project.file(LOG_FILE)
 
-            def revParseRemote = new ByteArrayOutputStream()
-            project.exec {
-                workingDir repoDir
-                commandLine 'git', 'rev-parse', 'origin/main'
-                standardOutput = revParseRemote
-                ignoreExitValue = true
-            }
+        if (!cliJs.exists()) {
+            throw new RuntimeException("UI package not found. Run the task again to download.")
+        }
 
-            def localCommit = revParseLocal.toString().trim()
-            def remoteCommit = revParseRemote.toString().trim()
+        project.logger.lifecycle("Starting UI server in background...")
+        project.logger.lifecycle("Logs will be written to: ${logFile.absolutePath}")
 
-            if (localCommit != remoteCommit && !remoteCommit.isEmpty()) {
-                project.logger.lifecycle("Updates available. Pulling latest changes...")
-                def pullResult = project.exec {
-                    workingDir repoDir
-                    commandLine 'git', 'pull', 'origin', 'main'
+        // Prepare log file
+        logFile.parentFile.mkdirs()
+        if (logFile.exists()) {
+            logFile.delete()
+        }
+        logFile.createNewFile()
+
+        // Start process in background
+        ProcessBuilder processBuilder = new ProcessBuilder('node', cliJs.absolutePath)
+        processBuilder.directory(packageDir)
+        
+        Map<String, String> env = processBuilder.environment()
+        env.put("PORT", "3000")
+        env.put("NODE_ENV", "production")
+        env.put("HOSTNAME", "0.0.0.0")
+        env.put("NEXT_TELEMETRY_DISABLED", "1")
+
+        // Redirect output to log file
+        processBuilder.redirectOutput(ProcessBuilder.Redirect.appendTo(logFile))
+        processBuilder.redirectError(ProcessBuilder.Redirect.appendTo(logFile))
+
+        Process process = processBuilder.start()
+        def pid = process.pid()
+
+        // Save PID to file
+        pidFile.text = pid.toString()
+
+        // Give it a moment to start
+        Thread.sleep(1000)
+
+        if (process.isAlive()) {
+            project.logger.lifecycle("✅ UI server started successfully")
+            project.logger.lifecycle("   PID: ${pid}")
+            project.logger.lifecycle("   URL: http://localhost:3000")
+            project.logger.lifecycle("   Logs: ${logFile.absolutePath}")
+            project.logger.lifecycle("")
+            project.logger.lifecycle("To stop the server, run: ./gradlew ui.stop")
+        } else {
+            pidFile.delete()
+            throw new RuntimeException("Failed to start UI server. Check logs at ${logFile.absolutePath}")
+        }
+    }
+
+    /**
+     * Stop the UI server (foreground or background)
+     */
+    static void stopUIServer(Project project) {
+        File pidFile = project.file(PID_FILE)
+        
+        if (!pidFile.exists()) {
+            project.logger.lifecycle("No running UI server found (PID file not found)")
+            project.logger.lifecycle("Checking for running node processes on port 3000...")
+            
+            // Try to find and kill process using port 3000
+            try {
+                def result = new ByteArrayOutputStream()
+                project.exec {
+                    commandLine 'lsof', '-ti', ':3000'
+                    standardOutput = result
                     ignoreExitValue = true
                 }
-
-                if (pullResult.exitValue == 0) {
-                    project.logger.lifecycle("Successfully updated UI repository")
+                
+                def pids = result.toString().trim()
+                if (pids) {
+                    pids.split('\n').each { pid ->
+                        project.logger.lifecycle("Killing process ${pid} on port 3000...")
+                        project.exec {
+                            commandLine 'kill', '-15', pid
+                            ignoreExitValue = true
+                        }
+                    }
+                    Thread.sleep(2000)
+                    project.logger.lifecycle("✅ Stopped UI server")
                 } else {
-                    project.logger.warn("Failed to pull updates. Using existing version.")
+                    project.logger.lifecycle("No process found on port 3000")
+                }
+            } catch (Exception e) {
+                project.logger.warn("Could not check for processes on port 3000: ${e.message}")
+            }
+            return
+        }
+
+        def pid = pidFile.text.trim()
+        project.logger.lifecycle("Stopping UI server (PID: ${pid})...")
+
+        if (!isProcessRunning(pid)) {
+            project.logger.lifecycle("Process ${pid} is not running")
+            pidFile.delete()
+            return
+        }
+
+        // Try graceful shutdown first (SIGTERM)
+        try {
+            if (System.getProperty('os.name').toLowerCase().contains('windows')) {
+                project.exec {
+                    commandLine 'taskkill', '/F', '/PID', pid
+                    ignoreExitValue = true
                 }
             } else {
-                project.logger.info("UI repository is already up to date")
+                // Kill process group on Unix
+                project.exec {
+                    commandLine 'kill', '-15', pid
+                    ignoreExitValue = true
+                }
+                
+                // Wait for graceful shutdown
+                Thread.sleep(2000)
+                
+                // Force kill if still running
+                if (isProcessRunning(pid)) {
+                    project.exec {
+                        commandLine 'kill', '-9', pid
+                        ignoreExitValue = true
+                    }
+                }
             }
+            
+            project.logger.lifecycle("✅ UI server stopped")
         } catch (Exception e) {
-            project.logger.warn("Error updating repository: ${e.message}. Using existing version.")
+            project.logger.warn("Error stopping process: ${e.message}")
+        } finally {
+            pidFile.delete()
         }
     }
 
     /**
-     * Starts the UI development server with proper process management
-     * Handles Ctrl+C gracefully by killing the child process
+     * Check if a process is running
      */
-    static void startUIServer(Project project, File workingDir) {
-        project.logger.lifecycle("Starting UI development server...")
+    static boolean isProcessRunning(String pid) {
+        try {
+            if (System.getProperty('os.name').toLowerCase().contains('windows')) {
+                def process = "tasklist /FI \"PID eq ${pid}\" /NH".execute()
+                def output = process.text
+                return output.contains(pid)
+            } else {
+                def process = "kill -0 ${pid}".execute()
+                process.waitFor()
+                return process.exitValue() == 0
+            }
+        } catch (Exception e) {
+            return false
+        }
+    }
+
+    /**
+     * Start the UI server by executing the CLI directly (foreground)
+     */
+    static void startUIServer(Project project, boolean foreground = true) {
+        File packageDir = new File(project.file(UI_INSTALL_PATH), 'package')
+        File cliJs = new File(packageDir, 'cli.js')
+
+        if (!cliJs.exists()) {
+            throw new RuntimeException("UI package not found. Run the task again to download.")
+        }
+
+        project.logger.lifecycle("Starting UI server...")
         project.logger.lifecycle("Press Ctrl+C to stop the server")
         project.logger.lifecycle("")
 
@@ -192,9 +306,14 @@ class NodeTasksLoader {
         Thread errorThread = null
 
         try {
-            // Build the process
-            ProcessBuilder processBuilder = new ProcessBuilder('pnpm', 'start')
-            processBuilder.directory(workingDir)
+            ProcessBuilder processBuilder = new ProcessBuilder('node', cliJs.absolutePath)
+            processBuilder.directory(packageDir)
+            
+            Map<String, String> env = processBuilder.environment()
+            env.put("PORT", "3000")
+            env.put("NODE_ENV", "production")
+            env.put("HOSTNAME", "0.0.0.0")
+            env.put("NEXT_TELEMETRY_DISABLED", "1")
 
             // Start the process
             process = processBuilder.start()
@@ -230,7 +349,6 @@ class NodeTasksLoader {
                 project.logger.lifecycle("\nShutting down UI server...")
                 try {
                     if (finalProcess?.isAlive()) {
-                        // Kill the process tree (parent and children)
                         killProcessTree(finalProcess, project)
                         project.logger.lifecycle("UI server stopped successfully")
                     }
