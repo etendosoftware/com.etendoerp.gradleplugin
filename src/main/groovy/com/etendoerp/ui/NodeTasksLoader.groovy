@@ -2,6 +2,11 @@ package com.etendoerp.ui
 
 import org.gradle.api.Project
 import groovy.json.JsonSlurper
+import com.github.gradle.node.npm.task.NpmTask
+import com.github.gradle.node.NodeExtension
+import com.github.gradle.node.task.NodeTask
+import com.github.gradle.node.exec.NodeExecConfiguration
+import com.github.gradle.node.variant.VariantComputer
 
 class NodeTasksLoader {
 
@@ -9,6 +14,28 @@ class NodeTasksLoader {
     static final String PACKAGE_NAME = '@etendosoftware/mainui-cli'
     static final String PID_FILE = 'build/ui/.pid'
     static final String LOG_FILE = 'build/ui/server.log'
+
+    /**
+     * Configure Node.js plugin with default settings
+     */
+    static void configureNodePlugin(Project project) {
+        project.extensions.configure(NodeExtension) { NodeExtension node ->
+            // Download Node.js automatically
+            node.download.set(true)
+            
+            // Node.js version to use
+            node.version.set("20.11.0")
+            
+            // Directory where Node.js will be installed
+            node.workDir.set(project.layout.buildDirectory.dir(".nodejs"))
+            
+            // Directory for npm cache
+            node.npmWorkDir.set(project.layout.buildDirectory.dir(".npm"))
+            
+            // Use the project's UI package directory
+            node.nodeProjectDir.set(project.layout.buildDirectory.dir("ui/package"))
+        }
+    }
 
     /**
      * Resolve Etendo Classic URLs from gradle.properties or infer from context.name
@@ -47,23 +74,59 @@ class NodeTasksLoader {
     }
 
     static void load(Project project) {
-        // Register ui task (foreground)
+        // Configure Node.js plugin with defaults
+        configureNodePlugin(project)
+        
+        // Register ui task (foreground) - uses NodeTask
         project.tasks.register('ui') {
             group = 'ui'
             description = 'Start the Etendo UI from GitHub Packages (foreground)'
-            doLast {
-                downloadAndExtractUI(project)
-                startUIServer(project, false)
+            dependsOn 'downloadAndExtractUI', 'startUINodeTask'
+        }
+        
+        // Register the actual NodeTask for starting UI
+        project.tasks.register('startUINodeTask', NodeTask) {
+            group = 'ui'
+            description = 'Execute the UI server using NodeTask'
+            dependsOn 'downloadAndExtractUI'
+            
+            // Configure the script path
+            File packageDir = new File(project.file(UI_INSTALL_PATH), 'package')
+            File cliJs = new File(packageDir, 'cli.js')
+            script.set(cliJs)
+            
+            // Set working directory
+            workingDir.set(packageDir)
+            
+            // Configure environment variables
+            def etendoUrls = resolveEtendoUrls(project)
+            environment.set([
+                'PORT': '3000',
+                'NODE_ENV': 'production',
+                'HOSTNAME': '0.0.0.0',
+                'NEXT_TELEMETRY_DISABLED': '1',
+                'ETENDO_CLASSIC_URL': etendoUrls.url,
+                'ETENDO_CLASSIC_HOST': etendoUrls.host,
+            ])
+            
+            doFirst {
+                if (!cliJs.exists()) {
+                    throw new RuntimeException("UI package not found at ${cliJs.absolutePath}. Run downloadAndExtractUI first.")
+                }
+                
+                project.logger.lifecycle("Starting UI server...")
+                project.logger.lifecycle("Press Ctrl+C to stop the server")
+                project.logger.lifecycle("")
             }
         }
 
-        // Register ui.start task (background)
+        // Register ui.start task (background) - uses ProcessBuilder
         project.tasks.register('ui.start') {
             group = 'ui'
             description = 'Start the Etendo UI server in background'
+            dependsOn 'downloadAndExtractUI'
             doLast {
-                downloadAndExtractUI(project)
-                startUIServerBackground(project)
+                startUIServerBackgroundWithNode(project)
             }
         }
 
@@ -73,6 +136,15 @@ class NodeTasksLoader {
             description = 'Stop the Etendo UI server (foreground or background)'
             doLast {
                 stopUIServer(project)
+            }
+        }
+        
+        // Register download task
+        project.tasks.register('downloadAndExtractUI') {
+            group = 'ui'
+            description = 'Download and extract the UI package'
+            doLast {
+                downloadAndExtractUI(project)
             }
         }
     }
@@ -163,9 +235,9 @@ class NodeTasksLoader {
     }
 
     /**
-     * Start the UI server in background
+     * Start the UI server in background using Node.js plugin
      */
-    static void startUIServerBackground(Project project) {
+    static void startUIServerBackgroundWithNode(Project project) {
         File pidFile = project.file(PID_FILE)
         
         // Check if already running
@@ -199,8 +271,25 @@ class NodeTasksLoader {
         }
         logFile.createNewFile()
 
+        // Get Node executable from plugin
+        def nodeExtension = project.extensions.getByType(NodeExtension)
+        def variantComputer = new VariantComputer()
+        def nodeDirProvider = nodeExtension.resolvedNodeDir
+        def nodeBinDirProvider = variantComputer.computeNodeBinDir(nodeDirProvider, nodeExtension.resolvedPlatform)
+        def nodeBinDir = nodeBinDirProvider.get().asFile
+        def nodeExec = new File(nodeBinDir, nodeExtension.resolvedPlatform.get().isWindows() ? "node.exe" : "node")
+
+        // Ensure Node is downloaded
+        if (!nodeExec.exists()) {
+            project.logger.lifecycle("Downloading Node.js...")
+            def setupTask = project.tasks.findByName('nodeSetup')
+            if (setupTask) {
+                setupTask.actions.each { it.execute(setupTask) }
+            }
+        }
+
         // Start process in background
-        ProcessBuilder processBuilder = new ProcessBuilder('node', cliJs.absolutePath)
+        ProcessBuilder processBuilder = new ProcessBuilder(nodeExec.absolutePath, cliJs.absolutePath)
         processBuilder.directory(packageDir)
         
         Map<String, String> env = processBuilder.environment()
@@ -338,167 +427,6 @@ class NodeTasksLoader {
             }
         } catch (Exception e) {
             return false
-        }
-    }
-
-    /**
-     * Start the UI server by executing the CLI directly (foreground)
-     */
-    static void startUIServer(Project project, boolean foreground = true) {
-        File packageDir = new File(project.file(UI_INSTALL_PATH), 'package')
-        File cliJs = new File(packageDir, 'cli.js')
-
-        if (!cliJs.exists()) {
-            throw new RuntimeException("UI package not found. Run the task again to download.")
-        }
-
-        project.logger.lifecycle("Starting UI server...")
-        project.logger.lifecycle("Press Ctrl+C to stop the server")
-        project.logger.lifecycle("")
-
-        Process process = null
-        Thread shutdownHook = null
-        Thread outputThread = null
-        Thread errorThread = null
-
-        try {
-            ProcessBuilder processBuilder = new ProcessBuilder('node', cliJs.absolutePath)
-            processBuilder.directory(packageDir)
-            
-            Map<String, String> env = processBuilder.environment()
-            env.put("PORT", "3000")
-            env.put("NODE_ENV", "production")
-            env.put("HOSTNAME", "0.0.0.0")
-            env.put("NEXT_TELEMETRY_DISABLED", "1")
-            
-            // Etendo Classic backend URLs
-            def etendoUrls = resolveEtendoUrls(project)
-            env.put("ETENDO_CLASSIC_URL", etendoUrls.url)
-            env.put("ETENDO_CLASSIC_HOST", etendoUrls.host)
-
-            // Start the process
-            process = processBuilder.start()
-            final Process finalProcess = process
-
-            // Create threads to read stdout and stderr in real-time
-            outputThread = new Thread({
-                try {
-                    process.inputStream.eachLine { line ->
-                        println line
-                    }
-                } catch (IOException ignored) {
-                    // Stream closed
-                }
-            })
-            outputThread.setDaemon(true)
-            outputThread.start()
-
-            errorThread = new Thread({
-                try {
-                    process.errorStream.eachLine { line ->
-                        System.err.println line
-                    }
-                } catch (IOException ignored) {
-                    // Stream closed
-                }
-            })
-            errorThread.setDaemon(true)
-            errorThread.start()
-
-            // Add shutdown hook to kill process on Ctrl+C
-            shutdownHook = new Thread({
-                project.logger.lifecycle("\nShutting down UI server...")
-                try {
-                    if (finalProcess?.isAlive()) {
-                        killProcessTree(finalProcess, project)
-                        project.logger.lifecycle("UI server stopped successfully")
-                    }
-                } catch (Exception e) {
-                    project.logger.error("Error stopping UI server: ${e.message}")
-                }
-            })
-            Runtime.getRuntime().addShutdownHook(shutdownHook)
-
-            // Wait for the process to complete
-            int exitCode = process.waitFor()
-
-            // Wait for output threads to finish reading
-            outputThread?.join(1000)
-            errorThread?.join(1000)
-
-            // Remove shutdown hook if process completed normally
-            try {
-                Runtime.getRuntime().removeShutdownHook(shutdownHook)
-            } catch (IllegalStateException ignored) {
-                // Shutdown already in progress
-            }
-
-            if (exitCode != 0) {
-                project.logger.error("")
-                project.logger.error("UI server exited with code: ${exitCode}")
-                project.logger.error("Check the output above for errors")
-                project.logger.error("")
-                throw new RuntimeException("UI server exited with code: ${exitCode}")
-            }
-
-        } catch (InterruptedException e) {
-            project.logger.lifecycle("\nUI server interrupted")
-            if (process?.isAlive()) {
-                killProcessTree(process, project)
-            }
-            Thread.currentThread().interrupt()
-        } catch (Exception e) {
-            if (process?.isAlive()) {
-                killProcessTree(process, project)
-            }
-            throw e
-        }
-    }
-
-    /**
-     * Kills a process and all its children
-     */
-    static void killProcessTree(Process process, Project project) {
-        try {
-            // Try to get the PID
-            def pid = process.pid()
-
-            // Kill process tree on Unix-like systems
-            if (System.getProperty('os.name').toLowerCase().contains('windows')) {
-                // Windows: taskkill /F /T /PID
-                new ProcessBuilder('taskkill', '/F', '/T', '/PID', pid.toString())
-                    .inheritIO()
-                    .start()
-                    .waitFor()
-            } else {
-                // Unix/Linux/Mac: kill process group
-                new ProcessBuilder('pkill', '-TERM', '-P', pid.toString())
-                    .inheritIO()
-                    .start()
-                    .waitFor()
-
-                // Wait a bit and force kill if still alive
-                Thread.sleep(1000)
-                if (process.isAlive()) {
-                    new ProcessBuilder('pkill', '-KILL', '-P', pid.toString())
-                        .inheritIO()
-                        .start()
-                        .waitFor()
-                }
-            }
-
-            // Finally, destroy the main process
-            process.destroy()
-
-            // Wait for termination with timeout
-            if (!process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)) {
-                process.destroyForcibly()
-            }
-
-        } catch (Exception e) {
-            project.logger.warn("Error killing process tree: ${e.message}")
-            // Force kill as last resort
-            process.destroyForcibly()
         }
     }
 }
