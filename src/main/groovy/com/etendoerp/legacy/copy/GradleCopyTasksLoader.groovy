@@ -70,7 +70,7 @@ class GradleCopyTasksLoader {
             from(project.file("${corePath}/src")) {
                 include '**/*.properties', '**/*.xslt', '**/*.hbm.xml', '**/*.ftl', '**/*.xml', '**/*.fo', '**/*.html', '**/*.srpt', '**/*.jrxml', '**/*.jasper'
             }
-            into project.file('build/classes')
+            into project.file('build/classes/java/main')
             duplicatesStrategy = 'include'
             includeEmptyDirs = false
             outputs.cacheIf { true }
@@ -129,7 +129,7 @@ class GradleCopyTasksLoader {
             }
 
             from(project.file("${corePath}/src/org/openbravo/erpReports")) { include 'jasperreports.properties' }
-            into project.file('build/classes')
+            into project.file('build/classes/java/main')
             includeEmptyDirs = false
             outputs.cacheIf { true }
         }
@@ -192,7 +192,7 @@ class GradleCopyTasksLoader {
                     }
                 }
             }
-            into project.file('build/classes')
+            into project.file('build/classes/java/main')
             duplicatesStrategy = 'include'
             includeEmptyDirs = false
         }
@@ -442,7 +442,7 @@ class GradleCopyTasksLoader {
             def jakartaBase = getProperty('jakarta.base', 'tomcat')
             def contextName = getProperty('context.name', 'etendo')
             onlyIf { project.hasProperty('mode.class') && project.property('mode.class').toBoolean() }
-            from project.file('build/classes')
+            from project.file('build/classes/java/main')
             into project.file("${jakartaBase}/webapps/${contextName}/WEB-INF/classes")
             includeEmptyDirs = false
         }
