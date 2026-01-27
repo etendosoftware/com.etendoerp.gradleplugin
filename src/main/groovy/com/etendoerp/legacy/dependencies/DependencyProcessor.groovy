@@ -68,6 +68,9 @@ class DependencyProcessor {
 
         def rootProjectConfigurations = DependencyUtils.loadListOfConfigurations(project)
 
+        // Clean the 'build/etendo/modules/' dir
+        ModuleUtils.cleanBuildModules(project)
+
         if (coreMetadata.coreType == CoreType.SOURCES) {
             // Exclude from the root project the Core JAR dependency (included also from transitivity)
             rootProjectConfigurations.each {

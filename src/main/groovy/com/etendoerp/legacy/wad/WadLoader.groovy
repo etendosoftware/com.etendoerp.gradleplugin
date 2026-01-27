@@ -83,7 +83,7 @@ class WadLoader {
                            "-Dorg.openbravo.utils.OBRebuildAppender.disabled=true"
                        ]
                        maxHeapSize = '1024m'
-                       
+
                        // args: propertiesFile, type, sourceDir, outputDir, packageFilter, generateXml
                        args = [
                            "${baseConfig}/Openbravo.properties",
