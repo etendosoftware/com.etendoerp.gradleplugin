@@ -359,7 +359,11 @@ class InteractiveSetupManager {
         def configuredProperties = [:]
 
         try {
-            project.logger.lifecycle("� Executing process property: ${processProperty.key}")
+            if (processProperty == null) {
+                project.logger.debug("No processProperty provided to executeProcessProperty - returning empty map")
+                return configuredProperties
+            }
+            project.logger.lifecycle("� Executing process property: ${processProperty?.key ?: 'null'}")
 
             // Create temporary file for task output
             def tempFile = File.createTempFile("etendo-process-", ".json")
@@ -393,7 +397,7 @@ class InteractiveSetupManager {
             }
 
         } catch (Exception e) {
-            project.logger.error("❌ Error processing property ${processProperty.key}: ${e.message}", e)
+            project.logger.error("❌ Error processing property ${processProperty?.key ?: 'unknown'}: ${e.message}", e)
         }
 
         return configuredProperties

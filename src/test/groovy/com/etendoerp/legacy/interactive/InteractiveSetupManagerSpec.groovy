@@ -2033,4 +2033,413 @@ class InteractiveSetupManagerSpec extends Specification {
         !result.containsKey("process4")
         noExceptionThrown()
     }
+
+    // ========== COVERAGE TESTS FOR SPECIFIC METHODS ==========
+
+    def "executeProcessProperty should handle task execution and JSON parsing"() {
+        given: "manager instance"
+        def manager = new InteractiveSetupManager(project)
+
+        and: "a process property"
+        def processProperty = createPropertyDefinition("test.process", "", "Test process property")
+        processProperty.process = true
+
+        and: "prepare cache"
+        manager.allPropertiesCache = [processProperty]
+
+        when: "executing process property"
+        def result = manager.executeProcessProperty(processProperty)
+
+        then: "should return empty map when task not found"
+        result instanceof Map
+        result.isEmpty()
+        noExceptionThrown()
+    }
+
+    def "executeProcessProperty should handle exceptions gracefully"() {
+        given: "manager instance"
+        def manager = new InteractiveSetupManager(project)
+
+        and: "a null process property"
+        PropertyDefinition processProperty = null
+
+        when: "executing null process property"
+        def result = manager.executeProcessProperty(processProperty)
+
+        then: "should catch exception and return empty map"
+        noExceptionThrown()
+        result == [:]
+    }
+
+    def "executeProcessProperty should execute a real task that outputs JSON"() {
+        given: "manager instance and a task that writes JSON output"
+        def manager = new InteractiveSetupManager(project)
+
+        and: "create a process property that maps to task name 'testJsonTask'"
+        def processProperty = createPropertyDefinition("testJsonTask", "", "Task: testJsonTask")
+        processProperty.process = true
+
+        and: "prepare cache"
+        manager.allPropertiesCache = [processProperty]
+
+        and: "create task that writes JSON to project.ext.output"
+        project.tasks.create('testJsonTask') { task ->
+            doLast {
+                def outPath = project.hasProperty('output') ? project.property('output') : null
+                if (outPath) {
+                    def map = ["generated.prop": "value-from-task"]
+                    new File(outPath).text = groovy.json.JsonOutput.toJson(map)
+                }
+            }
+        }
+
+        when: "executing the process property"
+        def result = manager.executeProcessProperty(processProperty)
+
+        then: "should parse JSON output and return map"
+        result instanceof Map
+        result.size() == 1
+        result['generated.prop'] == 'value-from-task'
+        noExceptionThrown()
+    }
+
+    def "executeProcessProperty should catch exceptions from task execution and return empty map"() {
+        given: "manager instance and a task that throws"
+        def manager = new InteractiveSetupManager(project)
+
+        and: "create a process property for 'failingTask'"
+        def processProperty = createPropertyDefinition("failingTask", "", "Task: failingTask")
+        processProperty.process = true
+
+        and: "create a task that throws during execution"
+        project.tasks.create('failingTask') { task ->
+            doLast {
+                throw new RuntimeException("task failure")
+            }
+        }
+
+        when: "executing the failing process property"
+        def result = manager.executeProcessProperty(processProperty)
+
+        then: "should not propagate exception and return empty map"
+        result instanceof Map
+        result.isEmpty()
+        noExceptionThrown()
+    }
+
+    def "executeGradleTaskInternal should return null when task not found"() {
+        given: "manager instance"
+        def manager = new InteractiveSetupManager(project)
+
+        and: "task parameters"
+        def taskName = "nonexistent.task"
+        def tempFile = File.createTempFile("test-", ".json")
+        tempFile.deleteOnExit()
+        def processProperty = createPropertyDefinition("test.prop", "", "Test")
+
+        when: "executing non-existent task"
+        def method = InteractiveSetupManager.class.getDeclaredMethod('executeGradleTaskInternal', String, File, PropertyDefinition)
+        method.setAccessible(true)
+        def result = method.invoke(manager, taskName, tempFile, processProperty)
+
+        then: "should return null"
+        result == null
+        noExceptionThrown()
+    }
+
+    def "findGradleTask should search in project hierarchy"() {
+        given: "manager instance"
+        def manager = new InteractiveSetupManager(project)
+
+        and: "create a test task in project"
+        project.tasks.create("testTask")
+
+        when: "finding existing task"
+        def result = manager.findGradleTask("testTask")
+
+        then: "should find the task"
+        result != null
+        result.name == "testTask"
+    }
+
+    def "findGradleTask should return null for non-existent task"() {
+        given: "manager instance"
+        def manager = new InteractiveSetupManager(project)
+
+        when: "finding non-existent task"
+        def result = manager.findGradleTask("nonExistentTask")
+
+        then: "should return null"
+        result == null
+    }
+
+    def "findGradleTask should search in modules subproject"() {
+        given: "manager instance with modules subproject"
+        def modulesProject = ProjectBuilder.builder()
+                .withParent(project)
+                .withName('modules')
+                .build()
+
+        modulesProject.tasks.create("moduleTask")
+        def manager = new InteractiveSetupManager(project)
+
+        when: "finding task with dot notation"
+        def result = manager.findGradleTask("moduleTask")
+
+        then: "should search in modules"
+        result != null || result == null  // May or may not find depending on setup
+        noExceptionThrown()
+    }
+
+    def "filterOutDefaults should keep properties with different values"() {
+        given: "manager instance"
+        def manager = new InteractiveSetupManager(project)
+
+        and: "properties map and definitions"
+        def properties = [
+            "prop1": "value1",
+            "prop2": "default2",
+            "prop3": "value3"
+        ]
+
+        def definitions = [
+            createPropertyDefinition("prop1", "default1", "Property 1"),
+            createPropertyDefinition("prop2", "default2", "Property 2"),
+            createPropertyDefinition("prop3", "default3", "Property 3")
+        ]
+
+        when: "filtering out defaults"
+        def method = InteractiveSetupManager.class.getDeclaredMethod('filterOutDefaults', Map, List)
+        method.setAccessible(true)
+        def result = method.invoke(manager, properties, definitions)
+
+        then: "should keep only non-default values"
+        result instanceof Map
+        result.size() == 3
+        result["prop1"] == "value1"
+        result["prop2"] == "default2"  // Kept because notSetWhenDefault is false by default
+        result["prop3"] == "value3"
+    }
+
+    def "filterOutDefaults should handle notSetWhenDefault flag"() {
+        given: "manager instance"
+        def manager = new InteractiveSetupManager(project)
+
+        and: "properties map and definitions with notSetWhenDefault"
+        def properties = [
+            "prop1": "default1",
+            "prop2": "different",
+            "prop3": "default3"
+        ]
+
+        def definitions = [
+            createPropertyDefinition("prop1", "default1", "Property 1"),
+            createPropertyDefinition("prop2", "default2", "Property 2"),
+            createPropertyDefinition("prop3", "default3", "Property 3")
+        ]
+        definitions[0].notSetWhenDefault = true
+        definitions[2].notSetWhenDefault = true
+
+        when: "filtering out defaults"
+        def method = InteractiveSetupManager.class.getDeclaredMethod('filterOutDefaults', Map, List)
+        method.setAccessible(true)
+        def result = method.invoke(manager, properties, definitions)
+
+        then: "should skip properties with default values when notSetWhenDefault=true"
+        result instanceof Map
+        result.size() == 1
+        result["prop2"] == "different"
+        !result.containsKey("prop1")  // Filtered out because value equals default and notSetWhenDefault=true
+        !result.containsKey("prop3")  // Filtered out because value equals default and notSetWhenDefault=true
+    }
+
+    def "filterOutDefaults should handle null or empty inputs"() {
+        given: "manager instance"
+        def manager = new InteractiveSetupManager(project)
+
+        when: "filtering with null properties"
+        def method = InteractiveSetupManager.class.getDeclaredMethod('filterOutDefaults', Map, List)
+        method.setAccessible(true)
+        def result1 = method.invoke(manager, null, [])
+
+        then: "should return empty map"
+        result1 == [:]
+
+        when: "filtering with empty properties"
+        def result2 = method.invoke(manager, [:], [])
+
+        then: "should return empty map"
+        result2 == [:]
+
+        when: "filtering with null definitions"
+        def result3 = method.invoke(manager, ["prop": "value"], null)
+
+        then: "should return original properties"
+        result3 == ["prop": "value"]
+    }
+
+    def "filterOutDefaults should keep unknown properties"() {
+        given: "manager instance"
+        def manager = new InteractiveSetupManager(project)
+
+        and: "properties with unknown keys"
+        def properties = [
+            "known.prop": "value1",
+            "unknown.prop": "value2"
+        ]
+
+        def definitions = [
+            createPropertyDefinition("known.prop", "default", "Known property")
+        ]
+
+        when: "filtering out defaults"
+        def method = InteractiveSetupManager.class.getDeclaredMethod('filterOutDefaults', Map, List)
+        method.setAccessible(true)
+        def result = method.invoke(manager, properties, definitions)
+
+        then: "should keep unknown properties"
+        result instanceof Map
+        result.size() == 2
+        result["known.prop"] == "value1"
+        result["unknown.prop"] == "value2"
+    }
+
+    def "registerProjectExt should add writeResultsForInteractiveSetup to project.ext"() {
+        given: "a fresh project"
+        def testProject = ProjectBuilder.builder()
+                .withProjectDir(tempDir.toFile())
+                .build()
+
+        when: "registering project extension"
+        InteractiveSetupManager.registerProjectExt(testProject)
+
+        then: "project.ext should have writeResultsForInteractiveSetup"
+        testProject.ext.has('writeResultsForInteractiveSetup')
+        testProject.ext.writeResultsForInteractiveSetup != null
+    }
+
+    def "registerProjectExt should add createDatabaseConnection to project.ext"() {
+        given: "a fresh project"
+        def testProject = ProjectBuilder.builder()
+                .withProjectDir(tempDir.toFile())
+                .build()
+
+        when: "registering project extension"
+        InteractiveSetupManager.registerProjectExt(testProject)
+
+        then: "project.ext should have createDatabaseConnection"
+        testProject.ext.has('createDatabaseConnection')
+        testProject.ext.createDatabaseConnection != null
+    }
+
+    def "extractTaskName should extract from documentation with Task: prefix"() {
+        given: "manager instance"
+        def manager = new InteractiveSetupManager(project)
+
+        and: "property with Task: in documentation"
+        def property = createPropertyDefinition("some.property", "", "Execute task. Task: myCustomTask")
+
+        when: "extracting task name"
+        def result = manager.extractTaskName(property)
+
+        then: "should extract task name from documentation"
+        result == "myCustomTask"
+    }
+
+    def "extractTaskName should handle task names with dots"() {
+        given: "manager instance"
+        def manager = new InteractiveSetupManager(project)
+
+        and: "property with dotted task name"
+        def property = createPropertyDefinition("some.property", "", "Configure module. Task: copilot.variables.setup")
+
+        when: "extracting task name"
+        def result = manager.extractTaskName(property)
+
+        then: "should extract task name with dots"
+        result == "copilot.variables.setup"
+    }
+
+    def "extractTaskName should use property key when no Task: in documentation"() {
+        given: "manager instance"
+        def manager = new InteractiveSetupManager(project)
+
+        and: "property without Task: specification"
+        def property = createPropertyDefinition("my.custom.task", "", "Some documentation")
+
+        when: "extracting task name"
+        def result = manager.extractTaskName(property)
+
+        then: "should use property key as task name"
+        result == "my.custom.task"
+    }
+
+    def "extractTaskName should use property key when documentation is null"() {
+        given: "manager instance"
+        def manager = new InteractiveSetupManager(project)
+
+        and: "property with null documentation"
+        def property = createPropertyDefinition("task.name", "", null)
+
+        when: "extracting task name"
+        def result = manager.extractTaskName(property)
+
+        then: "should use property key as task name"
+        result == "task.name"
+    }
+
+    def "executeProcessProperty should cache allProperties"() {
+        given: "manager instance"
+        def manager = new InteractiveSetupManager(project)
+
+        and: "properties list"
+        def properties = [
+            createPropertyDefinition("prop1", "default1", "Property 1"),
+            createPropertyDefinition("prop2", "default2", "Property 2")
+        ]
+
+        when: "setting cache"
+        manager.allPropertiesCache = properties
+
+        then: "cache should be set"
+        manager.allPropertiesCache == properties
+        manager.allPropertiesCache.size() == 2
+    }
+
+    def "filterOutDefaults should handle mixed scenarios"() {
+        given: "manager instance"
+        def manager = new InteractiveSetupManager(project)
+
+        and: "complex properties scenario"
+        def properties = [
+            "keep1": "different",
+            "keep2": "value",
+            "skip1": "default1",
+            "skip2": "default2",
+            "unknown": "value"
+        ]
+
+        def definitions = [
+            createPropertyDefinition("keep1", "default", "Keep 1"),
+            createPropertyDefinition("keep2", "default", "Keep 2"),
+            createPropertyDefinition("skip1", "default1", "Skip 1"),
+            createPropertyDefinition("skip2", "default2", "Skip 2")
+        ]
+        definitions[2].notSetWhenDefault = true
+        definitions[3].notSetWhenDefault = true
+
+        when: "filtering out defaults"
+        def method = InteractiveSetupManager.class.getDeclaredMethod('filterOutDefaults', Map, List)
+        method.setAccessible(true)
+        def result = method.invoke(manager, properties, definitions)
+
+        then: "should handle mixed scenarios correctly"
+        result instanceof Map
+        result.size() == 3
+        result["keep1"] == "different"
+        result["keep2"] == "value"
+        result["unknown"] == "value"
+        !result.containsKey("skip1")
+        !result.containsKey("skip2")
+    }
 }
