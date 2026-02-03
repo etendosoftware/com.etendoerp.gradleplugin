@@ -14,6 +14,7 @@ import com.etendoerp.legacy.ant.AntLoader
 import com.etendoerp.modules.ModulesConfigurationLoader
 import com.etendoerp.modules.uninstall.UninstallModuleLoader
 import com.etendoerp.publication.PublicationLoader
+import com.etendoerp.setup.SetupLoader
 import com.etendoerp.ui.NodeTasksLoader
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -68,5 +69,6 @@ class EtendoPlugin implements Plugin<Project> {
         DependencyManagerLoader.load(project)
         NodeTasksLoader.load(project)
         GradleControllerLoader.load(project)
+        SetupLoader.load(project)
     }
 }

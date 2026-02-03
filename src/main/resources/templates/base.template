@@ -1,0 +1,12 @@
+# Base Template
+# Basic configuration for a new Etendo project
+
+[properties]
+bbdd.driver=org.postgresql.Driver
+bbdd.url=jdbc:postgresql://localhost:5432/etendo
+context.name=etendo
+
+[dependencies]
+implementation 'org.postgresql:postgresql:42.5.4'
+
+[modules]
