@@ -16,8 +16,23 @@ class AntLoader {
 
     static load(Project project) {
 
+        // Cargar verificaciones y compilación base
         ConsistencyVerification.load(project)
         CompileJavaLoader.load(project)
+        
+        // ========================================================
+        // MIGRACIÓN ANT → GRADLE (ETP-3027)
+        // Cargar los nuevos loaders de Gradle que reemplazan tareas Ant
+        // ========================================================
+        SqlcLoader.load(project)           // sqlc → gradleSqlc
+        WadLoader.load(project)            // wad.lib → gradleWadLib
+        WadGenerateLoader.load(project)    // wad → gradleWad
+        TrlLoader.load(project)            // trl.lib → gradleTrlJar
+        GradleCopyTasksLoader.load(project) // copy tasks
+        SmartbuildLoader.load(project)     // smartbuild → gradleSmartbuild
+        InstallLoader.load(project)        // install.source → gradleInstall
+        EntitiesLoader.load(project)       // generate.entities
+        DatabaseLoader.load(project)       // database wrappers
 
         /***
          * Task to check  that all configuration files exist
@@ -126,6 +141,8 @@ class AntLoader {
                     return 'antInstall'
                 case 'war':
                     return 'antWar'
+                case 'smartbuild':
+                    return 'antSmartbuild'
                 default:
                     if (oldTargetName.contains("test")) {
                         return "ant." + oldTargetName
@@ -147,7 +164,7 @@ class AntLoader {
             }
         }
 
-        ['smartbuild', 'compile.complete', 'compile.complete.deploy', 'update.database', 'export.database'].each {
+        ['antSmartbuild', 'compile.complete', 'compile.complete.deploy', 'update.database', 'export.database'].each {
             def task = project.tasks.findByName(it)
             if (task != null) {
                 task.dependsOn(project.tasks.findByName("compileFilesCheck"))
@@ -155,7 +172,7 @@ class AntLoader {
         }
 
         // Consistency verification
-        ['smartbuild', 'compile.complete', 'compile.complete.deploy'].each {
+        ['antSmartbuild', 'compile.complete', 'compile.complete.deploy'].each {
             def task = project.tasks.findByName(it)
             if (task != null) {
                 task.dependsOn(project.tasks.findByName(ConsistencyVerification.CONSISTENCY_VERIFICATION_TASK))
@@ -165,7 +182,7 @@ class AntLoader {
         // Dependencies sync
         def depSync = project.tasks.findByName("dependencies.sync")
         if (depSync != null) {
-            ['smartbuild', 'compile.complete', 'compile.complete.deploy', 'update.database', 'export.database', 'expandModules'].each {
+            ['antSmartbuild', 'compile.complete', 'compile.complete.deploy', 'update.database', 'export.database', 'expandModules'].each {
                 def task = project.tasks.findByName(it)
                 if (task != null) {
                     task.dependsOn(depSync)

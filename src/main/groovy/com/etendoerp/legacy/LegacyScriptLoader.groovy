@@ -85,13 +85,36 @@ class LegacyScriptLoader {
             main {
                 java {
                     output.classesDirs = project.files("${project.buildDir}/classes")
-                    srcDirs = ['build/javasqlc/src'] //clean the default sources directories.
+                    
+                    // ========================================================
+                    // MIGRACIÓN ANT → GRADLE (ETP-3027)
+                    // Nuevas rutas de salida para código generado
+                    // ========================================================
+                    
+                    // SQLC generated sources (migrated to Gradle)
+                    srcDirs = ['build/javasqlc/sqlc/src']  // Nueva ruta SQLC
+                    srcDirs 'build/javasqlc/sqlc/srcAD'    // Nueva ruta SQLC AD
+                    
+                    // WAD generated sources (migrated to Gradle)
+                    srcDirs 'build/javasqlc/wad/src'
+                    
+                    // TRL generated sources (migrated to Gradle)
+                    srcDirs 'build/javasqlc/trl/src'
+                    
+                    // Legacy paths (backwards compatibility)
+                    srcDirs 'build/javasqlc/src'
                     srcDirs 'build/javasqlc/srcAD'
+                    
+                    // Core sources
                     srcDirs 'src'
                     srcDirs 'src-gen'
                     srcDirs 'srcAD'
 
-                    // The core is in JARs
+                    // JAR mode sources (core from dependency)
+                    srcDirs 'build/etendo/build/javasqlc/sqlc/src'
+                    srcDirs 'build/etendo/build/javasqlc/sqlc/srcAD'
+                    srcDirs 'build/etendo/build/javasqlc/wad/src'
+                    srcDirs 'build/etendo/build/javasqlc/trl/src'
                     srcDirs 'build/etendo/build/javasqlc/src'
                     srcDirs 'build/etendo/build/javasqlc/srcAD'
                     srcDirs 'build/etendo/src-gen'
