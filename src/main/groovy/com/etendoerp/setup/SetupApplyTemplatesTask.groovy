@@ -9,6 +9,10 @@ import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.options.Option
 
+import java.sql.Connection
+import java.sql.DriverManager
+import java.sql.SQLException
+
 /**
  * Main task for applying configuration templates
  * 
@@ -35,6 +39,11 @@ class SetupApplyTemplatesTask extends DefaultTask {
     @Option(option = "url", description = "Template from remote URL")
     String url
 
+    @Input
+    @Optional
+    @Option(option = "force", description = "Force execution even if environment is already configured")
+    Boolean force = false
+
     SetupApplyTemplatesTask() {
         group = 'setup'
         description = 'Apply configuration templates to the project'
@@ -43,6 +52,11 @@ class SetupApplyTemplatesTask extends DefaultTask {
     @TaskAction
     void execute() {
         try {
+            // Check if environment is already configured
+            if (!force) {
+                validateCleanEnvironment()
+            }
+            
             // Resolve template from the specified source
             Template resolvedTemplate = TemplateResolver.resolve(project, template, file, url)
             
@@ -58,6 +72,115 @@ class SetupApplyTemplatesTask extends DefaultTask {
         } catch (Exception e) {
             project.logger.error("Failed to apply template: ${e.message}", e)
             throw e
+        }
+    }
+
+    /**
+     * Validates that the environment is clean and ready for template application
+     * Checks if database exists by attempting to connect to it
+     */
+    private void validateCleanEnvironment() {
+        File gradleProps = project.file('gradle.properties')
+        
+        if (!gradleProps.exists()) {
+            // No gradle.properties means clean environment
+            project.logger.lifecycle("✓ No gradle.properties found, environment is clean")
+            return
+        }
+        
+        Properties props = new Properties()
+        gradleProps.withInputStream { props.load(it) }
+        
+        // Check if database connection properties are configured
+        String dbSid = props.getProperty('bbdd.sid')
+        String dbSystemUser = props.getProperty('bbdd.systemUser')
+        String dbSystemPassword = props.getProperty('bbdd.systemPassword')
+        String dbUrl = props.getProperty('bbdd.url')
+        String dbHost = props.getProperty('bbdd.rdbms', 'localhost')
+        String dbPort = props.getProperty('bbdd.port', '5432')
+        
+        if (!dbSid || !dbSystemUser) {
+            // No database configuration, environment is clean
+            project.logger.lifecycle("✓ No database configuration found, environment is clean")
+            return
+        }
+        
+        // Build connection URL if not provided
+        if (!dbUrl) {
+            dbUrl = "jdbc:postgresql://${dbHost}:${dbPort}/${dbSid}"
+        }
+        
+        // Try to establish connection to verify if database exists
+        project.logger.lifecycle("Checking if database '${dbSid}' exists...")
+        project.logger.lifecycle("Connection URL: ${dbUrl}")
+        project.logger.lifecycle("System User: ${dbSystemUser}")
+        
+        Connection conn = null
+        try {
+            // Load PostgreSQL driver using the correct classloader
+            Class<?> driverClass = Class.forName('org.postgresql.Driver', true, this.class.classLoader)
+            project.logger.lifecycle("PostgreSQL driver loaded successfully")
+            
+            // Create driver instance directly
+            java.sql.Driver driver = (java.sql.Driver) driverClass.getDeclaredConstructor().newInstance()
+            
+            // Create connection properties
+            Properties connectionProps = new Properties()
+            connectionProps.setProperty('user', dbSystemUser)
+            if (dbSystemPassword) {
+                connectionProps.setProperty('password', dbSystemPassword)
+            }
+            
+            // Connect directly using the driver instance (bypass DriverManager)
+            conn = driver.connect(dbUrl, connectionProps)
+            
+            // If we reach here, connection was successful - database exists
+            project.logger.error("✗ Database connection successful - database exists!")
+            conn.close()
+            
+            throw new IllegalStateException(
+                """
+                |
+                |═══════════════════════════════════════════════════════════════
+                |  ✗ Cannot apply template: Database '${dbSid}' already exists
+                |═══════════════════════════════════════════════════════════════
+                |
+                |This task should only be executed in a CLEAN environment 
+                |before database creation to avoid configuration conflicts.
+                |
+                |Database details:
+                |  • Name: ${dbSid}
+                |  • Host: ${dbHost}:${dbPort}
+                |  • User: ${dbSystemUser}
+                |
+                |If you want to force execution anyway, use:
+                |  ./gradlew setup.applyTemplates --template=<name> --force
+                |
+                |⚠ WARNING: Using --force may overwrite existing configuration!
+                |
+                """.stripMargin()
+            )
+            
+        } catch (ClassNotFoundException e) {
+            project.logger.warn("⚠ PostgreSQL driver not found, skipping database check")
+            project.logger.warn("  Exception: ${e.message}")
+            // Driver not available, cannot verify - allow execution
+            
+        } catch (SQLException e) {
+            // Connection failed - database likely doesn't exist or is not accessible
+            project.logger.lifecycle("✓ Database connection failed (database doesn't exist or is not accessible)")
+            project.logger.lifecycle("  SQL State: ${e.getSQLState()}")
+            project.logger.lifecycle("  Error Code: ${e.getErrorCode()}")
+            project.logger.lifecycle("  Message: ${e.message}")
+            // This is expected for a clean environment, allow execution
+            
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.close()
+                } catch (SQLException ignored) {
+                }
+            }
         }
     }
 }

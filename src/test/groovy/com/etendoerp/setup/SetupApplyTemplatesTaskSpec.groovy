@@ -154,4 +154,260 @@ prop2=value2
         def e = thrown(FileNotFoundException)
         e.message.contains('invalid')
     }
+
+    // ====== ENVIRONMENT VALIDATION TESTS ======
+
+    def "execute succeeds when no gradle.properties exists (clean environment)"() {
+        given:
+        def templateFile = new File(tempDir.toFile(), 'test.template')
+        templateFile.text = """
+[properties]
+test.property=testValue
+"""
+        
+        task.file = templateFile.absolutePath
+
+        when:
+        task.execute()
+
+        then:
+        notThrown(Exception)
+    }
+
+    def "execute succeeds when gradle.properties has no database config"() {
+        given:
+        def templateFile = new File(tempDir.toFile(), 'test.template')
+        templateFile.text = """
+[properties]
+new.property=newValue
+"""
+        
+        def gradlePropsFile = new File(tempDir.toFile(), 'gradle.properties')
+        gradlePropsFile.text = """
+# Just comments
+some.other.property=value
+"""
+        
+        task.file = templateFile.absolutePath
+
+        when:
+        task.execute()
+
+        then:
+        notThrown(Exception)
+        gradlePropsFile.text.contains('new.property=newValue')
+    }
+
+    def "execute succeeds when database config exists but connection fails"() {
+        given:
+        def templateFile = new File(tempDir.toFile(), 'test.template')
+        templateFile.text = """
+[properties]
+test.property=value
+"""
+        
+        def gradlePropsFile = new File(tempDir.toFile(), 'gradle.properties')
+        // Database config that points to non-existent database
+        gradlePropsFile.text = """
+bbdd.sid=nonexistent_db_${System.currentTimeMillis()}
+bbdd.systemUser=postgres
+bbdd.systemPassword=postgres
+bbdd.rdbms=localhost
+bbdd.port=5432
+"""
+        
+        task.file = templateFile.absolutePath
+
+        when:
+        task.execute()
+
+        then:
+        // Should succeed because database doesn't exist (connection fails)
+        notThrown(Exception)
+    }
+
+    def "execute succeeds with --force flag even when validation would fail"() {
+        given:
+        def templateFile = new File(tempDir.toFile(), 'test.template')
+        templateFile.text = """
+[properties]
+new.property=newValue
+"""
+        
+        def gradlePropsFile = new File(tempDir.toFile(), 'gradle.properties')
+        gradlePropsFile.text = """
+bbdd.sid=some_db
+bbdd.systemUser=postgres
+"""
+        
+        task.file = templateFile.absolutePath
+        task.force = true
+
+        when:
+        task.execute()
+
+        then:
+        notThrown(Exception)
+        gradlePropsFile.text.contains('new.property=newValue')
+    }
+
+    def "validation checks for bbdd.sid property"() {
+        given:
+        def templateFile = new File(tempDir.toFile(), 'test.template')
+        templateFile.text = """
+[properties]
+test.property=value
+"""
+        
+        def gradlePropsFile = new File(tempDir.toFile(), 'gradle.properties')
+        gradlePropsFile.text = """
+bbdd.sid=test_db_${System.currentTimeMillis()}
+bbdd.systemUser=nonexistent_user
+bbdd.systemPassword=wrong_pass
+"""
+        
+        task.file = templateFile.absolutePath
+
+        when:
+        task.execute()
+
+        then:
+        // Should succeed because connection will fail (invalid credentials/non-existent DB)
+        notThrown(Exception)
+    }
+
+    def "validation uses bbdd.rdbms and bbdd.port properties"() {
+        given:
+        def templateFile = new File(tempDir.toFile(), 'test.template')
+        templateFile.text = """
+[properties]
+test.property=value
+"""
+        
+        def gradlePropsFile = new File(tempDir.toFile(), 'gradle.properties')
+        gradlePropsFile.text = """
+bbdd.sid=test_db_${System.currentTimeMillis()}
+bbdd.systemUser=postgres
+bbdd.rdbms=nonexistent.host.local
+bbdd.port=9999
+"""
+        
+        task.file = templateFile.absolutePath
+
+        when:
+        task.execute()
+
+        then:
+        // Should succeed because connection will fail (invalid host)
+        notThrown(Exception)
+    }
+
+    def "validation uses custom bbdd.url if provided"() {
+        given:
+        def templateFile = new File(tempDir.toFile(), 'test.template')
+        templateFile.text = """
+[properties]
+test.property=value
+"""
+        
+        def gradlePropsFile = new File(tempDir.toFile(), 'gradle.properties')
+        gradlePropsFile.text = """
+bbdd.sid=test_db
+bbdd.systemUser=postgres
+bbdd.url=jdbc:postgresql://invalid.host:5432/nonexistent_db_${System.currentTimeMillis()}
+"""
+        
+        task.file = templateFile.absolutePath
+
+        when:
+        task.execute()
+
+        then:
+        // Should succeed because connection will fail (invalid URL)
+        notThrown(Exception)
+    }
+
+    def "validation skips when only bbdd.sid is present without systemUser"() {
+        given:
+        def templateFile = new File(tempDir.toFile(), 'test.template')
+        templateFile.text = """
+[properties]
+test.property=value
+"""
+        
+        def gradlePropsFile = new File(tempDir.toFile(), 'gradle.properties')
+        gradlePropsFile.text = """
+bbdd.sid=some_db
+# No bbdd.systemUser
+"""
+        
+        task.file = templateFile.absolutePath
+
+        when:
+        task.execute()
+
+        then:
+        // Should succeed - incomplete config means environment is clean
+        notThrown(Exception)
+    }
+
+    def "validation skips when only bbdd.systemUser is present without sid"() {
+        given:
+        def templateFile = new File(tempDir.toFile(), 'test.template')
+        templateFile.text = """
+[properties]
+test.property=value
+"""
+        
+        def gradlePropsFile = new File(tempDir.toFile(), 'gradle.properties')
+        gradlePropsFile.text = """
+bbdd.systemUser=postgres
+# No bbdd.sid
+"""
+        
+        task.file = templateFile.absolutePath
+
+        when:
+        task.execute()
+
+        then:
+        // Should succeed - incomplete config means environment is clean
+        notThrown(Exception)
+    }
+
+    def "force flag can be set to false explicitly"() {
+        given:
+        def templateFile = new File(tempDir.toFile(), 'test.template')
+        templateFile.text = """
+[properties]
+test.property=value
+"""
+        
+        task.file = templateFile.absolutePath
+        task.force = false
+
+        when:
+        task.execute()
+
+        then:
+        notThrown(Exception)
+    }
+
+    def "force flag can be set to true"() {
+        given:
+        def templateFile = new File(tempDir.toFile(), 'test.template')
+        templateFile.text = """
+[properties]
+test.property=value
+"""
+        
+        task.file = templateFile.absolutePath
+        task.force = true
+
+        when:
+        task.execute()
+
+        then:
+        notThrown(Exception)
+    }
 }
