@@ -4,6 +4,7 @@ import com.etendoerp.setup.applicator.TemplateApplicator
 import com.etendoerp.setup.template.Template
 import com.etendoerp.setup.template.TemplateResolver
 import org.gradle.api.DefaultTask
+import org.gradle.api.GradleException
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.TaskAction
@@ -68,6 +69,39 @@ class SetupApplyTemplatesTask extends DefaultTask {
             
             // Apply the template
             TemplateApplicator.apply(project, resolvedTemplate)
+            
+            // Execute setup task to apply changes
+            project.logger.lifecycle("\n" + "═" * 60)
+            project.logger.lifecycle("Executing 'setup' task to apply changes...")
+            project.logger.lifecycle("═" * 60)
+            
+            try {
+                def gradlewCommand = System.getProperty('os.name').toLowerCase().contains('windows') ? 'gradlew.bat' : './gradlew'
+                def gradlewFile = project.file(gradlewCommand)
+                
+                if (!gradlewFile.exists()) {
+                    project.logger.warn("⚠ Gradle wrapper not found, skipping setup execution")
+                    project.logger.warn("  Please run './gradlew setup' manually to apply changes")
+                } else {
+                    def result = project.exec {
+                        workingDir project.projectDir
+                        commandLine gradlewCommand, 'setup', '--console=plain'
+                        ignoreExitValue = true
+                    }
+                    
+                    if (result.exitValue == 0) {
+                        project.logger.lifecycle("\n✓ Setup completed successfully")
+                    } else {
+                        throw new GradleException("Setup task failed. The template was applied but setup encountered errors.")
+                    }
+                }
+            } catch (GradleException e) {
+                // Re-throw GradleException (from setup failure)
+                throw e
+            } catch (Exception setupEx) {
+                project.logger.error("✗ Failed to execute setup task: ${setupEx.message}")
+                throw new GradleException("Failed to execute setup task after applying template. Run './gradlew setup' manually.", setupEx)
+            }
             
         } catch (Exception e) {
             project.logger.error("Failed to apply template: ${e.message}", e)

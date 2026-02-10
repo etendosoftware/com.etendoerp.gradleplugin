@@ -30,7 +30,8 @@ class DependencyApplicator {
         
         dependencies.each { dep ->
             // Check if dependency already exists (considering variations in quotes)
-            String depPattern = dep.replaceAll(/["']/, '.')
+            // Escape regex special characters in the dependency string
+            String depPattern = dep.replaceAll(/["']/, '.').replaceAll(/[\[\](){}.*+?^$|\\]/, '\\\\$0')
             if (content.contains(dep) || content.matches(/(?s).*${depPattern}.*/)) {
                 println "*** ${dep} (already exists)"
             } else {
