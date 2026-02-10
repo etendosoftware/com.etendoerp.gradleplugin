@@ -2,15 +2,34 @@
 # Configures the project for Etendo Copilot integration
 
 [properties]
-copilot.enabled=true
-copilot.port=5005
-agent.sync.enabled=true
+# Postgres Docker
+docker_com.etendoerp.docker_db=true
+# Tomcat docker
+docker_com.etendoerp.tomcat=true
+tomcat.port=8080
+# Copilot Docker
+docker_com.etendoerp.copilot=true
+COPILOT_PORT=5005
+COPILOT_HOST=localhost
+OPENAI_API_KEY=
+COPILOT_PROXY_URL=https://llm.etendo.software
+COPILOT_PORT_MCP=5006
+ETENDO_HOST=http://localhost:8080/etendo
+ETENDO_HOST_DOCKER=http://host.docker.internal:8080/etendo
+# Kafka Config
+kafka.enable=false
+# EtendoRX Config
+sso.auth.type=Middleware
+sso.middleware.url=https://sso.etendo.cloud
+sso.middleware.redirectUri=http://localhost:8080/etendo/secureApp/LoginHandler.html
+authentication.class=com.etendoerp.etendorx.auth.SWSAuthenticationManager
+# NewUI Config
+docker_com.etendoerp.mainui=true
+etendo.classic.host=http://localhost:8080/etendo
+etendo.classic.url=http://host.docker.internal:8080/etendo
+next.public.app.url=http://localhost:3000
+ws.maxInactiveInterval=3600
 
 [dependencies]
-implementation 'com.etendoerp:copilot:1.0.0'
-implementation 'com.etendoerp:agents:1.0.0'
-runtimeOnly 'com.etendoerp:copilot-tools:1.0.0'
-
-[modules]
-com.etendoerp:tomcat:1.0.0
-git::https://github.com/etendosoftware/com.etendoerp.task.git::branch=main
+implementation('com.etendoerp:copilot.extensions:[3.0.0,4.0.0)')
+implementation('com.etendoerp:platform.extensions:[3.0.0,4.0.0)')
