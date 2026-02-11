@@ -38,8 +38,8 @@ class ResolutionUtils {
     final static String CONFLICT_WARNING_MESSAGE = "Found a conflict resolution with:"
 
     static List<String> CORE_DEPENDENCIES = [
-            "${CoreMetadata.CLASSIC_ETENDO_CORE_GROUP}:${CoreMetadata.CLASSIC_ETENDO_CORE_NAME}",
-            "${CoreMetadata.DEFAULT_ETENDO_CORE_GROUP}:${CoreMetadata.DEFAULT_ETENDO_CORE_NAME}"
+      "${CoreMetadata.CLASSIC_ETENDO_CORE_GROUP}:${CoreMetadata.CLASSIC_ETENDO_CORE_NAME}",
+      "${CoreMetadata.DEFAULT_ETENDO_CORE_GROUP}:${CoreMetadata.DEFAULT_ETENDO_CORE_NAME}"
     ]
     public static final String MODULES_PROJECT = "modules"
     public static final String DEPENDENCY_MANAGER_PKG = "com.etendoerp.dependencymanager"
@@ -103,8 +103,8 @@ class ResolutionUtils {
         def moduleIdentifier = "${group}:${name}".toLowerCase()
 
         boolean shouldReport = (!(moduleIdentifier in modulesToNotReport*.toLowerCase())
-                && (modulesToReport.isEmpty() || moduleIdentifier in modulesToReport*.toLowerCase()))
-                && isCoreDependency;
+          && (modulesToReport.isEmpty() || moduleIdentifier in modulesToReport*.toLowerCase()))
+          && isCoreDependency;
 
         if (shouldReport) {
             project.logger.info("")
@@ -267,7 +267,7 @@ class ResolutionUtils {
         }
         try {
             def result = databaseConnection.executeSelectQuery(
-                    "SELECT COUNT(*) AS count FROM ad_module where ad_module_id = ?", [DEPENDENCY_MANAGER_ID])
+              "SELECT COUNT(*) AS count FROM ad_module where ad_module_id = ?", [DEPENDENCY_MANAGER_ID])
             if (result && result[0]?.count > 0) {
                 return true
             }
@@ -470,18 +470,18 @@ class ResolutionUtils {
 
         // Create a new configuration container (using the 'configuration' passed has parameter to restore the Core dependency)
         def configurationContainer = ResolverDependencyUtils.createExtendedConfiguration(
-                project,
-                "core-resolution",
-                configToPerformResolution).copyRecursive()
+          project,
+          "core-resolution",
+          configToPerformResolution).copyRecursive()
 
         // Add all the requested dependencies to the new container
         // All the dependencies will be at the same 'level'
         ResolverDependencyUtils.loadConfigurationWithArtifacts(project, configurationContainer, requestedDependencies,
-                false, true, true, true)
+          false, true, true, true)
 
         // Perform the resolution conflicts
         return dependenciesResolutionConflict(project, configurationContainer, false,
-                true, LogLevel.DEBUG, CORE_DEPENDENCIES)
+          true, LogLevel.DEBUG, CORE_DEPENDENCIES)
     }
 
     static Map<String, List<ArtifactDependency>> performResolutionConflicts(Project project, Configuration configToPerformResolution, boolean filterCoreDependency,
@@ -511,7 +511,7 @@ class ResolutionUtils {
 
         // Perform the resolution conflicts
         def resolvedArtifacts = dependenciesResolutionConflict(project, configToPerformResolution, filterCoreDependency,
-                obtainSelectedArtifacts, LogLevel.INFO, [], CORE_DEPENDENCIES)
+          obtainSelectedArtifacts, LogLevel.INFO, [], CORE_DEPENDENCIES)
 
         // Add to the result the selected CORE
         if (currentCoreDependency && coreArtifactDependency && !filterCoreDependency) {
@@ -545,10 +545,10 @@ class ResolutionUtils {
         coreConfigurationContainer.dependencies.add(project.dependencies.create(coreArtifact))
 
         def incomingDependencies = getIncomingDependencies(project, coreConfigurationContainer,
-                true, true, LogLevel.DEBUG)
+          true, true, LogLevel.DEBUG)
 
         ResolverDependencyUtils.loadConfigurationWithArtifacts(project, container, incomingDependencies,
-                false, true, false, true)
+          false, true, false, true)
     }
 
 }

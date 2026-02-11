@@ -239,7 +239,8 @@ pipeline {
               ./gradlew compile.complete
               ./gradlew smartbuild --info
               """
-              echo "---------------- Build JAR Environment Succesful ----------------"
+
+              echo "---------------- Build JAR Environment Successful ----------------"
               currentBuild.result = SUCCESS
             } catch (Exception e) {
               echo "---------------- Build JAR Environment Failed ----------------"

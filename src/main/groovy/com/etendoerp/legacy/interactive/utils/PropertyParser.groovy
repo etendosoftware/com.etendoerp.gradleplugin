@@ -145,7 +145,7 @@ class PropertyParser {
                 // Don't merge groups from gradle.properties - those are just default "General"
                 // The real group metadata comes from config.gradle documentation
                 // Keep documentation from docs, but update sensitivity check
-                existing.sensitive = existing.sensitive || SecurityUtils.isSensitive(gradleProp.key)
+                existing.sensitive = existing.sensitive || gradleProp.sensitive || SecurityUtils.isSensitive(gradleProp.key)
             } else {
                 // Add new property from gradle.properties (will have groups = ["General"])
                 mergedMap[gradleProp.key] = gradleProp
