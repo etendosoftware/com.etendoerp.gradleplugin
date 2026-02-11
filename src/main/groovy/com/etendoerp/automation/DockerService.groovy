@@ -228,7 +228,7 @@ class DockerService {
     /**
      * Internal method to execute Docker commands
      */
-    private Map<String, Object> executeDockerCommand(List<String> commandParts, String description) {
+    protected Map<String, Object> executeDockerCommand(List<String> commandParts, String description) {
         try {
             project.logger.info("Executing: ${commandParts.join(' ')}")
 
