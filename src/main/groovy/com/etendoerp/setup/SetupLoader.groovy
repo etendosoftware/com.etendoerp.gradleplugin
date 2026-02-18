@@ -15,5 +15,6 @@ class SetupLoader {
         project.tasks.register("setup.applyTemplates", SetupApplyTemplatesTask)
         project.tasks.register("setup.addModule", SetupAddModuleTask)
         project.tasks.register("setup.listModules", SetupListModulesTask)
+        project.tasks.register("setup.githubAuth", GithubAuthTask)
     }
 }
