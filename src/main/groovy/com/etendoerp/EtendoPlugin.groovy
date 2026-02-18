@@ -1,8 +1,8 @@
 package com.etendoerp
 
 import com.etendoerp.automation.GradleControllerLoader
-import com.etendoerp.copilot.CopilotLoader
 import com.etendoerp.css.CssCompileLoader
+import com.etendoerp.connections.DatabaseConnection
 import com.etendoerp.dbdeps.DepsLoader
 import com.etendoerp.dependencies.DependenciesLoader
 import com.etendoerp.dependencymanager.DependencyManagerLoader
@@ -14,6 +14,7 @@ import com.etendoerp.legacy.ant.AntLoader
 import com.etendoerp.modules.ModulesConfigurationLoader
 import com.etendoerp.modules.uninstall.UninstallModuleLoader
 import com.etendoerp.publication.PublicationLoader
+import com.etendoerp.autoconfig.AutoConfigLoader
 import com.etendoerp.setup.SetupLoader
 import com.etendoerp.ui.NodeTasksLoader
 import org.gradle.api.Plugin
@@ -59,16 +60,24 @@ class EtendoPlugin implements Plugin<Project> {
         DepsLoader.load(project)
         JarLoader.load(project)
         PublicationLoader.load(project)
+        AutoConfigLoader.load(project)
         ModulesConfigurationLoader.load(project)
         DependenciesLoader.load(project)
         CloneDependencies.load(project)
         CssCompileLoader.load(project)
         UninstallModuleLoader.load(project)
         ExternalTasksLoader.load(project)
-        CopilotLoader.load(project)
         DependencyManagerLoader.load(project)
         NodeTasksLoader.load(project)
         GradleControllerLoader.load(project)
         SetupLoader.load(project)
+
+        if (!project.hasProperty('createDatabaseConnection')) {
+            try {
+                DatabaseConnection.registerProjectExt(project)
+            } catch (Exception e) {
+                project.logger.debug("Failed to register createDatabaseConnection on root project: ${e.message}")
+            }
+        }
     }
 }
