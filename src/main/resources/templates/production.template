@@ -1,0 +1,13 @@
+# Production Template
+# Configuration optimized for production environments
+
+[properties]
+environment=production
+log.level=WARN
+cache.enabled=true
+debug.enabled=false
+
+[dependencies]
+implementation 'com.etendoerp:monitoring:1.0.0'
+
+[modules]

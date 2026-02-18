@@ -121,6 +121,94 @@ class ConfigurationServiceSpec extends Specification {
         1 * writer.writeProperties(["app.name": "custom"])
     }
 
+    def "readCategorizedConfigurations groups by category and defaults to General"() {
+        given:
+        def definitions = [
+                new PropertyDefinition(
+                        key: "db.host",
+                        currentValue: "localhost",
+                        groups: ["Database", "Infra"]
+                ),
+                new PropertyDefinition(
+                        key: "feature.enabled",
+                        currentValue: "true",
+                        groups: null
+                )
+        ]
+        scanner.scanAllProperties() >> definitions
+
+        when:
+        def result = service.readCategorizedConfigurations()
+
+        then:
+        result.total == 2
+        result.groups.Database.count == 1
+        result.groups.Infra.count == 1
+        result.groups.General.count == 1
+    }
+
+    def "readConfigurationsByModule groups by source and defaults to main"() {
+        given:
+        def definitions = [
+                new PropertyDefinition(key: "db.host", source: "main"),
+                new PropertyDefinition(key: "module.setting", source: "modules/sample"),
+                new PropertyDefinition(key: "no.source", source: null)
+        ]
+        scanner.scanAllProperties() >> definitions
+
+        when:
+        def result = service.readConfigurationsByModule()
+
+        then:
+        result.total == 3
+        result.modules.main.count == 2
+        result.modules["modules/sample"].count == 1
+    }
+
+    def "getConfigurationStats summarizes counts"() {
+        given:
+        def definitions = [
+                new PropertyDefinition(key: "a", required: true, sensitive: false, process: false, groups: ["G1"], source: "main"),
+                new PropertyDefinition(key: "b", required: false, sensitive: true, process: true, groups: ["G1", "G2"], source: "mod"),
+                new PropertyDefinition(key: "c", required: false, sensitive: false, process: false, groups: null, source: null)
+        ]
+        definitions[0].currentValue = "x"
+        scanner.scanAllProperties() >> definitions
+
+        when:
+        def result = service.getConfigurationStats()
+
+        then:
+        result.total == 3
+        result.configured == 1
+        result.required == 1
+        result.sensitive == 1
+        result.processProperties == 1
+        result.byGroup.G1 == 2
+        result.byGroup.G2 == 1
+        result.byGroup.General == 1
+        result.byModule.main == 2
+        result.byModule.mod == 1
+    }
+
+    def "saveConfigurations returns error when gradle.properties is missing"() {
+        given:
+        def projectDir = new File(tempDir.toFile(), "no-props-dir")
+        projectDir.mkdirs()
+        def project = ProjectBuilder.builder()
+                .withProjectDir(projectDir)
+                .build()
+        def localService = new ConfigurationService(project)
+
+        when:
+        def result = localService.saveConfigurations(["a": "b"])
+
+        then:
+        !result.success
+        result.message.contains("Error saving configurations")
+        result.error == "FileNotFoundException"
+    }
+
     private static void overwriteFinalField(Object target, String fieldName, Object value) {
         Field field = target.class.getDeclaredField(fieldName)
         field.accessible = true
