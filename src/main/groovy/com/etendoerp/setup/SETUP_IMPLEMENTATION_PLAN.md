@@ -1,7 +1,7 @@
 # 📋 Plan de Implementación: Tarea `setup.applyTemplates`
 
 **Fecha**: 2 de febrero de 2026  
-**Requisitos**: Ver `Setup: Tarea Gradle para aplicar templates de configuración`
+**Requisitos**: Ver [SETUP_README.md](SETUP_README.md) - Setup Tasks Documentation
 
 ## 🏗️ Estructura de Archivos a Crear
 

@@ -13,5 +13,7 @@ class SetupLoader {
      */
     static void load(Project project) {
         project.tasks.register("setup.applyTemplates", SetupApplyTemplatesTask)
+        project.tasks.register("setup.addModule", SetupAddModuleTask)
+        project.tasks.register("setup.listModules", SetupListModulesTask)
     }
 }

@@ -1,5 +1,6 @@
 package com.etendoerp.setup.applicator
 
+import com.etendoerp.setup.ModuleManager
 import org.gradle.api.Project
 
 /**
@@ -48,8 +49,15 @@ class ModuleApplicator {
                 }
             }
             
-            // Extract module name from URL
-            String moduleName = extractModuleName(url)
+            // Extract module name from URL using ModuleManager
+            String moduleName = ModuleManager.extractModuleName(url)
+            
+            // Check if already installed using ModuleManager
+            if (ModuleManager.isGitModuleInstalled(project, moduleName)) {
+                project.logger.warn("Module directory already exists: ${project.file('modules/' + moduleName).absolutePath}. Skipping clone.")
+                println "*** git: ${url} (already cloned in modules/${moduleName})"
+                return
+            }
             
             // Create modules directory if it doesn't exist
             def modulesDir = project.file('modules')
@@ -60,13 +68,6 @@ class ModuleApplicator {
             
             // Target directory for the cloned module
             def targetDir = new File(modulesDir, moduleName)
-            
-            // Check if module already exists
-            if (targetDir.exists()) {
-                project.logger.warn("Module directory already exists: ${targetDir.absolutePath}. Skipping clone.")
-                println "*** git: ${url} (already cloned in modules/${moduleName})"
-                return
-            }
             
             // Clone the git repository with branch detection
             boolean cloneSuccessful = false
@@ -134,31 +135,6 @@ class ModuleApplicator {
             throw e
         }
     }
-    
-    /**
-     * Extract module name from git URL
-     * Examples:
-     *   https://github.com/user/repo.git -> repo
-     *   git@github.com:user/repo.git -> repo
-     *   https://github.com/user/my-module -> my-module
-     */
-    private static String extractModuleName(String url) {
-        // Remove trailing .git if present
-        def cleanUrl = url.endsWith('.git') ? url.substring(0, url.length() - 4) : url
-        
-        // Extract last part of the path
-        def lastSlash = cleanUrl.lastIndexOf('/')
-        if (lastSlash == -1) {
-            lastSlash = cleanUrl.lastIndexOf(':')
-        }
-        
-        if (lastSlash != -1 && lastSlash < cleanUrl.length() - 1) {
-            return cleanUrl.substring(lastSlash + 1)
-        }
-        
-        // Fallback: use the whole URL (sanitized)
-        return cleanUrl.replaceAll('[^a-zA-Z0-9_-]', '_')
-    }
 
     /**
      * Apply an artifact-based module
@@ -166,6 +142,13 @@ class ModuleApplicator {
      */
     private static void applyArtifactModule(Project project, String artifact) {
         println "*** artifact: ${artifact}"
+        
+        // Check if already installed using ModuleManager
+        if (ModuleManager.isArtifactInstalled(project, artifact)) {
+            project.logger.info("Artifact ${artifact} already exists in artifacts.list.COMPILATION.gradle")
+            println "*** (already in artifacts list)"
+            return
+        }
         
         // Add to artifacts.list.COMPILATION.gradle file
         def artifactsFile = project.file('artifacts.list.COMPILATION.gradle')
@@ -175,13 +158,6 @@ class ModuleApplicator {
         }
         
         def content = artifactsFile.text
-        
-        // Check if artifact already exists
-        if (content.contains("'${artifact}'")) {
-            project.logger.info("Artifact ${artifact} already exists in artifacts.list.COMPILATION.gradle")
-            println "*** (already in artifacts list)"
-            return
-        }
         
         // Find the closing bracket of the list
         def lastBracket = content.lastIndexOf(']')
