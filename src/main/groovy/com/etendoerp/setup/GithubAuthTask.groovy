@@ -5,6 +5,8 @@ import org.gradle.api.GradleException
 import org.gradle.api.tasks.TaskAction
 
 import java.awt.Desktop
+import java.awt.Toolkit
+import java.awt.datatransfer.StringSelection
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
@@ -47,23 +49,34 @@ class GithubAuthTask extends DefaultTask {
         int expiresIn = deviceResponse.expires_in as int
         int interval = deviceResponse.interval as int
 
-        // Try to open the browser automatically
-        boolean browserOpened = tryOpenBrowser(verificationUri)
+        // Try to copy the code to clipboard
+        boolean copied = tryClipboard(userCode)
 
         project.logger.lifecycle('')
-        project.logger.lifecycle('╔══════════════════════════════════════════════════╗')
-        project.logger.lifecycle('║         GitHub Authentication Required           ║')
-        project.logger.lifecycle('╠══════════════════════════════════════════════════╣')
-        if (browserOpened) {
-            project.logger.lifecycle('║  A browser window was opened for you.           ║')
-        } else {
-            project.logger.lifecycle('║  Open the following URL in your browser:        ║')
-            project.logger.lifecycle("║  ${verificationUri.padRight(49)}║")
+        project.logger.lifecycle('+--------------------------------------------------')
+        project.logger.lifecycle('|  GitHub Authentication Required')
+        project.logger.lifecycle('+--------------------------------------------------')
+        project.logger.lifecycle("|  URL:  ${verificationUri}")
+        project.logger.lifecycle('|')
+        project.logger.lifecycle("|  Enter this code when prompted:")
+        project.logger.lifecycle("|  >>> ${userCode} <<<")
+        if (copied) {
+            project.logger.lifecycle('|  (code copied to clipboard)')
         }
-        project.logger.lifecycle('║                                                  ║')
-        project.logger.lifecycle('║  Enter this code when prompted:                 ║')
-        project.logger.lifecycle("║  >>> ${userCode.padRight(44)}║")
-        project.logger.lifecycle('╚══════════════════════════════════════════════════╝')
+        project.logger.lifecycle('+--------------------------------------------------')
+        project.logger.lifecycle('')
+
+        // Ask user to press Enter before opening browser
+        print('  Press ENTER to open the browser, or copy the URL above manually... ')
+        System.out.flush()
+        new BufferedReader(new InputStreamReader(System.in)).readLine()
+
+        boolean browserOpened = tryOpenBrowser(verificationUri)
+        if (browserOpened) {
+            project.logger.lifecycle('  Browser opened. Enter the code shown above.')
+        } else {
+            project.logger.lifecycle('  Could not open browser automatically. Please open the URL manually.')
+        }
         project.logger.lifecycle('')
         project.logger.lifecycle('Waiting for authorization (do not close this terminal)...')
 
@@ -79,6 +92,29 @@ class GithubAuthTask extends DefaultTask {
                 accessToken.substring(0, 4) + '...' + accessToken.substring(accessToken.length() - 4) :
                 '****'
         project.logger.lifecycle("  githubToken=${masked}")
+    }
+
+    private static boolean tryClipboard(String text) {
+        try {
+            def selection = new java.awt.datatransfer.StringSelection(text)
+            java.awt.Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, null)
+            return true
+        } catch (Exception ignored) {}
+        // Fallback: xclip / xsel / pbcopy
+        try {
+            String os = System.getProperty('os.name').toLowerCase()
+            String[] cmd
+            if (os.contains('mac')) {
+                cmd = ['sh', '-c', "echo -n '${text}' | pbcopy"]
+            } else if (os.contains('nux') || os.contains('nix')) {
+                cmd = ['sh', '-c', "echo -n '${text}' | xclip -selection clipboard"]
+            } else {
+                return false
+            }
+            int exit = Runtime.getRuntime().exec(cmd).waitFor()
+            return exit == 0
+        } catch (Exception ignored) {}
+        return false
     }
 
     private static boolean tryOpenBrowser(String url) {
