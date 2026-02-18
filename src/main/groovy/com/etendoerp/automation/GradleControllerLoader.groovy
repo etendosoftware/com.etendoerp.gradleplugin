@@ -311,14 +311,12 @@ class GradleControllerLoader {
                     def srcCoreLocation = new File(project.rootDir, "src-core")
                     def coreInSources = modulesCoreLocation.exists() && srcCoreLocation.exists()
 
-                    // Determine core type
                     String coreType
                     boolean coreInJar
                     if (coreInSources) {
                         coreType = "SOURCES"
                         coreInJar = false
                     } else {
-                        // Check if etendo-core dependency exists
                         def hasCoreDep = false
                         try {
                             def baseConfigs = com.etendoerp.jars.modules.metadata.DependencyUtils.loadListOfConfigurations(project)
@@ -332,7 +330,6 @@ class GradleControllerLoader {
                                 if (hasCoreDep) break
                             }
                         } catch (Exception ignored) {}
-
                         if (hasCoreDep) {
                             coreType = "JAR"
                             coreInJar = true
@@ -342,7 +339,6 @@ class GradleControllerLoader {
                         }
                     }
 
-                    // Determine if expanded
                     boolean expanded
                     String buildXmlPath
                     if (coreType == "SOURCES") {
@@ -356,7 +352,6 @@ class GradleControllerLoader {
                         expanded = false
                     }
 
-                    // Build message
                     String message
                     if (coreType == "UNDEFINED") {
                         message = "Core not found. Add etendo-core dependency or set up sources."
@@ -379,16 +374,70 @@ class GradleControllerLoader {
                 }
             }
 
+            // ========== GITHUB AUTH ENDPOINTS ==========
+
+            // Endpoint: POST /api/github/auth/start - Start GitHub Device Flow
+            app.post("/api/github/auth/start") { ctx ->
+                try {
+                    def result = startDeviceFlow()
+                    ctx.json([
+                        success        : true,
+                        userCode       : result.user_code,
+                        verificationUri: result.verification_uri,
+                        deviceCode     : result.device_code,
+                        expiresIn      : result.expires_in,
+                        interval       : result.interval
+                    ])
+                } catch (Exception e) {
+                    project.logger.error("Error starting GitHub device flow: ${e.message}", e)
+                    ctx.status(500).json([success: false, error: e.message])
+                }
+            }
+
+            // Endpoint: POST /api/github/auth/poll - Poll for GitHub Device Flow token
+            app.post("/api/github/auth/poll") { ctx ->
+                try {
+                    def json = new groovy.json.JsonSlurper().parseText(ctx.body())
+                    String deviceCode = json.deviceCode
+                    if (!deviceCode) {
+                        ctx.status(400).json([success: false, error: "Missing 'deviceCode' parameter"])
+                        return
+                    }
+                    def result = pollDeviceFlow(deviceCode)
+                    if (result.access_token) {
+                        saveGithubToken(project, result.access_token)
+                        ctx.json([status: 'success', token: result.access_token])
+                    } else {
+                        switch (result.error) {
+                            case 'authorization_pending':
+                                ctx.json([status: 'pending'])
+                                break
+                            case 'slow_down':
+                                ctx.json([status: 'pending', interval: (result.interval ?: 10)])
+                                break
+                            case 'expired_token':
+                                ctx.json([status: 'expired'])
+                                break
+                            case 'access_denied':
+                                ctx.json([status: 'denied'])
+                                break
+                            default:
+                                ctx.status(500).json([success: false, error: result.error_description ?: result.error])
+                        }
+                    }
+                } catch (Exception e) {
+                    project.logger.error("Error polling GitHub device flow: ${e.message}", e)
+                    ctx.status(500).json([success: false, error: e.message])
+                }
+            }
+
             // ========== TEMPLATE ENDPOINTS ==========
 
             // Endpoint: GET /api/templates - List available templates
             app.get("/api/templates") { ctx ->
                 try {
                     def templates = com.etendoerp.setup.template.TemplateResolver.listAvailableTemplates()
-                    ctx.json([
-                        success: true,
-                        templates: templates
-                    ])
+                    ctx.json([success: true, templates: templates])
                 } catch (Exception e) {
                     ctx.json([success: false, error: e.message])
                 }
@@ -402,11 +451,11 @@ class GradleControllerLoader {
                     ctx.json([
                         success: true,
                         template: [
-                            name: template.name,
-                            source: template.source,
-                            properties: template.properties,
+                            name        : template.name,
+                            source      : template.source,
+                            properties  : template.properties,
                             dependencies: template.dependencies,
-                            modules: template.modules
+                            modules     : template.modules
                         ]
                     ])
                 } catch (Exception e) {
@@ -587,6 +636,65 @@ class GradleControllerLoader {
                 }
             }
         }
+    }
+
+    // ========== GitHub Device Flow helpers ==========
+
+    private static final String GITHUB_CLIENT_ID = 'Ov23li1PuCseVXZZVH6O'
+    private static final String GITHUB_SCOPE = 'read:packages'
+
+    private static Map startDeviceFlow() {
+        String body = "client_id=${GITHUB_CLIENT_ID}&scope=${GITHUB_SCOPE}"
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create('https://github.com/login/device/code'))
+                .header('Accept', 'application/json')
+                .header('Content-Type', 'application/x-www-form-urlencoded')
+                .POST(HttpRequest.BodyPublishers.ofString(body))
+                .build()
+
+        HttpResponse<String> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString())
+        def json = new groovy.json.JsonSlurper().parseText(response.body())
+
+        if (json.error) {
+            throw new RuntimeException("GitHub device code request failed: ${json.error_description ?: json.error}")
+        }
+
+        return json as Map
+    }
+
+    private static Map pollDeviceFlow(String deviceCode) {
+        String body = "client_id=${GITHUB_CLIENT_ID}&device_code=${deviceCode}&grant_type=urn:ietf:params:oauth:grant-type:device_code"
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create('https://github.com/login/oauth/access_token'))
+                .header('Accept', 'application/json')
+                .header('Content-Type', 'application/x-www-form-urlencoded')
+                .POST(HttpRequest.BodyPublishers.ofString(body))
+                .build()
+
+        HttpResponse<String> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString())
+        return new groovy.json.JsonSlurper().parseText(response.body()) as Map
+    }
+
+    private static void saveGithubToken(Project project, String token) {
+        File propsFile = project.file('gradle.properties')
+
+        if (!propsFile.exists()) {
+            propsFile.text = "githubToken=${token}\n"
+            return
+        }
+
+        String content = propsFile.text
+        if (content =~ /(?m)^githubToken=.*$/) {
+            content = content.replaceAll(/(?m)^githubToken=.*$/, "githubToken=${token}")
+        } else {
+            if (!content.endsWith('\n')) {
+                content += '\n'
+            }
+            content += "githubToken=${token}\n"
+        }
+        propsFile.text = content
     }
 
     /**
