@@ -302,6 +302,83 @@ class GradleControllerLoader {
                 }
             }
 
+            // ========== SETUP ENDPOINTS ==========
+
+            // Endpoint: GET /api/setup/core-status - Get core expansion status
+            app.get("/api/setup/core-status") { ctx ->
+                try {
+                    def modulesCoreLocation = new File(project.rootDir, "modules_core")
+                    def srcCoreLocation = new File(project.rootDir, "src-core")
+                    def coreInSources = modulesCoreLocation.exists() && srcCoreLocation.exists()
+
+                    // Determine core type
+                    String coreType
+                    boolean coreInJar
+                    if (coreInSources) {
+                        coreType = "SOURCES"
+                        coreInJar = false
+                    } else {
+                        // Check if etendo-core dependency exists
+                        def hasCoreDep = false
+                        try {
+                            def baseConfigs = com.etendoerp.jars.modules.metadata.DependencyUtils.loadListOfConfigurations(project)
+                            for (def configuration : baseConfigs) {
+                                for (def dependency : configuration.allDependencies) {
+                                    if (dependency.name == com.etendoerp.jars.JarCoreGenerator.ETENDO_CORE) {
+                                        hasCoreDep = true
+                                        break
+                                    }
+                                }
+                                if (hasCoreDep) break
+                            }
+                        } catch (Exception ignored) {}
+
+                        if (hasCoreDep) {
+                            coreType = "JAR"
+                            coreInJar = true
+                        } else {
+                            coreType = "UNDEFINED"
+                            coreInJar = false
+                        }
+                    }
+
+                    // Determine if expanded
+                    boolean expanded
+                    String buildXmlPath
+                    if (coreType == "SOURCES") {
+                        buildXmlPath = new File(project.rootDir, "build.xml").absolutePath
+                        expanded = new File(project.rootDir, "build.xml").exists()
+                    } else if (coreType == "JAR") {
+                        buildXmlPath = new File(project.buildDir, "etendo/build.xml").absolutePath
+                        expanded = new File(project.buildDir, "etendo/build.xml").exists()
+                    } else {
+                        buildXmlPath = ""
+                        expanded = false
+                    }
+
+                    // Build message
+                    String message
+                    if (coreType == "UNDEFINED") {
+                        message = "Core not found. Add etendo-core dependency or set up sources."
+                    } else if (expanded) {
+                        message = "Core is expanded and ready."
+                    } else {
+                        message = "Core not expanded. Run expandCore to proceed."
+                    }
+
+                    ctx.json([
+                        coreInJar   : coreInJar,
+                        expanded    : expanded,
+                        coreType    : coreType,
+                        buildXmlPath: buildXmlPath,
+                        message     : message
+                    ])
+                } catch (Exception e) {
+                    project.logger.error("Error checking core status: ${e.message}", e)
+                    ctx.status(500).json([success: false, error: e.message])
+                }
+            }
+
             // ========== GRADLE ENDPOINTS ==========
 
             // Endpoint: POST /api/execute with JSON body: {"command":"smartbuild","args":{}}
