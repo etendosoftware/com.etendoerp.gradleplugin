@@ -379,6 +379,41 @@ class GradleControllerLoader {
                 }
             }
 
+            // ========== TEMPLATE ENDPOINTS ==========
+
+            // Endpoint: GET /api/templates - List available templates
+            app.get("/api/templates") { ctx ->
+                try {
+                    def templates = com.etendoerp.setup.template.TemplateResolver.listAvailableTemplates()
+                    ctx.json([
+                        success: true,
+                        templates: templates
+                    ])
+                } catch (Exception e) {
+                    ctx.json([success: false, error: e.message])
+                }
+            }
+
+            // Endpoint: GET /api/templates/{name} - Get template details (properties, dependencies, modules)
+            app.get("/api/templates/{name}") { ctx ->
+                try {
+                    String name = ctx.pathParam("name")
+                    def template = com.etendoerp.setup.template.TemplateResolver.loadFromResources(name)
+                    ctx.json([
+                        success: true,
+                        template: [
+                            name: template.name,
+                            source: template.source,
+                            properties: template.properties,
+                            dependencies: template.dependencies,
+                            modules: template.modules
+                        ]
+                    ])
+                } catch (Exception e) {
+                    ctx.status(404).json([success: false, error: e.message])
+                }
+            }
+
             // ========== GRADLE ENDPOINTS ==========
 
             // Endpoint: POST /api/execute with JSON body: {"command":"smartbuild","args":{}}
