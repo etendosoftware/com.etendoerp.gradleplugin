@@ -4,6 +4,7 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.tasks.TaskAction
 
+import java.awt.Desktop
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
@@ -46,12 +47,25 @@ class GithubAuthTask extends DefaultTask {
         int expiresIn = deviceResponse.expires_in as int
         int interval = deviceResponse.interval as int
 
+        // Try to open the browser automatically
+        boolean browserOpened = tryOpenBrowser(verificationUri)
+
         project.logger.lifecycle('')
-        project.logger.lifecycle('============================================')
-        project.logger.lifecycle("  Abre:  ${verificationUri}")
-        project.logger.lifecycle("  Codigo: ${userCode}")
-        project.logger.lifecycle('============================================')
-        project.logger.lifecycle('Esperando autorizacion...')
+        project.logger.lifecycle('╔══════════════════════════════════════════════════╗')
+        project.logger.lifecycle('║         GitHub Authentication Required           ║')
+        project.logger.lifecycle('╠══════════════════════════════════════════════════╣')
+        if (browserOpened) {
+            project.logger.lifecycle('║  A browser window was opened for you.           ║')
+        } else {
+            project.logger.lifecycle('║  Open the following URL in your browser:        ║')
+            project.logger.lifecycle("║  ${verificationUri.padRight(49)}║")
+        }
+        project.logger.lifecycle('║                                                  ║')
+        project.logger.lifecycle('║  Enter this code when prompted:                 ║')
+        project.logger.lifecycle("║  >>> ${userCode.padRight(44)}║")
+        project.logger.lifecycle('╚══════════════════════════════════════════════════╝')
+        project.logger.lifecycle('')
+        project.logger.lifecycle('Waiting for authorization (do not close this terminal)...')
 
         // Step 2: Poll for access token
         String accessToken = pollForToken(deviceCode, expiresIn, interval)
@@ -60,12 +74,37 @@ class GithubAuthTask extends DefaultTask {
         saveGithubToken(accessToken)
 
         project.logger.lifecycle('')
-        project.logger.lifecycle("Token guardado en gradle.properties")
-        // Show masked token
+        project.logger.lifecycle('✓ Token saved to gradle.properties')
         String masked = accessToken.length() > 8 ?
                 accessToken.substring(0, 4) + '...' + accessToken.substring(accessToken.length() - 4) :
                 '****'
-        project.logger.lifecycle("githubToken=${masked}")
+        project.logger.lifecycle("  githubToken=${masked}")
+    }
+
+    private static boolean tryOpenBrowser(String url) {
+        try {
+            String os = System.getProperty('os.name').toLowerCase()
+            if (os.contains('mac')) {
+                Runtime.getRuntime().exec(['open', url] as String[])
+                return true
+            } else if (os.contains('win')) {
+                Runtime.getRuntime().exec(['rundll32', 'url.dll,FileProtocolHandler', url] as String[])
+                return true
+            } else if (os.contains('nux') || os.contains('nix')) {
+                Runtime.getRuntime().exec(['xdg-open', url] as String[])
+                return true
+            }
+        } catch (Exception ignored) {
+            // Fall through — user will open manually
+        }
+        // Fallback: try java.awt.Desktop
+        try {
+            if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                Desktop.getDesktop().browse(new URI(url))
+                return true
+            }
+        } catch (Exception ignored) {}
+        return false
     }
 
     private static Map startDeviceFlow() {
