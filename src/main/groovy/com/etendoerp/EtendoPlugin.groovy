@@ -1,7 +1,6 @@
 package com.etendoerp
 
 import com.etendoerp.automation.GradleControllerLoader
-import com.etendoerp.copilot.CopilotLoader
 import com.etendoerp.css.CssCompileLoader
 import com.etendoerp.connections.DatabaseConnection
 import com.etendoerp.dbdeps.DepsLoader
