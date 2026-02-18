@@ -1,5 +1,7 @@
 package com.etendoerp
 
+import com.etendoerp.automation.GradleControllerLoader
+import com.etendoerp.copilot.CopilotLoader
 import com.etendoerp.css.CssCompileLoader
 import com.etendoerp.connections.DatabaseConnection
 import com.etendoerp.dbdeps.DepsLoader
@@ -14,6 +16,7 @@ import com.etendoerp.modules.ModulesConfigurationLoader
 import com.etendoerp.modules.uninstall.UninstallModuleLoader
 import com.etendoerp.publication.PublicationLoader
 import com.etendoerp.autoconfig.AutoConfigLoader
+import com.etendoerp.ui.NodeTasksLoader
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaBasePlugin
@@ -39,6 +42,14 @@ class EtendoPlugin implements Plugin<Project> {
         project.getPluginManager().apply(MavenPublishPlugin.class)
         project.getPluginManager().apply(WarPlugin.class)
 
+        // Apply Node plugin for UI tasks (requires gradlePluginPortal in settings.gradle)
+        try {
+            project.getPluginManager().apply('com.github.node-gradle.node')
+        } catch (Exception e) {
+            project.logger.warn("Node Gradle Plugin not available. UI tasks will not be registered.")
+            project.logger.warn("To enable UI tasks, add gradlePluginPortal() to your settings.gradle repositories.")
+        }
+
         project.java {
             withSourcesJar()
         }
@@ -57,6 +68,8 @@ class EtendoPlugin implements Plugin<Project> {
         UninstallModuleLoader.load(project)
         ExternalTasksLoader.load(project)
         DependencyManagerLoader.load(project)
+        NodeTasksLoader.load(project)
+        GradleControllerLoader.load(project)
 
         if (!project.hasProperty('createDatabaseConnection')) {
             try {
@@ -65,5 +78,6 @@ class EtendoPlugin implements Plugin<Project> {
                 project.logger.debug("Failed to register createDatabaseConnection on root project: ${e.message}")
             }
         }
+        
     }
 }
