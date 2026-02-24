@@ -156,4 +156,49 @@ class PrepareConfigTest extends EtendoSpecification {
         }
     }
 
+    def "Clean up Openbravo.properties with -PcleanUp"() {
+        given: "a configured gradle.properties"
+        addRepositoryToBuildFileFirst(SNAPSHOT_REPOSITORY_URL)
+
+        def gradleProperties = new File(testProjectDir, "gradle.properties")
+        gradleProperties.text = """
+        context.name=test_etendo
+        nexusUser=
+        nexusPassword=
+        githubUser=
+        githubToken=
+        """
+
+        and: "running the first 'prepareConfig' task"
+        def expandResult = runTask("expandCore")
+        def firstSetupResult = runTask("prepareConfig")
+        expandResult.task(":expandCore").outcome == TaskOutcome.SUCCESS
+        firstSetupResult.task(":prepareConfig").outcome == TaskOutcome.UP_TO_DATE || TaskOutcome.SUCCESS
+
+        and: "adding an extra property to Openbravo.properties that is not in gradle.properties"
+        def propsFile = new File(testProjectDir, "config/Openbravo.properties")
+        def props = new Properties()
+        props.load(propsFile.newReader())
+        props.setProperty("extra.property", "extraValue")
+        props.store(propsFile.newWriter(), null)
+
+        when: "running the 'prepareConfig' task with -PcleanUp"
+        def result = runTask("prepareConfig", "-PcleanUp")
+
+        then: "the extra property is removed and a backup is created"
+        def finalProps = new Properties()
+        finalProps.load(propsFile.newReader())
+
+        def configDir = new File(testProjectDir, "config")
+        def backupFile = configDir.listFiles().find { it.name.startsWith("Openbravo.properties.backup.") }
+
+        verifyAll {
+            result.task(":prepareConfig").outcome == TaskOutcome.UP_TO_DATE || TaskOutcome.SUCCESS
+            !finalProps.containsKey("extra.property")
+            finalProps.getProperty("context.name") == "test_etendo"
+            backupFile != null
+            backupFile.exists()
+        }
+    }
+
 }
