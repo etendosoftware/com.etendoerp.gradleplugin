@@ -329,6 +329,56 @@ class LegacyScriptLoader {
             doLast {
                 def props = new Properties()
                 project.file("gradle.properties").withInputStream { props.load(it) }
+
+                // If the 'cleanSync' property is set to true, we will remove all the properties that are not in the gradle.properties 
+                // or in the template, to ensure a clean sync with the gradle.properties values.
+                if (project.hasProperty('cleanUp')) {
+                    project.logger.info("-------------Cleaning up Openbravo.properties-------------")
+                    def openbravoPropertiesFile = project.file("config/Openbravo.properties")
+                    if (openbravoPropertiesFile.exists()) {
+                        // Backup
+                        def timestamp = new java.text.SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date())
+                        def backupFile = project.file("config/Openbravo.properties.backup.${timestamp}")
+                        project.copy {
+                            from openbravoPropertiesFile
+                            into project.file("config")
+                            rename { fileName -> "Openbravo.properties.backup.${timestamp}" }
+                        }
+                        project.logger.info("Backed up Openbravo.properties to ${backupFile.name}")
+
+                        // Load current Openbravo.properties
+                        def openbravoProps = new Properties()
+                        openbravoPropertiesFile.withInputStream { openbravoProps.load(it) }
+
+                        // Load template properties
+                        def templateProps = new Properties()
+                        if (project.file("config/Openbravo.properties.template").exists()) {
+                            project.file("config/Openbravo.properties.template").withInputStream { templateProps.load(it) }
+                        }
+
+                        // Identify properties to remove
+                        def keysToRemove = []
+                        openbravoProps.stringPropertyNames().each { key ->
+                            if (!props.containsKey(key) && !templateProps.containsKey(key)) {
+                                keysToRemove.add(key)
+                            }
+                        }
+
+                        // Remove properties
+                        if (!keysToRemove.isEmpty()) {
+                            // We use ant.propertyfile to remove keys.
+                            // The 'operation' attribute with value 'del' removes the property.
+                            ant.propertyfile(file: "config/Openbravo.properties") {
+                                keysToRemove.each { key ->
+                                    entry(key: key, operation: "del")
+                                    project.logger.info("Removed property: ${key}")
+                                }
+                            }
+                        }
+                    }
+                    project.logger.info("-------------Finished cleaning up Openbravo.properties-------------")
+                }
+
                 ant.propertyfile(file: "config/Openbravo.properties") {
 
                     // Find all properties in gradle.properties and set their value in Openbravo.properties
