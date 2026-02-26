@@ -12,8 +12,12 @@ import java.net.http.HttpResponse
 import java.time.Duration
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.util.function.Consumer
 
 class GradleControllerLoader {
+
+    /** Extension key for route providers registered by other plugins */
+    static final String ROUTE_PROVIDERS_EXT = "setupWebRouteProviders"
 
     // Shared HTTP client for proxying requests
     private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
@@ -22,6 +26,11 @@ class GradleControllerLoader {
             .build()
 
     static void load(Project project) {
+        // Initialize the route providers list if not already present
+        if (!project.extensions.extraProperties.has(ROUTE_PROVIDERS_EXT)) {
+            project.extensions.extraProperties.set(ROUTE_PROVIDERS_EXT, [])
+        }
+
         // Register setup.web task
         project.tasks.register('setup.web') {
             group = 'setup'
@@ -31,6 +40,25 @@ class GradleControllerLoader {
                 startGradleControllerServer(project)
             }
         }
+    }
+
+    /**
+     * Registers a route provider that will be invoked when the Javalin server starts.
+     * The Consumer receives the Javalin app instance to register additional endpoints.
+     *
+     * Usage from another plugin:
+     * <pre>
+     *   GradleControllerLoader.registerRouteProvider(project) { Javalin app ->
+     *       app.get("/api/my-endpoint") { ctx -> ctx.json([hello: "world"]) }
+     *   }
+     * </pre>
+     */
+    static void registerRouteProvider(Project project, Consumer<Javalin> provider) {
+        if (!project.extensions.extraProperties.has(ROUTE_PROVIDERS_EXT)) {
+            project.extensions.extraProperties.set(ROUTE_PROVIDERS_EXT, [])
+        }
+        def providers = project.extensions.extraProperties.get(ROUTE_PROVIDERS_EXT) as List<Consumer<Javalin>>
+        providers.add(provider)
     }
 
     static void startGradleControllerServer(Project project) {
@@ -492,6 +520,20 @@ class GradleControllerLoader {
                         output: "",
                         error: "Error parsing request: ${e.message}"
                     ])
+                }
+            }
+
+            // ========== EXTENSION POINT: Route Providers ==========
+            // Allow other plugins (e.g., pro) to register additional endpoints
+            if (project.extensions.extraProperties.has(ROUTE_PROVIDERS_EXT)) {
+                def providers = project.extensions.extraProperties.get(ROUTE_PROVIDERS_EXT) as List<Consumer<Javalin>>
+                providers.each { provider ->
+                    try {
+                        provider.accept(app)
+                        project.logger.lifecycle("Registered additional route provider")
+                    } catch (Exception e) {
+                        project.logger.error("Error registering route provider: ${e.message}", e)
+                    }
                 }
             }
 

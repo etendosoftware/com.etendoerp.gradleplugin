@@ -1,6 +1,5 @@
 package com.etendoerp
 
-import com.etendoerp.automation.GradleControllerLoader
 import com.etendoerp.css.CssCompileLoader
 import com.etendoerp.connections.DatabaseConnection
 import com.etendoerp.dbdeps.DepsLoader
@@ -69,7 +68,6 @@ class EtendoPlugin implements Plugin<Project> {
         ExternalTasksLoader.load(project)
         DependencyManagerLoader.load(project)
         NodeTasksLoader.load(project)
-        GradleControllerLoader.load(project)
         SetupLoader.load(project)
 
         if (!project.hasProperty('createDatabaseConnection')) {
