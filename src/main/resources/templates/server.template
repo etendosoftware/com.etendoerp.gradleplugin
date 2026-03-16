@@ -1,0 +1,21 @@
+[properties]
+## Main-UI
+docker_com.etendoerp.mainui=true
+etendo.classic.url=http://host.docker.internal:80/{context.name}
+etendo.classic.host={context.url}
+next.public.app.url={context.host}
+authentication.class=com.etendoerp.etendorx.auth.SWSAuthenticationManager
+ws.maxInactiveInterval=3600
+
+## Copilot
+docker_com.etendoerp.copilot=true
+copilot.host=localhost
+copilot.port=5005
+openai.api.key={openai.api.key}
+etendo.host=http://localhost:80/{context.name}
+etendo.host.docker=http://host.docker.internal:80/{context.name}
+
+# SSO Login
+sso.auth.type=Middleware
+sso.middleware.url=https://sso.etendo.cloud
+sso.middleware.redirectUri={context.url}/secureApp/LoginHandler.html

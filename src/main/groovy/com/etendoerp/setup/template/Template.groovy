@@ -7,6 +7,8 @@ class Template {
     String name
     String source
     Map<String, String> properties = [:]
+    /** Ordered list of property keys and comment lines as they appear in the template. */
+    List<String> propertyOrder = []
     List<String> dependencies = []
     List<String> modules = []
 

@@ -42,10 +42,10 @@ class SetupApplyTemplatesTaskSpec extends Specification {
 
     def "task allows setting template option"() {
         when:
-        task.template = 'copilot'
+        task.template = 'local'
 
         then:
-        task.template == 'copilot'
+        task.template == 'local'
     }
 
     def "task allows setting file option"() {

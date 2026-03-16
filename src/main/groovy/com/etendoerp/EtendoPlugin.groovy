@@ -20,6 +20,8 @@ import org.gradle.api.plugins.WarPlugin
 import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
 import org.gradle.api.publish.plugins.PublishingPlugin
 import com.etendoerp.publication.git.CloneDependencies
+import com.etendoerp.autoconfig.AutoConfigLoader
+import com.etendoerp.setup.SetupLoader
 
 class EtendoPlugin implements Plugin<Project> {
 
@@ -49,6 +51,7 @@ class EtendoPlugin implements Plugin<Project> {
         JarLoader.load(project)
         PublicationLoader.load(project)
         AutoConfigLoader.load(project)
+        SetupLoader.load(project)
         ModulesConfigurationLoader.load(project)
         DependenciesLoader.load(project)
         CloneDependencies.load(project)

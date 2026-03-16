@@ -25,7 +25,14 @@ The Setup tasks provide a comprehensive set of tools for managing your Etendo pr
 
 ## setup.applyTemplates
 
-Apply complete configuration templates to your Etendo project. Templates are predefined configuration files that contain properties, dependencies, and modules.
+Apply complete configuration templates to your Etendo project. Templates are predefined configuration files that set properties in `gradle.properties`, add dependencies, and install modules.
+
+### Available Templates
+
+| Template | Purpose | User Input Required |
+|----------|---------|---------------------|
+| `local` | Local development environment (localhost, port 8080) | Yes (OpenAI API Key + context URL) |
+| `server` | Server/production deployment with customizable URLs and credentials | Yes (4 prompts) |
 
 ### Usage Modes
 
@@ -40,19 +47,21 @@ The `setup.applyTemplates` task supports four different usage modes:
 This will display a list of available templates and prompt you to select one:
 
 ```
-Select one of the available templates:
-1- copilot
-2- base
-3- production
-4- development
+======================================================
+  SELECT A TEMPLATE
+======================================================
+  1) local
+  2) server
 
-You can also use:
-  --template=<templateName> (template)
-  --file=/path/to/template  (local file)
-  --url=https://...         (remote URL)
+  You can also use:
+    --template=<name>  (by name)
+    --file=<path>      (local file)
+    --url=<url>        (remote URL)
 
-Enter your selection (1-4):
+  >> Enter your selection (1-2):
 ```
+
+The template list is populated dynamically by scanning the `/templates/` resource directory. Adding a new `.template` file to that directory makes it available automatically.
 
 ### 2. Using Bundled Templates
 
@@ -60,15 +69,13 @@ Enter your selection (1-4):
 ./gradlew setup.applyTemplates --template=<templateName>
 ```
 
-**Available bundled templates:**
-- `copilot` - Configures Etendo Copilot integration
-- `base` - Basic PostgreSQL database configuration
-- `production` - Production environment settings
-- `development` - Development environment settings
-
-**Example:**
+**Examples:**
 ```bash
-./gradlew setup.applyTemplates --template=copilot
+# Local development - prompts for OpenAI API Key and context URL
+./gradlew setup.applyTemplates --template=local
+
+# Server deployment - prompts for URL, API key, and GitHub credentials
+./gradlew setup.applyTemplates --template=server
 ```
 
 ### 3. Using Local Template File
@@ -90,94 +97,156 @@ Enter your selection (1-4):
 
 **Example:**
 ```bash
-./gradlew setup.applyTemplates --url=https://cdn.etendo.cloud/templates/production.template
+./gradlew setup.applyTemplates --url=https://cdn.etendo.cloud/templates/server.template
 ```
 
-## Template Format
+### Environment Validation
 
-Templates use a simple INI-like format with three sections:
+Before applying a template, the task checks whether the environment is already configured by attempting to connect to the database specified in `gradle.properties`. If the database exists, the task aborts to prevent configuration conflicts.
 
-```properties
-[properties]
-key=value
-another.key=another.value
+To bypass this check, use the `--force` flag:
 
-[dependencies]
-implementation 'group:artifact:version'
-testImplementation 'group:artifact:version'
-
-[modules]
-group:artifact:version
-git::https://github.com/user/repo.git::branch=main
+```bash
+./gradlew setup.applyTemplates --template=local --force
 ```
 
-### Template Sections
+### Template Details
 
-#### [properties]
-Properties are added or updated in `gradle.properties`:
-- If a property already exists, it will be updated
-- If it doesn't exist, it will be added
+#### `local` Template
 
-#### [dependencies]
-Dependencies are added to the `dependencies` block in `build.gradle`:
-- If a dependency already exists, it will be skipped
-- New dependencies are added with proper indentation
+Designed for local development environments. Contains two placeholders (`{openai.api.key}` and `{context.url}`) so the user is prompted for those values when the template is applied.
 
-#### [modules]
-Modules can be:
-- **Artifacts**: `group:artifact:version` (added to `artifacts.list.COMPILATION.gradle`)
-- **Git repositories**: `git::<url>::branch=<branch>` (cloned to modules directory)
+**Properties applied:**
 
-### Example Templates
+| Property | Value |
+|----------|-------|
+| `docker_com.etendoerp.mainui` | `true` |
+| `etendo.classic.url` | `http://host.docker.internal:8080/etendo` |
+| `etendo.classic.host` | `https://localhost:8080/etendo` |
+| `next.public.app.url` | `https://localhost:3000/` |
+| `authentication.class` | `com.etendoerp.etendorx.auth.SWSAuthenticationManager` |
+| `ws.maxInactiveInterval` | `3600` |
+| `docker_com.etendoerp.copilot` | `true` |
+| `copilot.host` | `localhost` |
+| `copilot.port` | `5005` |
+| `openai.api.key` | (prompted — masked input) |
+| `etendo.host` | `http://localhost:8080/etendo` |
+| `etendo.host.docker` | `http://host.docker.internal:8080/etendo` |
+| `sso.auth.type` | `Middleware` |
+| `sso.middleware.url` | `https://sso.etendo.cloud` |
+| `sso.middleware.redirectUri` | `{context.url}/secureApp/LoginHandler.html` (resolved from prompt) |
 
-### Copilot Template
-```properties
-[properties]
-copilot.enabled=true
-copilot.port=5005
-agent.sync.enabled=true
-
-[dependencies]
-implementation 'com.etendoerp:copilot:1.0.0'
-implementation 'com.etendoerp:agents:1.0.0'
-runtimeOnly 'com.etendoerp:copilot-tools:1.0.0'
-
-[modules]
-com.etendoerp:copilot-extras:1.0.0
-git::https://github.com/etendosoftware/copilot-custom.git::branch=main
-```
-
-### Development Template
-```properties
-[properties]
-environment=development
-log.level=DEBUG
-debug.enabled=true
-hot.reload=true
-
-[dependencies]
-testImplementation 'junit:junit:4.13.2'
-
-[modules]
-```
-
-### Example Output
-
-When applying a template, you'll see output like:
+**Interactive prompts (`LOCAL_PROMPTS`):**
 
 ```
-Applying template: development
+======================================================
+  CONFIGURATION REQUIRED
+  Template 'local' needs the following input
+  Please type each value and press ENTER
+======================================================
+
+  [1/1] OpenAI API Key
+
+  >>
+```
+
+**Example output:**
+```
+Applying template: local
   [properties] -> gradle.properties
-*** environment=development
-*** log.level=DEBUG
-*** debug.enabled=true
-*** hot.reload=true
-  [dependencies] -> build.gradle
-*** testImplementation 'junit:junit:4.13.2'
-  [modules]
-*** artifact: com.etendoerp:copilot-extras:1.0.0
 
-Template 'development' applied successfully
+  ## Main-UI
+  docker_com.etendoerp.mainui=true
+  etendo.classic.url=http://host.docker.internal:8080/etendo
+  etendo.classic.host=https://localhost:8080/etendo
+  ...
+
+  #COPILOT
+  docker_com.etendoerp.copilot=true
+  copilot.host=localhost
+  openai.api.key=sk-Q****eyXmW8pdw
+  ...
+
+  # SSO Login
+  sso.auth.type=Middleware
+  sso.middleware.url=https://sso.etendo.cloud
+  sso.middleware.redirectUri=http://myserver.example.com/etendo/secureApp/LoginHandler.html
+
+Template 'local' applied successfully
+```
+
+#### `server` Template
+
+Designed for server and production deployments. Uses placeholders that are resolved through interactive prompts.
+
+**Placeholders in the template:**
+- `{context.url}` - The full Etendo ERP URL
+- `{context.name}` - Derived automatically from `context.url` (last path segment)
+- `{context.host}` - Derived automatically from `context.url` (base URL without context name)
+- `{openai.api.key}` - OpenAI API key for Copilot
+
+The template also includes an `# SSO Login` section with `sso.middleware.redirectUri={context.url}/secureApp/LoginHandler.html`, which is resolved using the same `{context.url}` value.
+
+**Interactive prompts (`SERVER_PROMPTS`, 4 inputs):**
+
+```
+======================================================
+  CONFIGURATION REQUIRED
+  Template 'server' needs the following input
+  Please type each value and press ENTER
+======================================================
+
+  [1/4] Etendo ERP URL (e.g., http://clienthost/mycompanyname)
+
+  >> http://myserver.example.com/etendo
+
+  [2/4] OpenAI API Key
+
+  >>
+
+  [3/4] GitHub Username
+
+  >> myuser
+
+  [4/4] GitHub Token
+
+  >>
+```
+
+Only the OpenAI API Key input is masked using `Console.readPassword()`. GitHub Token is collected as plain text input.
+
+**Derived values example:**
+
+If the user enters `http://myserver.example.com/etendo` as the context URL:
+- `context.name` = `etendo`
+- `context.host` = `http://myserver.example.com/`
+- `context.url` = `http://myserver.example.com/etendo`
+
+GitHub credentials entered during the prompts are saved as `githubUser` and `githubToken` properties in `gradle.properties`.
+
+### Sensitive Value Masking
+
+When properties are written to `gradle.properties`, values for keys containing `KEY`, `TOKEN`, `PASSWORD`, or `SECRET` are masked in the console output. For example:
+
+```
+openai.api.key=sk-a****wxYz (updated)
+githubToken=ghp_****abcd
+```
+
+The actual values are written to the file; only the console display is masked.
+
+### Section Comments
+
+Template files can include section comments (lines starting with `#` or `##` inside the `[properties]` section). These are preserved and written as separators in `gradle.properties`:
+
+```properties
+## Main-UI
+docker_com.etendoerp.mainui=true
+etendo.classic.url=http://host.docker.internal:8080/etendo
+
+#COPILOT
+docker_com.etendoerp.copilot=true
+copilot.host=localhost
 ```
 
 ### Backups
@@ -185,6 +254,10 @@ Template 'development' applied successfully
 Before applying any template, backups of the following files are created in `.template-backups/`:
 - `gradle.properties.<timestamp>`
 - `build.gradle.<timestamp>`
+
+### Post-Application
+
+After the template properties are written, the task automatically runs `./gradlew setup` to apply the configuration changes to the project.
 
 ---
 
@@ -320,12 +393,12 @@ Git Modules (from modules/ directory):
      - Path: modules/copilot-tools
      - Branch: main
      - Remote: https://github.com/etendosoftware/com.etendoerp.task.git
-  
+
   2. custom-module
      - Path: modules/custom-module
      - Branch: develop
      - Remote: https://github.com/company/custom-module.git
-  
+
   3. warehouse-extras
      - Path: modules/warehouse-extras
      - Branch: feature/new-ui
@@ -387,25 +460,77 @@ Total: 4 artifacts, 3 git modules
 
 ## Template Format
 
-Templates use a simple INI-like format with three sections. See [Template Sections](#template-sections) above for details.
+Templates use a simple INI-like format with three sections:
+
+```properties
+[properties]
+key=value
+another.key=another.value
+
+[dependencies]
+implementation 'group:artifact:version'
+testImplementation 'group:artifact:version'
+
+[modules]
+group:artifact:version
+git::https://github.com/user/repo.git::branch=main
+```
+
+### Template Sections
+
+#### [properties]
+Properties are added or updated in `gradle.properties`:
+- If a property already exists, it will be updated
+- If it doesn't exist, it will be added
+- Comments starting with `#` or `##` are preserved as section separators
+- Properties are written in the order they appear in the template
+
+#### Placeholders
+
+Property values can contain placeholders in the format `{placeholder.name}`. When the template is applied, the user is prompted to provide values for each placeholder.
+
+Some placeholders are derived automatically:
+- `{context.name}` and `{context.host}` are computed from `{context.url}`
+
+Example template with placeholders:
+```properties
+[properties]
+etendo.classic.host={context.url}
+etendo.classic.url=http://host.docker.internal:80/{context.name}
+next.public.app.url={context.host}
+openai.api.key={openai.api.key}
+```
+
+#### [dependencies]
+Dependencies are added to the `dependencies` block in `build.gradle`:
+- If a dependency already exists, it will be skipped
+- New dependencies are added with proper indentation
+
+#### [modules]
+Modules can be:
+- **Artifacts**: `group:artifact:version` (added to `artifacts.list.COMPILATION.gradle`)
+- **Git repositories**: `git::<url>::branch=<branch>` (cloned to modules directory)
 
 ### Creating Custom Templates
 
 To create your own template:
 
 1. Create a file with `.template` extension
-2. Add the three sections: `[properties]`, `[dependencies]`, `[modules]`
+2. Add the sections you need: `[properties]`, `[dependencies]`, `[modules]`
 3. Use the template with `--file` or `--url` option
+4. Optionally, place it in `src/main/resources/templates/` to make it available as a bundled template (it will appear automatically in the interactive selection)
+5. Use `{placeholder.name}` syntax for values that should be prompted at apply time
 
 **Example custom template:**
 
 ```properties
-# My Custom Template
-# Description of what this template does
-
 [properties]
+## Application
 my.custom.property=value
 another.property=123
+
+## External Services
+api.endpoint={api.url}
 
 [dependencies]
 implementation 'com.example:my-library:1.0.0'
@@ -450,7 +575,7 @@ Etendo supports two types of modules:
 | Add artifact | `setup.addModule` | `./gradlew setup.addModule --artifact=group:artifact:version` |
 | Add git module | `setup.addModule` | `./gradlew setup.addModule --git=url --branch=branch` |
 | List all modules | `setup.listModules` | `./gradlew setup.listModules` |
-| Apply template with modules | `setup.applyTemplates` | `./gradlew setup.applyTemplates --template=copilot` |
+| Apply template with modules | `setup.applyTemplates` | `./gradlew setup.applyTemplates --template=local` |
 
 ### Best Practices
 
@@ -463,8 +588,8 @@ Etendo supports two types of modules:
 ### Workflow Example
 
 ```bash
-# 1. Start with a base template
-./gradlew setup.applyTemplates --template=base
+# 1. Start with local development template (prompts for OpenAI API Key and context URL)
+./gradlew setup.applyTemplates --template=local
 
 # 2. Add development-specific modules
 ./gradlew setup.addModule --git=https://github.com/company/dev-tools.git --branch=develop
@@ -480,16 +605,22 @@ Etendo supports two types of modules:
 
 ## CI/CD Usage
 
-For automated environments, use the non-interactive modes:
+For automated environments, use the non-interactive modes. Both bundled templates (`local` and `server`) contain placeholders and require interactive input, so they are not suitable for fully automated pipelines. For CI/CD, use a pre-configured template file (via `--file`) or a remote URL (via `--url`) that contains no placeholders.
 
 ### Apply Templates in CI/CD
 
 ```bash
-# Apply template from URL
+# Apply a pre-configured template from file (no interaction needed)
+./gradlew setup.applyTemplates --file=/config/local-preconfigured.template
+
+# Apply a pre-configured template from URL
 ./gradlew setup.applyTemplates --url=https://internal.company.com/templates/ci.template
 
-# Apply bundled template
-./gradlew setup.applyTemplates --template=production
+# Apply a pre-configured template from file
+./gradlew setup.applyTemplates --file=/config/server-preconfigured.template
+
+# Force apply even if environment is already configured
+./gradlew setup.applyTemplates --template=local --force
 ```
 
 ### Add Modules in CI/CD
@@ -523,7 +654,18 @@ echo "$MODULES" | jq '.artifacts | length'
 
 If you get an error like "Template 'xyz' not found in resources", ensure:
 - The template name is correct (case-sensitive)
-- You're using one of the bundled templates: copilot, base, production, development
+- You are using one of the bundled templates: `local`, `server`
+
+**Environment already configured**
+
+If you see "Cannot apply template: Database already exists", the task detected an existing database. Use `--force` to override:
+```bash
+./gradlew setup.applyTemplates --template=local --force
+```
+
+**Empty placeholder value**
+
+If you see "Value for 'context.url' cannot be empty", all placeholder prompts require non-empty input. Re-run the command and provide a valid value.
 
 **File not found**
 
@@ -546,10 +688,10 @@ For URL-based templates:
 Ensure artifact follows the format: `group:artifact:version`
 
 ```bash
-# ✅ Correct
+# Correct
 ./gradlew setup.addModule --artifact=com.etendoerp:copilot:1.0.0
 
-# ❌ Incorrect
+# Incorrect
 ./gradlew setup.addModule --artifact=copilot:1.0.0  # missing group
 ```
 
@@ -590,6 +732,6 @@ For git modules, ensure:
 
 ---
 
-**Setup Tasks Documentation**  
-_Etendo Setup Package - buildSrc Plugin_  
-_Last Updated: 3 de febrero de 2026_
+**Setup Tasks Documentation**
+_Etendo Setup Package - buildSrc Plugin_
+_Last Updated: 16 March 2026_

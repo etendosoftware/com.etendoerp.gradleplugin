@@ -19,19 +19,30 @@ class TemplateParser {
         content.eachLine { line ->
             String trimmedLine = line.trim()
 
-            // Skip empty lines and comments
-            if (trimmedLine.isEmpty() || trimmedLine.startsWith('#')) {
-                return
-            }
-
             // Detect section headers
             if (trimmedLine.startsWith('[') && trimmedLine.endsWith(']')) {
                 String sectionName = trimmedLine[1..-2]
                 currentSection = TemplateSection.fromString(sectionName)
-                
+
                 if (!currentSection) {
                     throw new IllegalArgumentException("Unknown section: [${sectionName}] in template '${name}'")
                 }
+                return
+            }
+
+            // Skip empty lines outside sections
+            if (trimmedLine.isEmpty()) {
+                return
+            }
+
+            // Preserve comments inside [properties] section for section separators
+            if (currentSection == TemplateSection.PROPERTIES && trimmedLine.startsWith('#')) {
+                template.propertyOrder.add(trimmedLine)
+                return
+            }
+
+            // Skip comments in other sections
+            if (trimmedLine.startsWith('#')) {
                 return
             }
 
@@ -70,6 +81,7 @@ class TemplateParser {
             String key = line.substring(0, equalsIndex).trim()
             String value = line.substring(equalsIndex + 1).trim()
             template.properties[key] = value
+            template.propertyOrder.add(key)
         } else {
             throw new IllegalArgumentException("Invalid property format: '${line}'. Expected format: key=value")
         }

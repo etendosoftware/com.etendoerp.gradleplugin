@@ -22,7 +22,7 @@ class TemplateApplicator {
         // Apply properties section
         if (template.properties && !template.properties.isEmpty()) {
             println "  [properties] -> gradle.properties"
-            PropertyApplicator.apply(project, template.properties)
+            PropertyApplicator.apply(project, template.properties, template.propertyOrder)
         }
         
         // Apply dependencies section
