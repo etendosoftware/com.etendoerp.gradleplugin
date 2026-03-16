@@ -1,7 +1,6 @@
 package com.etendoerp.legacy.utils
 
 import org.gradle.api.Project
-import org.gradle.internal.impldep.org.apache.commons.lang.StringUtils
 
 class DependenciesUtils {
 
