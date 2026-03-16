@@ -105,7 +105,7 @@ class ModulesCompilationTest extends EtendoCoreResolutionSpecificationTest {
             }
         """
 
-        def dependenciesTaskResult = runTask(":dependencies","--refresh-dependencies", "-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
+        def dependenciesTaskResult = runTask(":dependencies", "-DnexusUser=${args.get("nexusUser")}", "-DnexusPassword=${args.get("nexusPassword")}")
         dependenciesTaskResult.task(":dependencies").outcome == TaskOutcome.SUCCESS
 
         and: "The user tries to use the new classes from A in the module B"
