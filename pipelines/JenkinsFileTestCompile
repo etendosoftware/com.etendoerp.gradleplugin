@@ -25,7 +25,7 @@ pipeline {
 
     URL_ORG_GITHUB  = "https://github.com/etendosoftware"
     ETENDO_BASE_URL = "https://github.com/etendosoftware/etendo_base"
-    PLUGIN_URL      = "https://github.com/etendosoftware/com.etendoerp.gradleplugin.git"
+    PLUGIN_URL      = " https://github.com/etendosoftware/com.etendoerp.gradleplugin.git"
 
     SUCCESS         = "SUCCESS"
     FAILED          = "FAILED"
@@ -170,17 +170,6 @@ pipeline {
 
               sh """
               cd ${ETENDO_DIR}
-              if ! grep -q "forceResolution = true" build.gradle; then
-                sed -i '\$a\\
-              etendo {\\
-                  forceResolution = true\\
-              }\\
-              ' build.gradle
-              fi
-              """
-
-              sh """
-              cd ${ETENDO_DIR}
               git clone ${PLUGIN_URL} buildSrc
               cd buildSrc
               git checkout ${GIT_COMMIT}
@@ -203,7 +192,7 @@ pipeline {
               sed -i "s/\\(id 'com.etendoerp.gradleplugin[^']*'\\) version '\\([^']*\\)'/\\1 \\/\\/ version '\\2'/" "\${ETENDO_DIR}/build.gradle"
               """
 
-              def dependenciesBlock = "\nimplementation(\"com.etendoerp.platform:etendo-core:[25.1.0,26.1.0)\")\n"
+              def dependenciesBlock = "\nimplementation(\"com.etendoerp.platform:etendo-core:[26.1.0,27.1.0)\")\n"
               if (env.ADD_BUNDLES == TRUE) {
                 echo "---------------- Add Bundles dependencies ----------------"
                 def dependencies = env.DEPENDENCIES_FOR_BASE.split(',')
@@ -216,17 +205,20 @@ pipeline {
               }
               
               def buildGradleContent = """
+              etendo {
+                  forceResolution = true
+              }
               dependencies {
                   ${dependenciesBlock}
               }
-              """              
+              """
 
               sh """
               cd ${ETENDO_DIR}
               echo '${buildGradleContent}' >> build.gradle
               cat build.gradle
               """
-              
+
               echo "---------------- Build & Compile ----------------"
               sh """
               cd etendo_base
@@ -239,7 +231,8 @@ pipeline {
               ./gradlew compile.complete
               ./gradlew smartbuild --info
               """
-              echo "---------------- Build JAR Environment Succesful ----------------"
+
+              echo "---------------- Build JAR Environment Successful ----------------"
               currentBuild.result = SUCCESS
             } catch (Exception e) {
               echo "---------------- Build JAR Environment Failed ----------------"
@@ -277,14 +270,7 @@ pipeline {
 
               echo "--------------- Building Etendo Source Environment ----------------"
               sh """
-              if [ ! -d "${ETENDO_DIR}" ] || [ -z "\$(ls -A ${ETENDO_DIR} 2>/dev/null)" ]; then
-                echo "Cloning Etendo Base repository..."
-                git clone --branch ${BASE_BRANCH} ${ETENDO_BASE_URL} ${ETENDO_DIR}
-              else
-                echo "Etendo Base already exists and is not empty. Skipping clone."
-                git checkout ${BASE_BRANCH}
-              fi
-                
+              git clone --branch ${BASE_BRANCH} ${ETENDO_BASE_URL}
               cd ${ETENDO_DIR}
 
               echo "\n
@@ -302,17 +288,6 @@ pipeline {
               allow.root=true
               org.gradle.vfs.watch=false
               org.gradle.jvmargs=-Dfile.encoding=UTF-8" > gradle.properties
-              """
-
-              sh """
-              cd ${ETENDO_DIR}
-              if ! grep -q "forceResolution = true" build.gradle; then
-                sed -i '\$a\\
-              etendo {\\
-                  forceResolution = true\\
-              }\\
-              ' build.gradle
-              fi
               """
 
               sh """
@@ -343,10 +318,13 @@ pipeline {
                 }.join('\n')
 
                 def buildGradleContent = """
+                etendo {
+                    forceResolution = true
+                }
                 dependencies {
                     ${dependenciesBlock}
                 }
-                """              
+                """
 
                 sh """
                 cd ${ETENDO_DIR}
@@ -381,12 +359,6 @@ pipeline {
               currentBuild.result = UNSTABLE
               env.BUILD_IN_SOURCE_STATUS = FAILED
               unstable('Build Failed in Etendo Source Environment')
-            } finally {
-              echo "---------------- Cleaning Gradle cache and workspace ----------------"
-              sh """
-                rm -rf /home/jenkins/.gradle/caches
-                rm -rf ${ETENDO_DIR}
-              """
             }
           }
         }
