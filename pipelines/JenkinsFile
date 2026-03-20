@@ -174,7 +174,8 @@ pipeline {
                                     test.bbdd.user=${BBDD_USER}
                                     test.bbdd.password=${BBDD_PASSWORD}
                                     org.gradle.daemon=false
-                                    org.gradle.jvmargs=-Dfile.encoding=UTF-8
+                                    org.gradle.workers.max=2
+                                    org.gradle.jvmargs=-Dfile.encoding=UTF-8 -Xmx1536m
                                     etendoCoreVersion=${lastRelease}" > ./gradle.properties
                                     """
                                 }
@@ -192,140 +193,139 @@ pipeline {
                 }
             }
         }
-        stage('Run EtendoPluginSOSTests Test Suite') { // MARK: Run EtendoPluginSOSTests Test Suite
+        stage('Run Test Suites') { // MARK: Run Test Suites (parallel)
             when {
-                expression { currentBuild.result == SUCCESS }
+                expression { currentBuild.result == SUCCESS || currentBuild.result == UNSTABLE }
             }
             steps {
                 container('compiler') {
                     script {
+                        // Create an isolated working directory for each suite by copying the
+                        // prepared repository clone. This avoids concurrent writes to shared
+                        // Gradle output paths (build/jacoco/test.exec, build/spock-reports/).
+                        sh """
+                        cp -r ${REPOSITORY_NAME} ${REPOSITORY_NAME}-sos
+                        cp -r ${REPOSITORY_NAME} ${REPOSITORY_NAME}-pre1
+                        cp -r ${REPOSITORY_NAME} ${REPOSITORY_NAME}-pre2
+                        """
+
                         withCredentials([sshUserPrivateKey(credentialsId: 'my-credentials', keyFileVariable: 'keyfile')]) {
-                            def suiteName = "EtendoPluginSOSTests"
-                            try {
-                                env.DESCRIPTION = "Running ${suiteName}"
-                                echo "--------------- ${env.DESCRIPTION} ---------------"
-                                updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
-                                dir(REPOSITORY_NAME) {
-                                    sh "./gradlew test --tests \"com.etendoerp.gradle.tests.${suiteName}\" --info"
-                                    sh "mv build/jacoco/test.exec build/jacoco/test1.exec"
-                                    echo "--------------- ${suiteName} Successful ---------------"
+                            parallel(
+                                'Run EtendoPluginSOSTests Test Suite': {
+                                    def suiteName  = "EtendoPluginSOSTests"
+                                    def suiteDir   = "${REPOSITORY_NAME}-sos"
+                                    try {
+                                        echo "--------------- Running ${suiteName} ---------------"
+                                        updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, "Running ${suiteName}", ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+                                        dir(suiteDir) {
+                                            sh "./gradlew test --tests \"com.etendoerp.gradle.tests.${suiteName}\" --info"
+                                            sh "mv build/jacoco/test.exec build/jacoco/test1.exec"
+                                            echo "--------------- ${suiteName} Successful ---------------"
+                                        }
+                                    } catch (Exception e) {
+                                        def currentFailed = env.FAILED_SUITES ?: ""
+                                        env.FAILED_SUITES = currentFailed.isEmpty() ? "${suiteName}" : "${currentFailed}, ${suiteName}"
+                                        env.TEST_STATUS = UNSTABLE
+                                        if (currentBuild.result != UNSTABLE) {
+                                            currentBuild.result = UNSTABLE
+                                        }
+                                        echo 'Exception occurred: ' + e.toString()
+                                        echo "--------------- Failed ${suiteName} ---------------"
+                                        unstable("Failed ${suiteName}")
+                                    } finally {
+                                        publishHTML([
+                                            allowMissing: true,
+                                            alwaysLinkToLastBuild: false,
+                                            keepAll: true,
+                                            reportDir: "${suiteDir}/build/spock-reports/",
+                                            reportFiles: '*.html',
+                                            reportName: 'PLUGIN SOS TESTS REPORT',
+                                            reportTitles: ''
+                                        ])
+                                    }
+                                },
+
+                                'Run EtendoPluginPreReleaseTests1 Test Suite': {
+                                    def suiteName  = "EtendoPluginPreReleaseTestsPart1"
+                                    def suiteDir   = "${REPOSITORY_NAME}-pre1"
+                                    try {
+                                        echo "--------------- Running ${suiteName} ---------------"
+                                        updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, "Running ${suiteName}", ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+                                        dir(suiteDir) {
+                                            sh "./gradlew test --tests \"com.etendoerp.gradle.tests.${suiteName}\" --info"
+                                            sh "mv build/jacoco/test.exec build/jacoco/test2.exec"
+                                            echo "--------------- ${suiteName} Successful ---------------"
+                                        }
+                                    } catch (Exception e) {
+                                        def currentFailed = env.FAILED_SUITES ?: ""
+                                        env.FAILED_SUITES = currentFailed.isEmpty() ? "${suiteName}" : "${currentFailed}, ${suiteName}"
+                                        env.TEST_STATUS = UNSTABLE
+                                        if (currentBuild.result != UNSTABLE) {
+                                            currentBuild.result = UNSTABLE
+                                        }
+                                        echo 'Exception occurred: ' + e.toString()
+                                        echo "--------------- Failed ${suiteName} ---------------"
+                                        unstable("Failed ${suiteName}")
+                                    } finally {
+                                        publishHTML([
+                                            allowMissing: true,
+                                            alwaysLinkToLastBuild: false,
+                                            keepAll: true,
+                                            reportDir: "${suiteDir}/build/spock-reports/",
+                                            reportFiles: '*.html',
+                                            reportName: 'PLUGIN PRE-RELEASE PART 1 TESTS REPORT',
+                                            reportTitles: ''
+                                        ])
+                                    }
+                                },
+
+                                'Run EtendoPluginPreReleaseTests2 Test Suite': {
+                                    def suiteName  = "EtendoPluginPreReleaseTestsPart2"
+                                    def suiteDir   = "${REPOSITORY_NAME}-pre2"
+                                    try {
+                                        echo "--------------- Running ${suiteName} ---------------"
+                                        updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, "Running ${suiteName}", ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
+                                        dir(suiteDir) {
+                                            sh "./gradlew test --tests \"com.etendoerp.gradle.tests.${suiteName}\" --info"
+                                            sh "mv build/jacoco/test.exec build/jacoco/test3.exec"
+                                            echo "--------------- ${suiteName} Successful ---------------"
+                                        }
+                                    } catch (Exception e) {
+                                        def currentFailed = env.FAILED_SUITES ?: ""
+                                        env.FAILED_SUITES = currentFailed.isEmpty() ? "${suiteName}" : "${currentFailed}, ${suiteName}"
+                                        env.TEST_STATUS = UNSTABLE
+                                        if (currentBuild.result != UNSTABLE) {
+                                            currentBuild.result = UNSTABLE
+                                        }
+                                        echo 'Exception occurred: ' + e.toString()
+                                        echo "--------------- Failed ${suiteName} ---------------"
+                                        unstable("Failed ${suiteName}")
+                                    } finally {
+                                        publishHTML([
+                                            allowMissing: true,
+                                            alwaysLinkToLastBuild: false,
+                                            keepAll: true,
+                                            reportDir: "${suiteDir}/build/spock-reports/",
+                                            reportFiles: '*.html',
+                                            reportName: 'PLUGIN PRE-RELEASE PART 2 TESTS REPORT',
+                                            reportTitles: ''
+                                        ])
+                                    }
                                 }
-                                currentBuild.result = SUCCESS
-                            } catch (Exception e) {
-                                def currentFailed = env.FAILED_SUITES ?: ""
-                                env.FAILED_SUITES = currentFailed.isEmpty() ? "${suiteName}" : "${currentFailed}, ${suiteName}"
-                                env.TEST_STATUS = UNSTABLE
-                                echo 'Exception occurred: ' + e.toString()
-                                env.DESCRIPTION = "Failed ${suiteName}"
-                                echo "--------------- ${env.DESCRIPTION} ---------------"
-                                currentBuild.result = UNSTABLE
-                                unstable(env.DESCRIPTION)
-                            } finally {
-                                publishHTML([
-                                    allowMissing: true,
-                                    alwaysLinkToLastBuild: false,
-                                    keepAll: true,
-                                    reportDir: "${REPOSITORY_NAME}/build/spock-reports/",
-                                    reportFiles: '*.html',
-                                    reportName: 'PLUGIN SOS TESTS REPORT',
-                                    reportTitles: ''
-                                ])
-                                sh "rm -rf ${REPOSITORY_NAME}/build/spock-reports/"
-                            }
+                            ) // end parallel
                         }
-                    }
-                }
-            }
-        }
-        stage('Run EtendoPluginPreReleaseTests1 Test Suite') { // MARK: Run EtendoPluginPreReleaseTestsPart1 Test Suite
-            when {
-                allOf {
-                    expression { currentBuild.result == SUCCESS || currentBuild.result == UNSTABLE }
-                }
-            }
-            steps {
-                container('compiler') {
-                    script {
-                        withCredentials([sshUserPrivateKey(credentialsId: 'my-credentials', keyFileVariable: 'keyfile')]) {
-                            def suiteName = "EtendoPluginPreReleaseTestsPart1"
-                            try {
-                                env.DESCRIPTION = "Running ${suiteName}"
-                                echo "--------------- ${env.DESCRIPTION} ---------------"
-                                updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
-                                dir(REPOSITORY_NAME) {
-                                    sh "./gradlew test --tests \"com.etendoerp.gradle.tests.${suiteName}\" --info"
-                                    sh "mv build/jacoco/test.exec build/jacoco/test2.exec"
-                                    echo "--------------- ${suiteName} Successful ---------------"
-                                }
-                                currentBuild.result = SUCCESS
-                            } catch (Exception e) {
-                                def currentFailed = env.FAILED_SUITES ?: ""
-                                env.FAILED_SUITES = currentFailed.isEmpty() ? "${suiteName}" : "${currentFailed}, ${suiteName}"
-                                env.TEST_STATUS = UNSTABLE
-                                echo 'Exception occurred: ' + e.toString()
-                                env.DESCRIPTION = "Failed ${suiteName}"
-                                echo "--------------- ${env.DESCRIPTION} ---------------"
-                                currentBuild.result = UNSTABLE
-                                unstable(env.DESCRIPTION)
-                            } finally {
-                                publishHTML([
-                                    allowMissing: true,
-                                    alwaysLinkToLastBuild: false,
-                                    keepAll: true,
-                                    reportDir: "${REPOSITORY_NAME}/build/spock-reports/",
-                                    reportFiles: '*.html',
-                                    reportName: 'PLUGIN PRE-RELEASE PART 1 TESTS REPORT',
-                                    reportTitles: ''
-                                ])
-                                sh "rm -rf ${REPOSITORY_NAME}/build/spock-reports/"
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        stage('Run EtendoPluginPreReleaseTests2 Test Suite') { // MARK: Run EtendoPluginPreReleaseTestsPart2 Test Suite
-            when {
-                allOf {
-                    expression { currentBuild.result == SUCCESS || currentBuild.result == UNSTABLE }
-                }
-            }
-            steps {
-                container('compiler') {
-                    script {
-                        withCredentials([sshUserPrivateKey(credentialsId: 'my-credentials', keyFileVariable: 'keyfile')]) {
-                            def suiteName = "EtendoPluginPreReleaseTestsPart2"
-                            try {
-                                env.DESCRIPTION = "Running ${suiteName}"
-                                echo "--------------- ${env.DESCRIPTION} ---------------"
-                                updateCommitStatus(REPOSITORY_NAME, COMMIT_INPROGRESS_STATUS, env.DESCRIPTION, ACCESS_TOKEN, GIT_COMMIT, BUILD_URL, CONTEXT_BUILD)
-                                dir(REPOSITORY_NAME) {
-                                    sh "./gradlew test --tests \"com.etendoerp.gradle.tests.${suiteName}\" --info"
-                                    sh "mv build/jacoco/test.exec build/jacoco/test3.exec"
-                                    echo "--------------- ${suiteName} Successful ---------------"
-                                }
-                                currentBuild.result = SUCCESS
-                            } catch (Exception e) {
-                                def currentFailed = env.FAILED_SUITES ?: ""
-                                env.FAILED_SUITES = currentFailed.isEmpty() ? "${suiteName}" : "${currentFailed}, ${suiteName}"
-                                env.TEST_STATUS = UNSTABLE
-                                echo 'Exception occurred: ' + e.toString()
-                                env.DESCRIPTION = "Failed ${suiteName}"
-                                echo "--------------- ${env.DESCRIPTION} ---------------"
-                                currentBuild.result = UNSTABLE
-                                unstable(env.DESCRIPTION)
-                            } finally {
-                                publishHTML([
-                                    allowMissing: true,
-                                    alwaysLinkToLastBuild: false,
-                                    keepAll: true,
-                                    reportDir: "${REPOSITORY_NAME}/build/spock-reports/",
-                                    reportFiles: '*.html',
-                                    reportName: 'PLUGIN PRE-RELEASE PART 2 TESTS REPORT',
-                                    reportTitles: ''
-                                ])
-                            }
-                        }
+
+                        // Consolidate the three jacoco exec files back into the canonical
+                        // REPOSITORY_NAME directory so the downstream jacocoRootReport task
+                        // can find them under the expected path.
+                        sh """
+                        mkdir -p ${REPOSITORY_NAME}/build/jacoco
+                        for f in test1.exec test2.exec test3.exec; do
+                            [ -f ${REPOSITORY_NAME}-sos/build/jacoco/\$f ]  && cp ${REPOSITORY_NAME}-sos/build/jacoco/\$f  ${REPOSITORY_NAME}/build/jacoco/\$f  || true
+                            [ -f ${REPOSITORY_NAME}-pre1/build/jacoco/\$f ] && cp ${REPOSITORY_NAME}-pre1/build/jacoco/\$f ${REPOSITORY_NAME}/build/jacoco/\$f || true
+                            [ -f ${REPOSITORY_NAME}-pre2/build/jacoco/\$f ] && cp ${REPOSITORY_NAME}-pre2/build/jacoco/\$f ${REPOSITORY_NAME}/build/jacoco/\$f || true
+                        done
+                        """
                     }
                 }
             }

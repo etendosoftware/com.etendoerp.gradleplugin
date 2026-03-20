@@ -31,7 +31,7 @@ spec:
           memory: 8000Mi
         limits:
           cpu: 4000m
-          memory: 10000Mi
+          memory: 12000Mi
       volumeMounts:
         - name: rsa-keys
           mountPath: /root/.ssh/
@@ -55,6 +55,9 @@ spec:
       imagePullPolicy: IfNotPresent
     - name: postgres
       image: postgres:16
+      args:
+        - "-c"
+        - "max_locks_per_transaction=256"
       workingDir: /home/jenkins
       env:
         - name: POSTGRES_PASSWORD
@@ -63,6 +66,8 @@ spec:
         requests:
           cpu: 1000m
           memory: 1000Mi
+        limits:
+          memory: 2000Mi
       terminationMessagePath: /dev/termination-log
       terminationMessagePolicy: File
       imagePullPolicy: IfNotPresent

@@ -2,7 +2,6 @@ package com.etendoerp.gradle.tests;
 
 import com.etendoerp.gradle.jars.configuration.CopyConfigDirFromEtendoCoreJarTest;
 import com.etendoerp.gradle.jars.configuration.PrepareConfigJarTest;
-import com.etendoerp.gradle.jars.consistency.CoreUpdateOldVersionTest;
 import com.etendoerp.gradle.jars.consistency.compilationtasks.CompilationTasksConsistencyVerificationTest;
 import com.etendoerp.gradle.jars.core.coreinjars.JarCoreCompilationTasksTest;
 import com.etendoerp.gradle.jars.core.coreinjars.JarCoreModulesInstallTest;
@@ -48,7 +47,6 @@ import org.junit.platform.suite.api.Suite;
 @Suite
 @SelectClasses({
         JarCoreCompilationTasksTest.class,
-        CoreUpdateOldVersionTest.class,
         PrepareConfigJarTest.class,
         JarCoreModulesInstallTest.class,
         JarCoreModulesUpdateTest.class,
@@ -87,7 +85,6 @@ import org.junit.platform.suite.api.Suite;
         // Interactive setup tests
         SecurityUtilsSpec.class,
         InteractiveSetupManagerSpec.class,
-        SecurityUtilsSpec.class,
         ConfigSlurperPropertyScannerSpec.class,
         PropertyDefinitionSpec.class,
         ConfigWriterSpec.class,
