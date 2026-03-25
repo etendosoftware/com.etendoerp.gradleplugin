@@ -192,7 +192,7 @@ pipeline {
               sed -i "s/\\(id 'com.etendoerp.gradleplugin[^']*'\\) version '\\([^']*\\)'/\\1 \\/\\/ version '\\2'/" "\${ETENDO_DIR}/build.gradle"
               """
 
-              def dependenciesBlock = "\nimplementation(\"com.etendoerp.platform:etendo-core:[25.1.0,26.1.0)\")\n"
+              def dependenciesBlock = "\nimplementation(\"com.etendoerp.platform:etendo-core:[26.1.0,27.1.0)\")\n"
               if (env.ADD_BUNDLES == TRUE) {
                 echo "---------------- Add Bundles dependencies ----------------"
                 def dependencies = env.DEPENDENCIES_FOR_BASE.split(',')
@@ -205,17 +205,20 @@ pipeline {
               }
               
               def buildGradleContent = """
+              etendo {
+                  forceResolution = true
+              }
               dependencies {
                   ${dependenciesBlock}
               }
-              """              
+              """
 
               sh """
               cd ${ETENDO_DIR}
               echo '${buildGradleContent}' >> build.gradle
               cat build.gradle
               """
-              
+
               echo "---------------- Build & Compile ----------------"
               sh """
               cd etendo_base
@@ -229,12 +232,7 @@ pipeline {
               ./gradlew smartbuild --info
               """
 
-              echo "---------------- Cleaning Gradle cache and workspace ----------------"
-              sh """
-                rm -rf /home/jenkins/.gradle/caches
-                rm -rf ${ETENDO_DIR}
-              """
-              echo "---------------- Build JAR Environment Succesful ----------------"
+              echo "---------------- Build JAR Environment Successful ----------------"
               currentBuild.result = SUCCESS
             } catch (Exception e) {
               echo "---------------- Build JAR Environment Failed ----------------"
@@ -244,6 +242,12 @@ pipeline {
               currentBuild.result = UNSTABLE
               env.BUILD_IN_JAR_STATUS = FAILED
               unstable('Build Failed in Etendo JAR Environment')
+            } finally {
+              echo "---------------- Cleaning Gradle cache and workspace ----------------"
+              sh """
+                rm -rf /home/jenkins/.gradle/caches
+                rm -rf ${ETENDO_DIR}
+              """
             }
           }
         }
@@ -314,10 +318,13 @@ pipeline {
                 }.join('\n')
 
                 def buildGradleContent = """
+                etendo {
+                    forceResolution = true
+                }
                 dependencies {
                     ${dependenciesBlock}
                 }
-                """              
+                """
 
                 sh """
                 cd ${ETENDO_DIR}
