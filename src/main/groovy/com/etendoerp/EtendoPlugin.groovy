@@ -1,7 +1,7 @@
 package com.etendoerp
 
-import com.etendoerp.copilot.CopilotLoader
 import com.etendoerp.css.CssCompileLoader
+import com.etendoerp.connections.DatabaseConnection
 import com.etendoerp.dbdeps.DepsLoader
 import com.etendoerp.dependencies.DependenciesLoader
 import com.etendoerp.dependencymanager.DependencyManagerLoader
@@ -20,6 +20,8 @@ import org.gradle.api.plugins.WarPlugin
 import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
 import org.gradle.api.publish.plugins.PublishingPlugin
 import com.etendoerp.publication.git.CloneDependencies
+import com.etendoerp.autoconfig.AutoConfigLoader
+import com.etendoerp.setup.SetupLoader
 
 class EtendoPlugin implements Plugin<Project> {
 
@@ -48,13 +50,14 @@ class EtendoPlugin implements Plugin<Project> {
         DepsLoader.load(project)
         JarLoader.load(project)
         PublicationLoader.load(project)
+        AutoConfigLoader.load(project)
+        SetupLoader.load(project)
         ModulesConfigurationLoader.load(project)
         DependenciesLoader.load(project)
         CloneDependencies.load(project)
         CssCompileLoader.load(project)
         UninstallModuleLoader.load(project)
         ExternalTasksLoader.load(project)
-        CopilotLoader.load(project)
         DependencyManagerLoader.load(project)
     }
 }

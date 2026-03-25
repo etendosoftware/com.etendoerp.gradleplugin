@@ -15,4 +15,5 @@ plugins {
 }
 ```
 
-Finally, go to ```buildSrc``` directory and copy the ```gradle.properties.template``` file to ```gradle.properties```. If needed, put your credentials in this file.
+Finally, go to ```buildSrc``` directory and copy the ```gradle.properties.template``` file to ```gradle.properties```.
+If needed, put your credentials in this file.
