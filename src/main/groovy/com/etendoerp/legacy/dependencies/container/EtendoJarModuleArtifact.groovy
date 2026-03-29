@@ -45,19 +45,19 @@ class EtendoJarModuleArtifact extends ArtifactDependency{
         EtendoArtifactsConsistencyContainer consistencyContainer = project.ext.get(ResolverDependencyLoader.CONSISTENCY_CONTAINER)
         consistencyContainer.validateArtifact(this)
 
-        project.logger.info("")
-        project.logger.info("Extracting the Etendo module JAR '${this.group}:${this.name}:${this.version}'")
-
         final String etendoModulesLocation = PathUtils.createPath(
                 project.buildDir.absolutePath,
                 PublicationUtils.ETENDO,
                 PublicationUtils.BASE_MODULE_DIR
         )
 
+        final String moduleLocation = "${etendoModulesLocation}${this.moduleName}"
+        project.logger.info("Extracting the Etendo module JAR '${this.group}:${this.name}:${this.version}'")
+
         FileTree moduleFileTree = project.zipTree(this.locationFile)
 
         def metainfFilter = moduleFileTree.matching {
-            include "${JAR_ETENDO_LOCATION}"
+            include "${JAR_ETENDO_LOCATION}**"
         }
 
         def srcFilter = moduleFileTree.matching {
@@ -81,6 +81,9 @@ class EtendoJarModuleArtifact extends ArtifactDependency{
                 metainfFilter
             }
             into "${etendoModulesLocation}${this.moduleName}"
+            preserve {
+                include "src/**"
+            }
             eachFile { f ->
                 f.path = f.path.replaceFirst(metaInfPath + this.moduleName, '')
             }

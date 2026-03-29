@@ -10,6 +10,13 @@ import com.etendoerp.jars.JarLoader
 import com.etendoerp.java.JavaCheckLoader
 import com.etendoerp.legacy.EtendoLegacy
 import com.etendoerp.legacy.ant.AntLoader
+import com.etendoerp.legacy.database.EntitiesLoader
+import com.etendoerp.legacy.install.InstallLoader
+import com.etendoerp.legacy.smartbuild.SmartbuildLoader
+import com.etendoerp.legacy.sqlc.SqlcLoader
+import com.etendoerp.legacy.trl.TrlLoader
+import com.etendoerp.legacy.wad.WadGenerateLoader
+import com.etendoerp.legacy.wad.WadLoader
 import com.etendoerp.modules.ModulesConfigurationLoader
 import com.etendoerp.modules.uninstall.UninstallModuleLoader
 import com.etendoerp.publication.PublicationLoader
@@ -59,5 +66,12 @@ class EtendoPlugin implements Plugin<Project> {
         UninstallModuleLoader.load(project)
         ExternalTasksLoader.load(project)
         DependencyManagerLoader.load(project)
+        SqlcLoader.load(project)
+        WadLoader.load(project)
+        WadGenerateLoader.load(project)
+        TrlLoader.load(project)
+        SmartbuildLoader.load(project)
+        InstallLoader.load(project)
+        EntitiesLoader.load(project)
     }
 }

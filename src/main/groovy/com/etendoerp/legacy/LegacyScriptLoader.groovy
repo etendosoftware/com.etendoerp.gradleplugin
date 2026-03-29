@@ -81,45 +81,69 @@ class LegacyScriptLoader {
             askNexusCredentials = this.&askNexusCredentials
         }
 
-        project.sourceSets{
+        project.sourceSets {
             main {
                 java {
                     output.classesDirs = project.files("${project.buildDir}/classes")
-                    srcDirs = ['build/javasqlc/src'] //clean the default sources directories.
-                    srcDirs 'build/javasqlc/srcAD'
-                    srcDirs 'src'
-                    srcDirs 'src-gen'
-                    srcDirs 'srcAD'
-
-                    // The core is in JARs
-                    srcDirs 'build/etendo/build/javasqlc/src'
-                    srcDirs 'build/etendo/build/javasqlc/srcAD'
-                    srcDirs 'build/etendo/src-gen'
-                    srcDirs 'build/etendo/srcAD'
+                    srcDirs = [
+                        'src',
+                        'src-gen',
+                        'srcAD',
+                        'src-core/src',
+                        'src-wad/src',
+                        // Removed: 'build/javasqlc/src' - old Ant output, now using 'build/javasqlc/sqlc/src' from Gradle
+                        // Removed: 'build/javasqlc/srcAD' - old Ant output, now using 'build/javasqlc/sqlc/srcAD' from Gradle
+                        'build/etendo/src',
+                        'build/etendo/src-gen',
+                        'build/etendo/srcAD',
+                        'build/etendo/build/javasqlc/src',
+                        'build/etendo/build/javasqlc/srcAD'
+                    ]
                 }
             }
         }
-        //set the modules sources directories.
+        
+        // set the modules sources directories.
         if (project.file('modules').exists() && project.file('modules').isDirectory()) {
-            project.file('modules').eachDir {
-                project.sourceSets.main.java.srcDirs += it.toString() + "/src"
-                if (project.file(it.toString() + '/etendo-resources').exists()) {
+            project.file('modules').eachDir { dir ->
+                def moduleSrc = project.file("${dir}/src")
+                if (moduleSrc.exists()) {
+                    project.sourceSets.main.java.srcDir moduleSrc
+                }
+                
+                def moduleResources = project.file("${dir}/etendo-resources")
+                if (moduleResources.exists()) {
                     if (!project.sourceSets.main.resources.srcDirs.any { it.toString().endsWith('/etendo-resources') }) {
-                        project.sourceSets.main.resources.srcDirs += it.toString() + "/etendo-resources"
+                        project.sourceSets.main.resources.srcDir moduleResources
                     }
                 }
             }
         }
 
-        //set the modules_core sources directories.
-        if(project.file('modules_core').exists() && project.file('modules_core').isDirectory()){
-            project.file('modules_core').eachDir {
-                project.sourceSets.main.java.srcDirs += it.toString()+"/src"
+        // set the modules_core sources directories.
+        if (project.file('modules_core').exists() && project.file('modules_core').isDirectory()) {
+            project.file('modules_core').eachDir { dir ->
+                def moduleSrc = project.file("${dir}/src")
+                if (moduleSrc.exists()) {
+                    project.sourceSets.main.java.srcDir moduleSrc
+                }
             }
         }
 
         project.tasks.named('compileJava') {
             destinationDir = project.file("${project.buildDir}/classes")
+            
+            // --- OPTIMIZACIONES DE COMPILACIÓN ---
+            options.incremental = true
+            options.fork = true
+            options.encoding = 'UTF-8'
+            
+            // Aumentar memoria para el compilador
+            options.forkOptions.memoryMaximumSize = '2G'
+            
+            // Evitar procesamientos pesados innecesarios en desarrollo
+            options.compilerArgs << '-Xlint:none'
+            options.compilerArgs << '-nowarn'
         }
 
         project.configurations {
@@ -186,9 +210,42 @@ class LegacyScriptLoader {
          * BUILD TASKS
          */
 
-        /** war coinfiguration */
-        project.war {
-            from 'WebContent'
+        project.afterEvaluate {
+            project.war {
+                dependsOn 'gradleCopyWebInf', 'gradleSyncLib', 'gradlePostsrc', 'gradleCopyReferenceData', 'gradleBuildLocalContext', 'gradleWad', 'gradleCopyDesign', 'gradleCopySkins', 'gradleCopyModuleWeb'
+                
+                // Include everything from WebContent
+                from('WebContent') {
+                    include '**/*'
+                }
+                
+                // Explicitly include src-loc just in case it's being ignored
+                from('WebContent/src-loc') {
+                    into 'src-loc'
+                }
+                
+                destinationDirectory = project.file('lib')
+                archiveFileName = 'etendo.war'
+
+                def coreInSources = com.etendoerp.legacy.ant.AntLoader.isCoreInSources(project)
+                def webXmlPath = coreInSources ? 'build/javasqlc/wad/src/web.xml' : 'build/etendo/build/javasqlc/wad/src/web.xml'
+                
+                // Instead of setting webXml property which is strictly validated at configuration/start of execution,
+                // we include it in the war content. This avoids "file does not exist" errors.
+                from(project.file(webXmlPath).parentFile) {
+                    include 'web.xml'
+                    into 'WEB-INF'
+                }
+                
+                duplicatesStrategy = 'exclude'
+            }
+        }
+
+        /** Alias for compatibility */
+        project.task("antWar") {
+            description = 'Alias for the Gradle war task (compatibility)'
+            group = 'etendo-build'
+            dependsOn project.tasks.findByName('war')
         }
 
         /** Unpacks the Core dependency to a temporary folder. Used by expandCoreLegacy **/
@@ -267,136 +324,152 @@ class LegacyScriptLoader {
             finalizedBy project.tasks.findByName("cleanTempModules")
         }
 
-        /** Copy backup.properties template */
-        project.task("createBackupProperties", type: Copy) {
-            dependsOn "createOBProperties"
-            outputs.upToDateWhen { return false }
-            from project.file("config/backup.properties.template")
-            into project.file("config")
-            rename { String fileName ->
-                fileName.replace("backup.properties.template", "backup.properties")
-            }
-            doFirst {
-                boolean force = project.findProperty(FORCE_BACKUP_PROPS) ? true : false
-                if (!project.file("config/backup.properties.template").exists() || (project.file("config/backup.properties").exists() && !force)) {
-                    project.logger.info("* Omitting the creation of the 'backup.properties' from the template. To recreate run with '-P${FORCE_BACKUP_PROPS}=true'")
-                    throw new StopExecutionException()
-                }
-            }
-        }
 
-        /** Copy Openbravo.properties template */
-        project.task("createOBProperties", type: Copy) {
-            dependsOn "createQuartzProperties"
-            outputs.upToDateWhen { return false }
-            from project.file("config/Openbravo.properties.template")
-            into project.file("config")
-            rename { String fileName ->
-                fileName.replace("Openbravo.properties.template", "Openbravo.properties")
+        /** Copy other config templates */
+        project.tasks.register("createOtherConfigProperties") {
+            description = "Copies .template files to their non-template version in the same directory"
+            group = "etendo-config"
+            
+            def configDir = project.file("config")
+            def templates = project.fileTree(configDir) {
+                include "*.template"
+                exclude "backup.properties.template"
+                exclude "Openbravo.properties.template"
+                exclude "quartz.properties.template"
             }
-            doFirst {
-                boolean force = project.findProperty(FORCE_DEFAULT_PROPS) ? true : false
-                if (!project.file("config/Openbravo.properties.template").exists() || (project.file("config/Openbravo.properties").exists() && !force)) {
-                    project.logger.info("* Omitting the creation of the 'Openbravo.properties' from the template. To recreate run with '-P${FORCE_DEFAULT_PROPS}=true'")
-                    throw new StopExecutionException()
-                }
-            }
-        }
-
-        /** Copy quartz.properties template */
-        project.task("createQuartzProperties", type: Copy) {
-            outputs.upToDateWhen { return false }
-            from project.file("config/quartz.properties.template")
-            into project.file("config")
-            rename { String fileName ->
-                fileName.replace("quartz.properties.template", "quartz.properties")
-            }
-            doFirst {
-                boolean force = project.findProperty(FORCE_QUARTZ_PROPS) ? true : false
-                if (project.file("config/quartz.properties").exists() || (!project.file("config/quartz.properties.template").exists() && !force)) {
-                    project.logger.info("* Omitting the creation of the 'quartz.properties' from the template. To recreate run with '-P${FORCE_QUARTZ_PROPS}=true'")
-                    throw new StopExecutionException()
+            
+            inputs.files(templates).withPropertyName("templates")
+            
+            doLast {
+                templates.each { templateFile ->
+                    def targetName = templateFile.name.replace(".template", "")
+                    def targetFile = new File(configDir, targetName)
+                    if (!targetFile.exists()) {
+                        project.copy {
+                            from templateFile
+                            into configDir
+                            rename { targetName }
+                        }
+                        project.logger.lifecycle("Created ${targetName} from template")
+                    }
                 }
             }
         }
 
         /** Copy Openbravo.properties template and set values */
-        project.task("prepareConfig") {
-            dependsOn project.tasks.findByName("createOBProperties")
-            dependsOn project.tasks.findByName("createBackupProperties")
-            dependsOn project.tasks.findByName("createQuartzProperties")
+        project.tasks.register("prepareConfig") {
+            description = "Prepares the configuration files (Openbravo.properties, etc.) from templates and gradle.properties"
+            group = "etendo-config"
+
+            dependsOn "createOtherConfigProperties"
+
+            // Inputs: gradle.properties and the templates
+            inputs.file("gradle.properties").withPropertyName("gradleProperties")
+            inputs.file("config/Openbravo.properties.template").withPropertyName("obTemplate").optional()
+            inputs.file("config/backup.properties.template").withPropertyName("backupTemplate").optional()
+            inputs.file("config/quartz.properties.template").withPropertyName("quartzTemplate").optional()
+
+            // Outputs: the generated property files
+            outputs.file("config/Openbravo.properties").withPropertyName("openbravoProperties")
+            outputs.file("config/backup.properties").withPropertyName("backupProperties")
+            outputs.file("config/quartz.properties").withPropertyName("quartzProperties")
+
+            inputs.file(project.file("gradle.properties"))
+            outputs.file(project.file("config/Openbravo.properties"))
 
             doLast {
-                def props = new Properties()
-                project.file("gradle.properties").withInputStream { props.load(it) }
-                ant.propertyfile(file: "config/Openbravo.properties") {
+                // 1. Ensure files exist from templates if they don't
+                def filesToCreate = [
+                        "Openbravo.properties": "config/Openbravo.properties.template",
+                        "backup.properties"   : "config/backup.properties.template",
+                        "quartz.properties"   : "config/quartz.properties.template"
+                ]
 
-                    // Find all properties in gradle.properties and set their value in Openbravo.properties
-                    for (Map.Entry<Object, Object> prop : props) {
-                        String key = (String) prop.key
-                        if ("bbdd.port" == key || key.startsWith("org.gradle") || key == "nexusUser" || key == "nexusPassword") {
-                            // Skip helper and gradle props
-                            continue
+                filesToCreate.each { targetName, templatePath ->
+                    def targetFile = project.file("config/${targetName}")
+                    def templateFile = project.file(templatePath)
+                    if (!targetFile.exists() && templateFile.exists()) {
+                        project.copy {
+                            from templateFile
+                            into "config"
+                            rename { targetName }
                         }
-                        entry(key: prop.key, value: prop.value)
+                        project.logger.lifecycle("Created ${targetName} from template")
                     }
+                }
 
-                    // If some properties do not exists, fill them with their default values
-                    if (!props.getProperty("context.name")) {
-                        entry(key: "context.name", value: "etendo")
-                    }
+                // 2. Update Openbravo.properties with values from gradle.properties
+                if (project.file("config/Openbravo.properties").exists()) {
+                    def props = new Properties()
+                    project.file("gradle.properties").withInputStream { props.load(it) }
+                    ant.propertyfile(file: project.file("config/Openbravo.properties")) {
 
-                    if (!props.getProperty("bbdd.sid")) {
-                        entry(key: "bbdd.sid", value: "etendo")
-                    }
-
-                    if (!props.getProperty("bbdd.url")) {
-                        def host = props.getProperty("bbdd.host", "localhost")
-                        def port = props.getProperty("bbdd.port", "5432")
-
-                        def database = props.getProperty("bbdd.rdbms")
-                        def urlValue
-                        if (database && database == "ORACLE") {
-                            def sid = props.getProperty("bbdd.sid", "etendo")
-                            port = props.getProperty("bbdd.port", "1521")
-                            urlValue = "jdbc:oracle:thin:@" + host + ":" + port + ":" + sid
-                        } else {
-                            urlValue = "jdbc:postgresql://" + host + ":" + port
+                        // Find all properties in gradle.properties and set their value in Openbravo.properties
+                        for (Map.Entry<Object, Object> prop : props) {
+                            String key = (String) prop.key
+                            if ("bbdd.port" == key || key.startsWith("org.gradle") || key == "nexusUser" || key == "nexusPassword") {
+                                // Skip helper and gradle props
+                                continue
+                            }
+                            entry(key: prop.key, value: prop.value)
                         }
 
-                        entry(key: "bbdd.url", value: urlValue)
-                    }
+                        // If some properties do not exists, fill them with their default values
+                        if (!props.getProperty("context.name")) {
+                            entry(key: "context.name", value: "etendo")
+                        }
 
-                    if (!props.getProperty("bbdd.systemUser")) {
-                        entry(key: "bbdd.systemUser", value: "postgres")
-                    }
+                        if (!props.getProperty("bbdd.sid")) {
+                            entry(key: "bbdd.sid", value: "etendo")
+                        }
 
-                    if (!props.getProperty("bbdd.systemPassword")) {
-                        entry(key: "bbdd.systemPassword", value: "syspass")
-                    }
+                        if (!props.getProperty("bbdd.url")) {
+                            def host = props.getProperty("bbdd.host", "localhost")
+                            def port = props.getProperty("bbdd.port", "5432")
 
-                    if (!props.getProperty("bbdd.user")) {
-                        entry(key: "bbdd.user", value: "tad")
-                    }
+                            def database = props.getProperty("bbdd.rdbms")
+                            def urlValue
+                            if (database && database == "ORACLE") {
+                                def sid = props.getProperty("bbdd.sid", "etendo")
+                                port = props.getProperty("bbdd.port", "1521")
+                                urlValue = "jdbc:oracle:thin:@" + host + ":" + port + ":" + sid
+                            } else {
+                                urlValue = "jdbc:postgresql://" + host + ":" + port
+                            }
 
-                    if (!props.getProperty("bbdd.password")) {
-                        entry(key: "bbdd.password", value: "tad")
-                    }
+                            entry(key: "bbdd.url", value: urlValue)
+                        }
 
-                    if (!props.getProperty("allow.root")) {
-                        entry(key: "allow.root", value: "false")
-                    }
+                        if (!props.getProperty("bbdd.systemUser")) {
+                            entry(key: "bbdd.systemUser", value: "postgres")
+                        }
 
-                    if (!props.getProperty("source.path")) {
-                        entry(key: "source.path", value: project.projectDir.getAbsolutePath())
-                    }
+                        if (!props.getProperty("bbdd.systemPassword")) {
+                            entry(key: "bbdd.systemPassword", value: "syspass")
+                        }
 
-                    if (!props.getProperty("attach.path")) {
-                        entry(key: "attach.path", value: project.projectDir.getAbsolutePath() + "/attachments")
+                        if (!props.getProperty("bbdd.user")) {
+                            entry(key: "bbdd.user", value: "tad")
+                        }
+
+                        if (!props.getProperty("bbdd.password")) {
+                            entry(key: "bbdd.password", value: "tad")
+                        }
+
+                        if (!props.getProperty("allow.root")) {
+                            entry(key: "allow.root", value: "false")
+                        }
+
+                        if (!props.getProperty("source.path")) {
+                            entry(key: "source.path", value: project.projectDir.getAbsolutePath())
+                        }
+
+                        if (!props.getProperty("attach.path")) {
+                            entry(key: "attach.path", value: project.projectDir.getAbsolutePath() + "/attachments")
+                        }
                     }
                 }
             }
-
         }
 
         // =============================================================
@@ -484,7 +557,9 @@ class LegacyScriptLoader {
             }
             
             // Make prepareConfig depend on interactiveSetup when in interactive mode
-            project.tasks.findByName("prepareConfig").dependsOn "interactiveSetup"
+            project.tasks.named("prepareConfig").configure {
+                dependsOn "interactiveSetup"
+            }
             
             project.logger.info("Interactive setup mode enabled. Use 'interactiveSetup' task for guided configuration.")
         }

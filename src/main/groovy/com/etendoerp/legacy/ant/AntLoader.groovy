@@ -125,7 +125,13 @@ class AntLoader {
                 case 'install.source':
                     return 'antInstall'
                 case 'war':
-                    return 'antWar'
+                    return '_antWar'
+                case 'smartbuild':
+                    return 'antSmartbuild'
+                case 'compile.complete':
+                    return 'antCompile.complete'
+                case 'wad.lib':
+                    return 'antWad.lib'
                 default:
                     if (oldTargetName.contains("test")) {
                         return "ant." + oldTargetName
@@ -147,15 +153,21 @@ class AntLoader {
             }
         }
 
-        ['smartbuild', 'compile.complete', 'compile.complete.deploy', 'update.database', 'export.database'].each {
+        ['antSmartbuild', 'antCompile.complete', 'compile.complete.deploy', 'update.database', 'export.database', 'generate.entities', 'generate.entities.quick', 'generate.entities.full'].each {
             def task = project.tasks.findByName(it)
             if (task != null) {
                 task.dependsOn(project.tasks.findByName("compileFilesCheck"))
             }
         }
 
+        // Declare outputs for generation tasks to improve up-to-date detection
+        project.tasks.findByName("generate.entities")?.outputs?.dir("${project.buildDir}/etendo/src-gen")
+        project.tasks.findByName("generate.entities.quick")?.outputs?.dir("${project.buildDir}/etendo/src-gen")
+        project.tasks.findByName("generate.entities.full")?.outputs?.dir("${project.buildDir}/etendo/src-gen")
+        project.tasks.findByName("compute.entities.uptodate")?.outputs?.file("${project.buildDir}/etendo/.entities")
+
         // Consistency verification
-        ['smartbuild', 'compile.complete', 'compile.complete.deploy'].each {
+        ['antSmartbuild', 'antCompile.complete', 'compile.complete.deploy'].each {
             def task = project.tasks.findByName(it)
             if (task != null) {
                 task.dependsOn(project.tasks.findByName(ConsistencyVerification.CONSISTENCY_VERIFICATION_TASK))
@@ -165,7 +177,7 @@ class AntLoader {
         // Dependencies sync
         def depSync = project.tasks.findByName("dependencies.sync")
         if (depSync != null) {
-            ['smartbuild', 'compile.complete', 'compile.complete.deploy', 'update.database', 'export.database', 'expandModules'].each {
+            ['antSmartbuild', 'antCompile.complete', 'compile.complete.deploy', 'update.database', 'export.database', 'expandModules'].each {
                 def task = project.tasks.findByName(it)
                 if (task != null) {
                     task.dependsOn(depSync)
@@ -188,19 +200,12 @@ class AntLoader {
         project.task("setup") {
             ant.properties['nonInteractive'] = true
             ant.properties['acceptLicense'] = true
-            project.tasks.findByName('antSetup').mustRunAfter'prepareConfig'
-            finalizedBy(project.tasks.findByName("prepareConfig"), project.tasks.findByName("antSetup"))
+            // project.tasks.findByName('antSetup').mustRunAfter'prepareConfig'
+            finalizedBy(project.tasks.findByName("prepareConfig"))
         }
 
-        /** The install.source ant task now depends on ant setup */
-        project.task("install") {
-            boolean doSetup = project.hasProperty("doSetup") ? doSetup.toBoolean() : true
-            // Do not depend on setup if specified with -PdoSetup=false
-            if (doSetup) {
-                dependsOn project.tasks.findByName("setup")
-            }
-            dependsOn project.tasks.findByName("antInstall")
-        }
+        // NOTA: La tarea install optimizada se crea en SmartbuildLoader.groovy
+        // Ya no usamos la tarea install antigua que dependía de antInstall
 
     }
 

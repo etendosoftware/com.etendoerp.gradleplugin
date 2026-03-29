@@ -68,7 +68,7 @@ class ExtractResourcesOfJars {
             FileTree files = it.value
 
             def metainfFilter = files.matching {
-                include "${JAR_ETENDO_LOCATION}"
+                include "${JAR_ETENDO_LOCATION}**"
             }
 
             // The jar is the CORE
