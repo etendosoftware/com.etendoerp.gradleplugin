@@ -59,6 +59,9 @@ class ResolverDependencyLoader {
         EtendoCoreDependencies.loadCoreCompilationDependencies(project)
       }
 
+      // Load modules_core dependencies resolved as Etendo JAR modules
+      EtendoCoreDependencies.loadModulesCoreDependencies(project)
+
       // Load Etendo core test dependencies
       if (loadTestDependencies) {
         EtendoCoreDependencies.loadCoreTestDependencies(project)

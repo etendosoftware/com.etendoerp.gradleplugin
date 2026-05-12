@@ -121,6 +121,7 @@ class DependencyContainer {
         FileTree unzipDependency = project.zipTree(resolvedArtifact.file)
         def etendoModulesTree = unzipDependency.matching {
             include "${ArtifactDependency.JAR_ETENDO_MODULE_LOCATION}"
+            include "${ArtifactDependency.JAR_ETENDO_MODULE_LOCATION}/**"
         }
 
         // The dependency file is a Etendo module
