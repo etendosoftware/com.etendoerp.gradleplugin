@@ -109,7 +109,7 @@ class ArtifactDependency {
         this.group = moduleVersionIdentifier.group.toLowerCase()
         this.name = moduleVersionIdentifier.name.toLowerCase()
         this.version = moduleVersionIdentifier.version
-        this.moduleName = "${this.group}.${this.name}"
+        this.moduleName = buildModuleName(this.group, this.name)
     }
 
     static String replaceSnapshot(String displayName) {
@@ -124,7 +124,7 @@ class ArtifactDependency {
         this.group = group
         this.name = name
         this.version = version
-        this.moduleName = "${this.group}.${this.name}"
+        this.moduleName = buildModuleName(this.group, this.name)
     }
 
     void loadFromArtifact() {
@@ -134,8 +134,18 @@ class ArtifactDependency {
         this.name         = this.resolvedArtifact.moduleVersion.id.name
         this.version      = this.resolvedArtifact.moduleVersion.id.version
         this.extension    = this.resolvedArtifact.extension
-        this.moduleName   = "${this.group}.${this.name}"
+        this.moduleName   = buildModuleName(this.group, this.name)
         this.displayName  = "${this.group}:${this.name}:${this.version}"
+    }
+
+    static String buildModuleName(String group, String name) {
+        if (name == null || name.isBlank()) {
+            return name
+        }
+        if (group == null || group.isBlank()) {
+            return name
+        }
+        return name.equalsIgnoreCase(group) || name.toLowerCase().startsWith("${group.toLowerCase()}.") ? name : "${group}.${name}"
     }
 
     void extract() {}

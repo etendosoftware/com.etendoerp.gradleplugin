@@ -3,6 +3,7 @@ package com.etendoerp.legacy.dependencies
 import com.etendoerp.EtendoPluginExtension
 import com.etendoerp.core.CoreMetadata
 import com.etendoerp.core.CoreType
+import com.etendoerp.dependencies.EtendoCoreDependencies
 import com.etendoerp.jars.modules.metadata.DependencyUtils
 import com.etendoerp.legacy.dependencies.container.ArtifactDependency
 import com.etendoerp.legacy.dependencies.container.DependencyContainer
@@ -111,6 +112,21 @@ class DependencyProcessor {
         return dependencies
     }
 
+    void loadModulesCoreDependenciesToResolutionContainer(Configuration container) {
+        if (!project.ext.has(EtendoCoreDependencies.MODULES_CORE_DEPENDENCIES_TO_RESOLVE)) {
+            return
+        }
+
+        List<String> modulesCoreDependencies = project.ext.get(EtendoCoreDependencies.MODULES_CORE_DEPENDENCIES_TO_RESOLVE) as List<String>
+        modulesCoreDependencies.each { String dependency ->
+            Dependency moduleDependency = project.dependencies.create(dependency) as Dependency
+            if (moduleDependency.hasProperty('transitive')) {
+                moduleDependency.transitive = true
+            }
+            container.dependencies.add(moduleDependency)
+        }
+    }
+
     Map<String, List<ArtifactDependency>> performResolutionConflict(Configuration container, boolean addCoreToResolution, boolean filterCoreDependency) {
         // Create a temporal configuration container used to perform resolution conflicts
         def resolutionContainer = container.copyRecursive()
@@ -139,6 +155,7 @@ class DependencyProcessor {
     void loadDependenciesFiles(boolean addCoreToResolution, boolean performResolutionConflicts , boolean filterCoreDependency) {
         // Load all project and subproject dependencies in a custom configuration container
         Configuration container = ResolverDependencyUtils.loadResolutionDependencies(project)
+        loadModulesCoreDependenciesToResolutionContainer(container)
 
         // Load the CORE dependencies
         if (coreMetadata.coreType == CoreType.SOURCES && project.extensions.findByType(EtendoPluginExtension).loadCoreDependencies) {
@@ -174,6 +191,7 @@ class DependencyProcessor {
         // Filter maven and Etendo dependencies
         this.dependencyContainer.configuration = container
         this.dependencyContainer.filterDependenciesFiles()
+        validateModulesCoreDependenciesAreEtendoJarModules()
 
         // Configure the subprojects to use the filtered dependencies
         def artifacts = this.dependencyContainer.etendoDependenciesJarFiles.entrySet().collect({
@@ -183,6 +201,31 @@ class DependencyProcessor {
         })
 
         ModulesConfigurationUtils.configureVersionReplacer(project, DependencyContainer.parseArtifactDependency(project, artifacts))
+    }
+
+    void validateModulesCoreDependenciesAreEtendoJarModules() {
+        Set<String> modulesCoreDependenciesToValidate = [] as Set
+        if (project.ext.has(EtendoCoreDependencies.MODULES_CORE_DEPENDENCIES_TO_VALIDATE)) {
+            modulesCoreDependenciesToValidate = project.ext.get(EtendoCoreDependencies.MODULES_CORE_DEPENDENCIES_TO_VALIDATE) as Set<String>
+        }
+
+        modulesCoreDependenciesToValidate.each { String moduleName ->
+            ArtifactDependency artifactDependency = this.dependencyContainer.etendoDependenciesJarFiles.get(moduleName)
+            if (!artifactDependency) {
+                throw new IllegalArgumentException("Dependency '${moduleName}' is declared in ${EtendoCoreDependencies.DEPENDENCIES_LIST_MODULES_CORE} but the resolved JAR is not an Etendo module JAR. Make sure the artifact contains Etendo module metadata and AD_MODULE.xml.")
+            }
+            if (!containsADModuleFile(artifactDependency)) {
+                throw new IllegalArgumentException("Dependency '${artifactDependency.displayName}' is declared in ${EtendoCoreDependencies.DEPENDENCIES_LIST_MODULES_CORE} but the resolved JAR does not contain AD_MODULE.xml.")
+            }
+        }
+    }
+
+    boolean containsADModuleFile(ArtifactDependency artifactDependency) {
+        def adModulePath = "${ArtifactDependency.JAR_ETENDO_MODULE_LOCATION}/${artifactDependency.moduleName}/src-db/database/sourcedata/AD_MODULE.xml"
+        def adModuleTree = project.zipTree(artifactDependency.locationFile).matching {
+            include adModulePath
+        }
+        return adModuleTree && adModuleTree.size() >= 1
     }
 
     void updateContainerPreFilterCoreSources(Configuration container, ArtifactDependency coreArtifactDependency) {

@@ -25,7 +25,7 @@ import com.etendoerp.setup.SetupLoader
 
 class EtendoPlugin implements Plugin<Project> {
 
-    final static String PLUGIN_VERSION = "2.3.0"
+    final static String PLUGIN_VERSION = "2.3.1"
 
     @Override
     void apply(Project project) {
