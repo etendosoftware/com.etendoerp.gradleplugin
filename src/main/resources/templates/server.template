@@ -6,6 +6,7 @@ etendo.classic.host={context.url}
 next.public.app.url={context.host}
 authentication.class=com.etendoerp.etendorx.auth.SWSAuthenticationManager
 ws.maxInactiveInterval=3600
+ui.port=3000
 
 ## Copilot
 docker_com.etendoerp.copilot=true
