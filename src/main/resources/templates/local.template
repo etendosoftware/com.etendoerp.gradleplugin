@@ -6,6 +6,7 @@ etendo.classic.host=https://localhost:8080/{context.name}
 next.public.app.url=https://localhost:3000/
 authentication.class=com.etendoerp.etendorx.auth.SWSAuthenticationManager
 ws.maxInactiveInterval=3600
+ui.port=3000
 
 ## Copilot
 docker_com.etendoerp.copilot=true
