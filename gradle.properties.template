@@ -2,6 +2,9 @@ nexusUser=
 nexusPassword=
 githubUser=
 githubToken=
+githubPackagesRepositoryUrl=
+githubPackagesRepositoryUser=
+githubPackagesRepositoryPassword=
 
 test.bbdd.url=
 test.bbdd.sid=

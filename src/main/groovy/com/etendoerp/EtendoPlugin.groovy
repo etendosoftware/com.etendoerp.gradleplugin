@@ -4,6 +4,7 @@ import com.etendoerp.css.CssCompileLoader
 import com.etendoerp.connections.DatabaseConnection
 import com.etendoerp.dbdeps.DepsLoader
 import com.etendoerp.dependencies.DependenciesLoader
+import com.etendoerp.dependencies.repository.EtendoRepositoryLoader
 import com.etendoerp.dependencymanager.DependencyManagerLoader
 import com.etendoerp.externaltasks.ExternalTasksLoader
 import com.etendoerp.jars.JarLoader
@@ -33,6 +34,8 @@ class EtendoPlugin implements Plugin<Project> {
         System.out.println("**********************************************")
         System.out.println("* ETENDO PLUGIN VERSION: ${PLUGIN_VERSION}")
         System.out.println("**********************************************")
+
+        EtendoRepositoryLoader.load(project)
 
         def extension = project.extensions.create('etendo', EtendoPluginExtension)
         project.getPluginManager().apply(JavaBasePlugin.class)

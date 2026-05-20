@@ -4,6 +4,7 @@ package com.etendoerp.legacy
 import com.etendoerp.legacy.utils.ModulesUtils
 import com.etendoerp.legacy.utils.GithubUtils
 import com.etendoerp.legacy.utils.NexusUtils
+import com.etendoerp.dependencies.repository.EtendoRepositoryLoader
 import com.etendoerp.publication.PublicationUtils
 import com.etendoerp.legacy.interactive.InteractiveSetupManager
 import org.gradle.api.Project
@@ -138,32 +139,7 @@ class LegacyScriptLoader {
         /**
          * REPOSITORIES CONFIGURATIONS
          */
-        project.repositories {
-            mavenCentral()
-            maven {
-                url = URI.create("https://maven.pkg.github.com/etendosoftware/etendo_core")
-                credentials {
-                    username = project.ext.get("githubUser")
-                    password = project.ext.get("githubToken")
-                }
-            }
-            maven {
-                url = 'https://repo.futit.cloud/repository/maven-public-releases'
-            }
-            maven {
-                url = 'https://repo.futit.cloud/repository/maven-releases'
-                credentials {
-                    username = project.ext.get("nexusUser")
-                    password = project.ext.get("nexusPassword")
-                }
-            }
-            maven {
-                url = 'https://repo.futit.cloud/repository/maven-public-jars'
-            }
-            maven {
-                url = 'https://repo.futit.cloud/repository/etendo-public-jars'
-            }
-        }
+        EtendoRepositoryLoader.load(project)
 
         /**
          * DEPENDENCIES
