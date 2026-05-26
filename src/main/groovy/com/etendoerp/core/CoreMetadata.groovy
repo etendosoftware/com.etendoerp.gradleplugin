@@ -13,8 +13,8 @@ import org.gradle.api.artifacts.Dependency
  * Class used to store Core information
  *
  * Type: SOURCES - JAR - UNDEFINED
- * SOURCES: The core is in SOURCES when 'modules_core' and 'src-core' directories exists.
- * JAR: The core is in JAR when the directories 'modules_core' and 'src-core' does not exists,
+ * SOURCES: The core is in SOURCES when the 'src-core' directory exists.
+ * JAR: The core is in JAR when the 'src-core' directory does not exist,
  * and when the core dependency is defined in the build.gradle of the main project (implementation 'com.etendoerp.platform:etendo-core)
  * UNDEFINED: When the core is not in SOURCES or JAR
  *
@@ -245,7 +245,8 @@ class CoreMetadata {
         CoreStatus status
 
         if (this.coreType == CoreType.SOURCES) {
-            // The core is in sources when contains 'src-core' and 'modules_core' directories
+            // The core is in sources when it contains the 'src-core' directory.
+            // The 'modules_core' directory is optional because core modules can be resolved as JAR dependencies.
             status = CoreStatus.RESOLVED
         } else if (this.coreType == CoreType.JAR) {
             // Check if the core in JAR is already resolved
@@ -272,9 +273,8 @@ class CoreMetadata {
     }
 
     boolean isCoreInSources() {
-        def modulesCoreLocation = project.file("modules_core")
         def srcCoreLocation = project.file("src-core")
-        return modulesCoreLocation.exists() && srcCoreLocation.exists()
+        return srcCoreLocation.exists()
     }
 
     // Sources have priority over jars
