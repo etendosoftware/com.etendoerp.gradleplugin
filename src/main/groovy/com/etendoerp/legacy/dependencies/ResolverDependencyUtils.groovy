@@ -81,7 +81,73 @@ class ResolverDependencyUtils {
             }
         }
 
+        excludeModulesCoreSourceDependencies(mainProject, validConfigs)
+
         return configuration
+    }
+
+    static void excludeModulesCoreSourceDependencies(Project mainProject, List<Configuration> configurations) {
+        Map<String, Set<String>> sourceDependencies = getModulesCoreSourceDependencies(mainProject)
+        if (sourceDependencies.isEmpty()) {
+            return
+        }
+
+        configurations.each { Configuration conf ->
+            conf.dependencies.removeIf({ Dependency dependency ->
+                String moduleName = ArtifactDependency.buildModuleName(dependency.group, dependency.name)
+                return sourceDependencies.containsKey(moduleName)
+            })
+
+            sourceDependencies.each { String moduleName, Set<String> dependencyNames ->
+                dependencyNames.each { String dependencyName ->
+                    def nameSplit = dependencyName.split(":", 2)
+                    if (nameSplit.size() == 2) {
+                        conf.exclude([group: nameSplit[0], module: nameSplit[1]])
+                    }
+                }
+            }
+        }
+    }
+
+    static Map<String, Set<String>> getModulesCoreSourceDependencies(Project mainProject) {
+        File modulesCoreDir = mainProject.file("modules_core")
+        if (!modulesCoreDir.exists() || !modulesCoreDir.isDirectory()) {
+            return [:]
+        }
+
+        Map<String, Set<String>> sourceDependencies = new TreeMap<>(String.CASE_INSENSITIVE_ORDER)
+        modulesCoreDir.listFiles()?.findAll { it.isDirectory() }?.each { File moduleDir ->
+            String moduleName = moduleDir.name
+            sourceDependencies.put(moduleName, inferModulesCoreDependencyNames(moduleName))
+        }
+
+        return sourceDependencies
+    }
+
+    static Set<String> inferModulesCoreDependencyNames(String moduleName) {
+        Set<String> dependencyNames = new TreeSet<>(String.CASE_INSENSITIVE_ORDER)
+        if (!moduleName || moduleName.isBlank()) {
+            return dependencyNames
+        }
+
+        def knownGroups = ["com.etendoerp", "org.openbravo", "com.smf"]
+        def matchedGroup = knownGroups.find { String group ->
+            moduleName.equalsIgnoreCase(group) || moduleName.toLowerCase().startsWith("${group.toLowerCase()}.")
+        }
+
+        if (matchedGroup && moduleName.length() > matchedGroup.length()) {
+            String artifactName = moduleName.substring(matchedGroup.length() + 1)
+            dependencyNames.add("${matchedGroup}:${artifactName}".toString())
+            dependencyNames.add("${matchedGroup}:${moduleName}".toString())
+        }
+
+        int lastDot = moduleName.lastIndexOf(".")
+        if (lastDot > 0 && lastDot < moduleName.length() - 1) {
+            dependencyNames.add("${moduleName.substring(0, lastDot)}:${moduleName.substring(lastDot + 1)}".toString())
+        }
+
+        dependencyNames.add("${moduleName}:${moduleName}".toString())
+        return dependencyNames
     }
 
     /**

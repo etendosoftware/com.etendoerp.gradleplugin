@@ -10,6 +10,7 @@ import org.gradle.api.tasks.bundling.Jar
 
 class JarTaskGenerator {
     final static String JAR_CONFIG_TASK = "jarConfigTask"
+    final static String MODULE_BEANS_XML = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><beans xmlns=\"https://jakarta.ee/xml/ns/jakartaee\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/beans_4_0.xsd\" version=\"4.0\" bean-discovery-mode=\"annotated\"></beans>"
 
     static void load(Project mainProject, Project subProject) {
 
@@ -27,6 +28,14 @@ class JarTaskGenerator {
 
                     // Duplicate strategy 'EXCLUDE' to only copy one time the same file
                     moduleJar.setDuplicatesStrategy(DuplicatesStrategy.EXCLUDE)
+
+                    File beansDir = new File(subProject.layout.buildDirectory.get().asFile, "generated/etendo-module-beans/META-INF")
+                    File beansFile = new File(beansDir, "beans.xml")
+                    beansDir.mkdirs()
+                    beansFile.text = MODULE_BEANS_XML
+                    moduleJar.from(beansDir.parentFile) {
+                        include("META-INF/beans.xml")
+                    }
 
                     // Obtains all the files from the 'src' folder, ignoring the '.java'.
                     // This is to prevent applying different logic on every file found.

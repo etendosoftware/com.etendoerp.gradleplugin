@@ -9,9 +9,10 @@ import java.nio.file.Paths
 class CloneDependencies {
 
     static String[] filesToDelete = ["pom.xml", "assembly.xml", ".hgtags"]
-    static String subFolder = "modules/"
 
-    static final EXTENSION_MODULES_LIST = "defaultExtensionModules"
+    static final String DEFAULT_EXTENSION_MODULES_TARGET = "modules"
+    static final String EXTENSION_MODULES_LIST = "defaultExtensionModules"
+    static final String EXTENSION_MODULES_TARGET = "extensionModulesTarget"
 
     static void load(Project project) {
         project.tasks.register("cloneDependencies") {
@@ -25,16 +26,17 @@ class CloneDependencies {
                     throw new IllegalArgumentException("The javapackage ${javaPackage} not found")
                 }
                 List<String> repoList = subProject.findProperty(EXTENSION_MODULES_LIST) as List
+                String targetFolder = (subProject.findProperty(EXTENSION_MODULES_TARGET) ?: DEFAULT_EXTENSION_MODULES_TARGET) as String
 
                 repoList.each {
                     String[] splitURI = ((String) it).split("/")
                     String nameDirectory = splitURI[1].substring(0, splitURI[1].size() - 4)
-                    Path modulesDirectory = Paths.get(subFolder + nameDirectory)
+                    Path modulesDirectory = Paths.get(targetFolder, nameDirectory)
                     Git.gitClone(project, modulesDirectory, (String) it)
                 }
 
                 // Remove pom and assembly files
-                // List of modules in modules without current module
+                // List of modules in target folder without current module
                 FileFilter filterFolders = new FileFilter() {
                     @Override
                     boolean accept(File arch) {
@@ -42,8 +44,8 @@ class CloneDependencies {
                     }
                 }
 
-                File[] folderModules = new File(subFolder).listFiles(filterFolders)
-                for (File folder : folderModules) {
+                File[] folderModules = new File(targetFolder).listFiles(filterFolders)
+                for (File folder : folderModules ?: []) {
                     // Filter by files to remove
                     FileFilter filterFilesToDelete = new FileFilter() {
                         @Override
@@ -62,7 +64,7 @@ class CloneDependencies {
                     // Commit and push the changes produced by files removed
                     if (filesDeleted) {
                         project.logger.debug("Removing unused files from " + folder.getName())
-                        Path directory = Paths.get(subFolder + folder.getName())
+                        Path directory = Paths.get(targetFolder, folder.getName())
                         Git.gitStage(project, directory)
                         Git.gitCommit(project, directory, "Remove unused files")
                         project.logger.debug("Push to " + folder.getName())
