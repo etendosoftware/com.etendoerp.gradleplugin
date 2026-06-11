@@ -291,14 +291,11 @@ class ExportTranslationsTask extends DefaultTask {
                 continue
             }
             
-            // Only export if the base table has AD_Module_ID column (i.e., it's module-related)
-            if (columnExistsInTable(connection, baseTable, 'AD_Module_ID')) {
-                exportTableForModule(connection, language, false, false, baseTable, baseTable + '_ID',
-                        rootDirectory, moduleId, getModuleLanguage(connection, moduleId), javaPackage,
-                        true, isReducedVersion)
-            } else {
-                project.logger.debug("Skipping table ${baseTable} as it doesn't have AD_Module_ID column")
-            }
+            // Export the table. The module linkage may be direct (AD_Module_ID on the base table)
+            // or through a parent / grandparent table; exportTableForModule resolves which applies.
+            exportTableForModule(connection, language, false, false, baseTable, baseTable + '_ID',
+                    rootDirectory, moduleId, getModuleLanguage(connection, moduleId), javaPackage,
+                    true, isReducedVersion)
         }
     }
 
@@ -321,8 +318,56 @@ class ExportTranslationsTask extends DefaultTask {
     }
 
     /**
+     * Resolves the parent (and optional grandparent) table through which a translation table is
+     * linked to a module, when its base table has no AD_Module_ID column of its own.
+     *
+     * <p>Ported from the original TranslationManager / Translation_data.xsql 'parentTable' query.
+     * Examples: AD_FIELD_TRL -> parent AD_TAB; AD_REF_LIST_TRL -> parent AD_REFERENCE.</p>
+     *
+     * @param connection the database connection to use
+     * @param trlTableName the translation table name (with _TRL suffix), case-insensitive
+     * @return a map [parent: <tableName>, grandparent: <tableName or null>], or null if none found
+     */
+    Map getParentTable(java.sql.Connection connection, String trlTableName) {
+        def sql = """
+            select t2.tablename as tablename, null as grandParent
+             from ad_table t, ad_table t1, ad_column c, ad_table t2
+            where t1.ad_table_id = c.ad_table_id
+              and c.isparent='Y'
+              and lower(t2.tablename)||'_id' = lower(c.columnname)
+              and lower(t1.tablename) || '_trl' = lower(t.tablename)
+              and exists (select 1 from ad_column where ad_table_id = t2.ad_table_id and lower(columnname) = 'ad_module_id')
+              and not exists (select 1 from ad_column where ad_table_id = t1.ad_table_id and lower(columnname) = 'ad_module_id')
+              and lower(t.tablename) = lower(?)
+            union
+            select t2.tablename, t3.tablename
+              from ad_table t, ad_table t1, ad_column c, ad_table t2, ad_column c2, ad_table t3
+             where t2.ad_table_id = c2.ad_table_id
+               and t1.ad_table_id = c.ad_table_id
+               and c.isparent='Y'
+               and c2.isparent='Y'
+               and lower(t3.tablename)||'_id' = lower(c2.columnname)
+               and lower(t2.tablename)||'_id' = lower(c.columnname)
+               and lower(t1.tablename) || '_trl' = lower(t.tablename)
+               and exists (select 1 from ad_column where ad_table_id = t3.ad_table_id and lower(columnname) = 'ad_module_id')
+               and not exists (select 1 from ad_column where ad_table_id = t2.ad_table_id and lower(columnname) = 'ad_module_id')
+               and lower(t.tablename) = lower(?)
+        """
+        java.sql.PreparedStatement stmt = connection.prepareStatement(sql)
+        stmt.setString(1, trlTableName)
+        stmt.setString(2, trlTableName)
+        java.sql.ResultSet rs = stmt.executeQuery()
+        Map parent = null
+        if (rs.next()) {
+            parent = [parent: rs.getString('tablename'), grandparent: rs.getString('grandParent')]
+        }
+        rs.close(); stmt.close()
+        return parent
+    }
+
+    /**
      * Retrieves the base language for a specific module.
-     * 
+     *
      * @param connection the database connection to use
      * @param moduleId the module ID to get the language for
      * @return the language code for the module, defaults to "en_US" if not set
@@ -384,6 +429,34 @@ class ExportTranslationsTask extends DefaultTask {
             boolean hasCentrallyMaintained = hasCentrallyMaintainedColumn(connection, table)
             boolean hasModuleId = columnExistsInTable(connection, table, 'AD_Module_ID')
 
+            // Resolve how this table is linked to a module: directly via AD_Module_ID, or through a
+            // parent / grandparent table (e.g. AD_FIELD -> AD_TAB, AD_REF_LIST -> AD_REFERENCE).
+            // This mirrors the original TranslationManager.exportTable parent-table handling.
+            String moduleFilterClause = ''
+            boolean needsModuleParam = false
+            if (!exportReferenceData) {
+                if (hasModuleId) {
+                    moduleFilterClause = ' and o.AD_Module_ID = ? '
+                    needsModuleParam = true
+                } else {
+                    def parent = getParentTable(connection, trlTable)
+                    if (parent) {
+                        if (!parent.grandparent) {
+                            moduleFilterClause = " and exists (select 1 from ${parent.parent} p " +
+                                "where p.${parent.parent}_ID = o.${parent.parent}_ID and p.AD_Module_ID = ?) "
+                        } else {
+                            moduleFilterClause = " and exists (select 1 from ${parent.grandparent} gp, ${parent.parent} p " +
+                                "where p.${parent.parent}_ID = o.${parent.parent}_ID " +
+                                "and p.${parent.grandparent}_ID = gp.${parent.grandparent}_ID " +
+                                "and gp.AD_Module_ID = ?) "
+                        }
+                        needsModuleParam = true
+                    } else {
+                        project.logger.debug("Table ${table} has no direct AD_Module_ID nor a module-linked parent; exporting without module filter")
+                    }
+                }
+            }
+
             def sqlBuilder = new StringBuilder()
             sqlBuilder.append('select ')
             if (isTrl) sqlBuilder.append('t.AD_Language, t.IsTranslated, ')
@@ -408,10 +481,8 @@ class ExportTranslationsTask extends DefaultTask {
             if (hasCentrallyMaintained) sqlBuilder.append(" and o.IsCentrallyMaintained = 'N' ")
             sqlBuilder.append(" and o.AD_Client_ID='0' ")
             
-            // Only filter by module if the table actually has AD_Module_ID column
-            if (!exportReferenceData && hasModuleId) {
-                sqlBuilder.append(' and o.AD_Module_ID = ? ')
-            }
+            // Filter by module: directly, or through the parent/grandparent table when needed
+            sqlBuilder.append(moduleFilterClause)
             
             if (exportReferenceData && !exportAll) {
                 sqlBuilder.append(" and DT.AD_Table_ID = (select AD_Table_ID from AD_Table where Upper(TableName) = Upper(?)) ")
@@ -426,8 +497,8 @@ class ExportTranslationsTask extends DefaultTask {
             int paramIndex = 1
             if (isTrl) stmt.setString(paramIndex++, language)
             
-            // Only set module parameter if the table has AD_Module_ID column
-            if (!exportReferenceData && hasModuleId) {
+            // Set the module parameter when a module filter (direct or parent-based) was added
+            if (needsModuleParam) {
                 stmt.setString(paramIndex++, moduleId)
             }
             

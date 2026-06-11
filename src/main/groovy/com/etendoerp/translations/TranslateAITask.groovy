@@ -26,22 +26,35 @@ class TranslateAITask extends DefaultTask {
     String coreModuleOutput = 'core'
     @Input
     String openaiModel = 'gpt-5-nano'
+    @Input
+    String openaiBaseUrl = ''
 
     TranslateAITask() {
         group = 'Translation'
         description = 'Auto-translate using OpenAI for the specified language(s) and module(s). ' +
                      'REQUIRED: modules parameter, OPENAI_API_KEY in gradle.properties. ' +
-                     'OPTIONAL: language (comma-separated), coreModuleOutput (name for core module output), openaiModel'
+                     'OPTIONAL: language (comma-separated), coreModuleOutput (name for core module output), ' +
+                     'openaiModel, openaiBaseUrl (proxy/compatible endpoint). Use -Phelp for usage.'
     }
 
     @TaskAction
     void translate() {
+        // Print usage and exit early when help is requested.
+        // NOTE: use startParameter.projectProperties (only -P/gradle.properties keys) instead of
+        // project.hasProperty('help'): Gradle always has a built-in 'help' task that resolves as a
+        // project property, so hasProperty('help') would be true on every run and never translate.
+        if (project.gradle.startParameter.projectProperties.containsKey('help')) {
+            printUsage()
+            return
+        }
+
         // Read project properties if available
         language = project.findProperty('language') ?: language
         clientId = project.findProperty('client') ?: clientId
         modules = project.findProperty('modules') ?: modules
         coreModuleOutput = project.findProperty('coreModuleOutput') ?: coreModuleOutput
         openaiModel = project.findProperty('openaiModel') ?: openaiModel
+        openaiBaseUrl = project.findProperty('openaiBaseUrl') ?: project.findProperty('OPENAI_BASE_URL') ?: openaiBaseUrl
 
         // Read OpenAI API key from gradle.properties
         def openaiApiKey = project.findProperty('OPENAI_API_KEY')
@@ -295,7 +308,50 @@ class TranslateAITask extends DefaultTask {
             ]
         ]
         
-        return OpenAIUtils.callOpenAI(project, systemPrompt, messages, openaiModel, null, 1, 60)
+        def baseUrl = openaiBaseUrl?.trim() ? openaiBaseUrl.trim() : null
+        return OpenAIUtils.callOpenAI(project, systemPrompt, messages, openaiModel, null, 1, 60, baseUrl)
+    }
+
+    void printUsage() {
+        println """
+=== translate.ai — AI translation task ===
+
+Auto-translates Etendo reference-data XML files using an OpenAI-compatible API.
+
+PREREQUISITE:
+  This task only translates EXISTING exported XML files, located at:
+    <source.path>/modules/<javaPackage>.<lang>/referencedata/translation/<lang>/
+  If that directory does not exist the module is skipped silently and nothing
+  is translated. Run the export task FIRST to generate those files:
+    ./gradlew export.translations -Pmodules=<list> -Planguage=<lang>
+
+USAGE:
+  ./gradlew translate.ai -Pmodules=<list> [options]
+
+REQUIRED:
+  -Pmodules=<list>         'all', 'core' (or '0'), or comma-separated java packages / module IDs
+  OPENAI_API_KEY=...       set in gradle.properties
+  source.path=...          Etendo sources path, set in gradle.properties
+
+OPTIONS:
+  -Planguage=<list>        Target language(s), comma-separated. Default: es_ES
+  -Pclient=<id>            Client ID. Default: 0
+  -PcoreModuleOutput=<n>   Output name for the core module. Default: core
+  -PopenaiModel=<model>    Model to use. Default: gpt-5-nano
+  -PopenaiBaseUrl=<url>    Base URL up to and including /v1 (proxy / compatible API).
+                           '/chat/completions' is appended automatically.
+                           Can also be set as OPENAI_BASE_URL in gradle.properties.
+                           Default: ${com.etendoerp.utils.OpenAIUtils.DEFAULT_BASE_URL}
+  -Phelp                   Show this help and exit
+
+EXAMPLES:
+  # Full flow: export first, then translate
+  ./gradlew export.translations -Pmodules=com.etendoerp.mymodule -Planguage=es_ES
+  ./gradlew translate.ai        -Pmodules=com.etendoerp.mymodule -Planguage=es_ES
+
+  ./gradlew translate.ai -Pmodules=core -PopenaiModel=gpt-5-nano
+  ./gradlew translate.ai -Pmodules=all -PopenaiBaseUrl=https://my-proxy.local/v1
+"""
     }
 
     void saveXMLFile(def document, File xmlFile) {
